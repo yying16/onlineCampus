@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.campus</groupId>
+    <artifactId>online.campus</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>online-campus</name>
+    <description>online-campus</description>
+
+    <modules>
+        <module>campus-gateway</module>
+        <module>campus-service</module>
+
+    </modules>
+
+    <packaging>pom</packaging>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.6.11</version>
+    </parent>
+
+    <properties>
+        <spring-cloud-alibaba.version>2021.0.4.0</spring-cloud-alibaba.version>
+        <spring-cloud.version>2021.0.4</spring-cloud.version>
+<!--        <nacos.version>2021.0.1.0</nacos.version>-->
+        <gateway.version>3.0.1</gateway.version>
+        <mybatis-plus.version>3.5.2</mybatis-plus.version>
+        <idworker.version>1.5.0</idworker.version>
+        <hutool.version>5.7.22</hutool.version>
+        <mysql.version>5.1.48</mysql.version>
+        <junit.version>5.9.2</junit.version>
+        <lombok.version>1.18.20</lombok.version>
+        <mybatis.version>2.2.2</mybatis.version>
+        <fastjson.version>1.2.28</fastjson.version>
+        <openFeign.version>3.1.2</openFeign.version>
+        <loadbalancer.version>3.1.6</loadbalancer.version>
+        <druid.version>1.2.16</druid.version>
+        <jsonwebtoken.version>0.9.1</jsonwebtoken.version>
+        <jaxb-api.version>2.3.0</jaxb-api.version>
+        <swagger.version>2.9.2</swagger.version>
+    </properties>
+
+    <dependencyManagement>
+    <dependencies>
+        <!--Spring Cloud Alibaba 的版本信息-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+            <version>${spring-cloud-alibaba.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+        <!--Spring Cloud 的版本信息-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>${spring-cloud.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!--通用jar包配置-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        <!--lombok-->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <!--actuator-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!--json-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>${fastjson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger2</artifactId>
+            <version>${swagger.version}</version>
+        </dependency>
+
+
+
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger-ui</artifactId>
+            <version>${swagger.version}</version>
+        </dependency>
+    </dependencies>
+    </dependencyManagement>
+</project>

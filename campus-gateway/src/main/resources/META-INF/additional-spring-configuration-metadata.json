@@ -1,0 +1,8 @@
+{
+  "properties": [
+    {
+      "name": "exclude.patterns",
+      "type": "java.lang.String",
+      "description": "Description for exclude.patterns."
+  }
+] }

@@ -1,0 +1,71 @@
+package com.campus.trade.domain;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Data;
+
+/**
+ *
+ * @TableName t_order
+ */
+@TableName(value ="t_order")
+@Data
+public class Order implements Serializable {
+    /**
+     * 订单id
+     */
+    @TableId(type = IdType.ASSIGN_ID)
+    private String orderId;
+
+    /**
+     * 下单用户id
+     */
+    private String userId;
+
+    /**
+     * 下单产品id
+     */
+    private String productId;
+
+    /**
+     * 数量
+     */
+    private Integer num;
+
+    /**
+     * 总价
+     */
+    private BigDecimal totalPrice;
+
+    /**
+     * 状态
+     */
+    private Integer status;
+
+    /**
+     * 创建时间
+     */
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
+    private String createTime;
+
+    /**
+     * 修改时间
+     */
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
+    private String updateTime;
+
+    /**
+     * 逻辑删除
+     */
+    private Integer deleted;
+
+    @TableField(exist = false)
+    private static final long serialVersionUID = 1L;
+}

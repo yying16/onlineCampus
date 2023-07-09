@@ -1,0 +1,222 @@
+package com.campus.user.service.impl;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.campus.common.service.ServiceCenter;
+import com.campus.common.util.MD5;
+import com.campus.common.util.TimeUtil;
+import com.campus.user.dao.UserDao;
+import com.campus.user.domain.User;
+import com.campus.user.dto.*;
+import com.campus.user.service.UserService;
+import com.campus.user.util.TokenUtil;
+import com.campus.user.vo.LoginMessage;
+import com.tencentcloudapi.common.Credential;
+import com.tencentcloudapi.common.exception.TencentCloudSDKException;
+import com.tencentcloudapi.common.profile.ClientProfile;
+import com.tencentcloudapi.common.profile.HttpProfile;
+import com.tencentcloudapi.sms.v20210111.SmsClient;
+import com.tencentcloudapi.sms.v20210111.models.SendSmsRequest;
+import com.tencentcloudapi.sms.v20210111.models.SendSmsResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    StringRedisTemplate redisTemplate;
+
+    @Autowired
+    UserDao userDao;
+
+    final static int tokenCacheTime = 5; //token缓存时间 5小时（单位小时）
+
+    /**
+     * 登录并生成token
+     *
+     * @param form 登录表单
+     * @return 登录消息（封装uid和token)
+     */
+    @Override
+    public LoginMessage login(LoginForm form) {
+        //md5加密后再查询/
+        form.setPassword(MD5.encrypt(form.getPassword()));
+
+        User user = userDao.getUser(form);
+        if (user == null) { // 登录名和密码不匹配
+            return null;
+        }
+        //登录成功
+        String token = TokenUtil.generateToken(user.getUserId(), user, tokenCacheTime);
+        String uid = user.getUserId();
+        redisTemplate.opsForValue().set(uid, token, tokenCacheTime, TimeUnit.HOURS); //设置token2小时有效期
+        return new LoginMessage(uid, token);
+    }
+
+    /**
+     * 注册
+     *
+     * @param form
+     */
+    @Override
+    public boolean register(RegisterForm form) {
+        User user = new User();
+        String id = IdWorker.getIdStr(user);
+        user.setUserId(id);
+        user.setAccount(form.getAccount());
+
+        //md5加密
+        String encryptPassword = MD5.encrypt(form.getPassword());
+        user.setPassword(encryptPassword);
+        user.setUsername(form.getUsername());
+        user.setTelephone(form.getTelephone());
+        user.setStatus(false);
+        user.setDeleted(false);
+        user.setCredit(0);
+        user.setCreateTime(TimeUtil.getCurrentTime());
+        user.setUpdateTime(TimeUtil.getCurrentTime());
+        userDao.insert(user);
+        String token = TokenUtil.generateToken(id, user, tokenCacheTime); // token缓存
+        if (id != null) { // 数据写入成功
+            redisTemplate.opsForValue().set(id, token, tokenCacheTime, TimeUnit.HOURS);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * 根据验证码
+     * */
+
+    /**
+     * 获取所有普通用户id
+     */
+    @Override
+    public List<String> getAllUserId() {
+        return userDao.getAllUserId();
+    }
+
+    /**
+     * 发送验证码
+     */
+    @Override
+    public boolean tencentSend(String code, String phone) {
+        try {
+            // 实例化一个认证对象，入参需要传入腾讯云账户 SecretId 和 SecretKey，此处还需注意密钥对的保密
+            // 代码泄露可能会导致 SecretId 和 SecretKey 泄露，并威胁账号下所有资源的安全性。以下代码示例仅供参考，建议采用更安全的方式来使用密钥，请参见：https://cloud.tencent.com/document/product/1278/85305
+            // 密钥可前往官网控制台 https://console.cloud.tencent.com/cam/capi 进行获取
+            Credential cred = new Credential("AKIDqX2MRGrEOHwL8i39zd3C7oFTSCj25sRo", "EHE3e092FFD3nKfmjV5QVP7aoxwgDVZX");
+            // 实例化一个http选项，可选的，没有特殊需求可以跳过
+            HttpProfile httpProfile = new HttpProfile();
+            httpProfile.setEndpoint("sms.tencentcloudapi.com");
+            // 实例化一个client选项，可选的，没有特殊需求可以跳过
+            ClientProfile clientProfile = new ClientProfile();
+            clientProfile.setHttpProfile(httpProfile);
+            // 实例化要请求产品的client对象,clientProfile是可选的
+            SmsClient client = new SmsClient(cred, "ap-guangzhou", clientProfile);
+            // 实例化一个请求对象,每个接口都会对应一个request对象
+            SendSmsRequest req = new SendSmsRequest();
+            String[] phoneNumberSet1 = {phone};
+            req.setPhoneNumberSet(phoneNumberSet1);
+
+            req.setSmsSdkAppId("1400825014");
+            req.setSignName("你也是程序员吗公众号");
+            req.setTemplateId("1812940");
+            String[] templateParamSet1 = {code, "5"};
+            req.setTemplateParamSet(templateParamSet1);
+
+            // 返回的resp是一个SendSmsResponse的实例，与请求对象对应
+            SendSmsResponse resp = client.SendSms(req);
+            // 输出json格式的字符串回包
+            System.out.println(SendSmsResponse.toJsonString(resp));
+            return true;
+        } catch (TencentCloudSDKException e) {
+            System.out.println(e.toString());
+        }
+        return false;
+    }
+
+    /**
+     * 根据手机号和验证码登录
+     *
+     * @param form
+     */
+    @Override
+    public LoginMessage login(LoginByCodeForm form) {
+        String telephone = form.getTelephone();
+        String code = form.getCode();
+        String authCode = redisTemplate.opsForValue().get(telephone);
+
+        if (code.equals(authCode)) { // 验证码正确
+            User user = userDao.getUserByTelephone(telephone);
+            String token = TokenUtil.generateToken(user.getUserId(), user, tokenCacheTime);
+            String uid = user.getUserId();
+            redisTemplate.opsForValue().set(uid, token, tokenCacheTime, TimeUnit.HOURS); //设置token2小时有效期
+            return new LoginMessage(uid, token);
+        }
+        return null;
+    }
+
+    @Override
+    public LoginMessage login(LoginByEmailForm form) {
+        String email = form.getEmail();
+        String code = form.getCode();
+        String authCode = redisTemplate.opsForValue().get(email);
+
+        if (code.equals(authCode)) { // 验证码正确
+            User user = userDao.getUserByEmail(email);
+            String token = TokenUtil.generateToken(user.getUserId(), user, tokenCacheTime);
+            String uid = user.getUserId();
+            redisTemplate.opsForValue().set(uid, token, tokenCacheTime, TimeUnit.HOURS); //设置token2小时有效期
+            return new LoginMessage(uid, token);
+        }
+        return null;
+    }
+
+    @Override
+    public boolean updatePassword(String userId, UpdatePasswordForm form) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", userId);
+        User user = userDao.selectOne(queryWrapper);
+        if (user == null) {
+            return false;
+        }
+        //md5加密，更新密码
+        user.setPassword(MD5.encrypt(form.getPassword()));
+        userDao.updateById(user);
+        return true;
+    }
+
+    /**
+     * 获取自动回复内容
+     */
+    @Override
+    public String getAutoReply(String uid) {
+        User user = userDao.selectById(uid);
+        return user.getAutoReply();
+    }
+
+
+//    /**
+//     * 获取用户详细信息
+//     *
+//     * @param uid 用户id
+//     */
+//    @Override
+//    public User getDetail(String uid) {
+//        String json = redisTemplate.opsForValue().get(uid);
+//        JSONObject jsonObject = JSONObject.parseObject(json);
+//        if (jsonObject.get("data") != null && String.valueOf(jsonObject.get("data")).length() > 0) {
+//            User user = JSONObject.parseObject(String.valueOf(jsonObject.get("data")), User.class);
+//            return user;
+//        }
+//        return null;
+//    }
+}

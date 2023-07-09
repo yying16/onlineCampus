@@ -1,0 +1,48 @@
+server:
+  port: 9000
+spring:
+  application:
+    name: campus-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 117.72.10.120:8848 #Nacos地址
+    gateway:
+      discovery:
+        locator:
+          enabled: true # 让gateway根据注册中心找到其他服务
+      routes:
+        - id: campus-test   #路由 id,没有固定规则，但唯一，建议与服务名对应
+          uri: lb://campus-test          #匹配后提供服务的路由地址
+          predicates:
+            - Path=/campusTest/**
+          filters:
+            - Token=true
+        - id: campus-user   #路由 id,没有固定规则，但唯一，建议与服务名对应
+          uri: lb://campus-user          #匹配后提供服务的路由地址
+          predicates:
+            - Path=/campusUser/**
+          filters:
+            - Token=true
+        - id: campus-message   #路由 id,没有固定规则，但唯一，建议与服务名对应
+          uri: lb://campus-message          #匹配后提供服务的路由地址
+          predicates:
+            - Path=/campusMessage/**
+          filters:
+            - Token=true
+  redis:
+    database: 0
+    host: 47.115.219.35
+    port: 6379
+    timeout: 10000
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+exclude:
+  patterns: # 网关非过滤路径
+    - '/campus-user/login'
+    - '/campus-user/register'
+    - '/campus-user/send'
