@@ -22,12 +22,6 @@ public class RelationshipController {
     @Autowired
     MessageDao messageDao;
 
-    @ApiOperation("发起好友请求")
-    @PostMapping("/initiateFriend")
-    public R initiateFriend(@RequestHeader("uid") String uid, @RequestBody Message message) {
-        return R.failed();
-    }
-
     @ApiOperation("接收好友请求")
     @GetMapping("/acceptRequest")
     public R acceptRequest(@RequestHeader("uid") String uid, @Param("msgId") String msgId) {

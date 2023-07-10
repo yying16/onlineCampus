@@ -181,32 +181,35 @@ public class MessageServiceImpl implements MessageService {
         return false;
     }
 
-    /**
-     * 消息懒加载
-     * 从数据库获取新的消息
-     * 将新的消息写入redis
-     *
-     * @param sender   发送者（当前登录用户）
-     * @param receiver 接收者（聊天对象）
-     * @return 新添加的50条记录
-     */
-    @Override
-    public List<Message> lazyLoading(String sender, String receiver) {
-        return null;
-    }
 
     /**
      * 消息列表懒加载（用户消息/系统消息/请求消息）
-     * 从数据库获取新的消息
+     * 从数据库获取对应消息的个数
+     * 从数据库中获取对应个数之后的20条数据
      * 将新的消息写入redis
      *
-     * @param sender 发送者（当前登录用户）
-     * @param type
-     * @return 新添加的10条记录
+     * @param uid      当前登录用户
+     * @param friendId 好友id
      */
     @Override
-    public List<Message> lazyLoading(String sender, MessageType type) {
-        return null;
+    public boolean lazyLoadingChatRecords(String uid, String friendId) {
+        try{
+            String jsonStr = String.valueOf(redisTemplate.opsForHash().get(uid,friendId));
+            JSONObject json = JSONObject.parseObject(jsonStr);
+            String arrayStr = String.valueOf(json.get("dialog"));
+            List<Message> list = JSONArray.parseArray(arrayStr,Message.class);
+            int num = list.size(); // 获取已缓存聊天记录个数
+            List<Message> loadedMessage = messageDao.lazyLoading(num); // 加载新的数据
+            list.addAll(loadedMessage); // 添加新加载的数据
+            arrayStr =  JSONArray.toJSONString(list);
+            json.put("dialog",arrayStr);
+            jsonStr = json.toJSONString();
+            redisTemplate.opsForHash().put(uid,friendId,jsonStr);
+            return true;
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
     }
 
 
@@ -219,12 +222,12 @@ public class MessageServiceImpl implements MessageService {
      * 系统发提示消息给发送者
      * 生成新的会话
      *
-     * @param uid 当前登录用户
-     * @param msgId 消息id
+     * @param uid    当前登录用户
+     * @param msgId  消息id
      * @param accept 是否通过好友申请
      */
     @Override
-    public boolean acceptRequest(String uid, String msgId, Boolean accept) {
+    public boolean handleRequest(String uid, String msgId, Boolean accept) {
         try {
             List<Message> list = JSONArray.parseArray(String.valueOf(redisTemplate.opsForHash().get(uid, "request")), Message.class);
             int index = -1;
@@ -285,19 +288,19 @@ public class MessageServiceImpl implements MessageService {
                     content = "用户" + username + "已拒绝您的好友申请 ! ";
                 }
                 sendPromptInformation(sender, content); // 发送提示信息
-                if(accept){ // 新建会话
+                if (accept) { // 新建会话
                     Map senderDetail = messageDao.getUserDetail(sender); // 发送者详情
                     JSONObject value = new JSONObject();
-                    value.put("dialog",new JSONArray());
-                    value.put("receiver",senderDetail);
+                    value.put("dialog", new JSONArray());
+                    value.put("user", senderDetail);
                     String valueStr = value.toJSONString();
-                    redisTemplate.opsForHash().put(uid,sender,valueStr);
-                    if(webSocket.isOnline(sender)){ // 如果对方也在线
+                    redisTemplate.opsForHash().put(uid, sender, valueStr);
+                    if (webSocket.isOnline(sender)) { // 如果对方也在线
                         JSONObject value2 = new JSONObject();
-                        value.put("dialog",new JSONArray());
-                        value.put("receiver",user);
+                        value.put("dialog", new JSONArray());
+                        value.put("user", user);
                         String valueStr2 = value2.toJSONString();
-                        redisTemplate.opsForHash().put(sender,uid,valueStr2);
+                        redisTemplate.opsForHash().put(sender, uid, valueStr2);
                     }
                 }
             }
@@ -311,6 +314,8 @@ public class MessageServiceImpl implements MessageService {
 
     /**
      * 系统发消息给普通用户（提醒消息,非管理员发送消息）
+     * 在数据库中新增消息
+     * 判断对方是否在线，在线则将消息写入对方的缓存
      *
      * @param receiver
      * @param content
@@ -341,5 +346,31 @@ public class MessageServiceImpl implements MessageService {
         return false;
     }
 
+    /**
+     * 获取用户聊天详情
+     * 将所有聊天记录改为已读
+     * 返回redis缓存数据
+     *
+     * @param uid      当前登录用户id
+     * @param friendId 好友id
+     */
+    @Override
+    public JSONObject getUserChatRecords(String uid, String friendId) {
+        String jsonStr = String.valueOf(redisTemplate.opsForHash().get(uid,friendId));
+        JSONObject json = JSONObject.parseObject(jsonStr);
+        String arrayStr = String.valueOf(json.get("dialog"));
+        List<Message> array = JSONArray.parseArray(arrayStr,Message.class);
+        for (int i = 0; i < array.size(); i++) {
+            Message message = array.get(i);
+            if(MessageStatus.of(message.getStatus())==MessageStatus.UNREAD){ // 消息未读
+                message.setStatus(MessageStatus.READ.code); // 改为已读
+                messageDao.updateById(message); // 更新数据库
+            }
+        }
+        arrayStr = JSONArray.toJSONString(array);
+        json.put("dialog",arrayStr);
+        redisTemplate.opsForHash().put(uid,friendId,json); // 更新缓存
+        return json;
+    }
 
 }
