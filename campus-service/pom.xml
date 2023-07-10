@@ -18,6 +18,7 @@
         <module>campus-message</module>
         <module>campus-contact</module>
         <module>campus-trade</module>
+        <module>campus-oss</module>
     </modules>
     <dependencies>
         <!--服务注册-->
@@ -46,5 +47,4 @@
             <artifactId>springfox-swagger2</artifactId>
         </dependency>
     </dependencies>
-
 </project>

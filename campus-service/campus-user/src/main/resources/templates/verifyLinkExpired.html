@@ -116,18 +116,10 @@
             <div id="content">
                 <div id="content_top">
                     <strong>尊敬的用户：您好！</strong>
-                    <strong>
-                        您正在进行<span>[[${operate}]]</span>操作，请在验证码中输入以下验证码完成操作(5分钟内有效)：
+                    <strong style="color: red">
+                        邮箱激活失败!
                     </strong>
-                    <div id="verificationCode">
-                        <button class="button" th:each="a:${verifyCode}">[[${a}]]</button>
-                    </div>
-                </div>
-                <div id="content_bottom">
-                    <small>
-                        注意：此操作可能会修改您的密码、登录邮箱或绑定手机。如非本人操作，请及时登录并修改密码以保证帐户安全
-                        <br>（工作人员不会向你索取此验证码，请勿泄漏！)
-                    </small>
+                    <p>您的邮箱激活链接已经超过有效期，请在认证页面点击再次发送激活邮件！</p>
                 </div>
             </div>
             <div id="bottom">
@@ -143,3 +135,6 @@
     </tbody>
 </table>
 </body>
+
+
+

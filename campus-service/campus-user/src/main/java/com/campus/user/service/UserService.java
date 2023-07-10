@@ -47,4 +47,10 @@ public interface UserService{
      * 获取自动回复内容
      * */
     String getAutoReply(String uid);
+
+    boolean sendEmail(String emailContent, String email);
+
+    User getUserByEmail(String email);
+
+    void activateEmail(String email,String userId);
 }

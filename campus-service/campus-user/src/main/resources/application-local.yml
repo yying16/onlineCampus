@@ -1,21 +1,40 @@
 server:
-  port: 7002
+  port: 7001
   servlet:
-    context-path: /campusMessage
+    context-path: /campusUser
 spring:
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+  mail:
+    default-encoding: utf-8
+    host: smtp.qq.com
+    password: cszkpvqefnledigc
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          starttls:
+            enable: true
+            required: true
+    username: 2371119023@qq.com
+    nickname: "校园服务平台"
+
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 1024MB
   application:
-    name: campus-message
+    name: campus-user
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
   cloud:
     nacos:
       discovery:
-        server-addr: 117.72.10.120:8848 #Nacos地址
+        server-addr: localhost:8848 #Nacos地址
   datasource:
     druid:
       url: jdbc:mysql://47.115.219.35:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
@@ -26,7 +45,7 @@ spring:
     username: root
     password: 123456
   redis:
-    database: 2
+    database: 1
     host: 47.115.219.35
     port: 6379
     timeout: 10000
@@ -54,8 +73,10 @@ mybatis-plus:
       table-prefix: t_
       id-type: auto
   mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.campus.message.domain
+  type-aliases-package: com.campus.user.domain
   configuration:
     map-underscore-to-camel-case: true
 
-
+#邮件链接baseurl
+email:
+  baseurl: http://localhost:7001/campusUser
