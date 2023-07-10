@@ -15,7 +15,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 117.72.10.120:8848 #Nacos地址
+        server-addr: localhost:8848 #Nacos地址
   datasource:
     druid:
       url: jdbc:mysql://47.115.219.35:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8

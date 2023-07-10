@@ -80,4 +80,13 @@ public interface MessageService {
      * @param friendId 好友id
      */
     JSONObject getUserChatRecords(String uid, String friendId);
+
+    /**
+     * 清理缓存
+     * 删除当前用户对应的消息缓存空间
+     * 如果当前用户有设置自动回复内容，则将其添加到自动回复缓存中
+     *
+     * @param uid 当前登陆用户
+     * */
+    boolean clearCache(String uid);
 }

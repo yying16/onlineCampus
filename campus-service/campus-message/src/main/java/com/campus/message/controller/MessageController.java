@@ -2,8 +2,8 @@ package com.campus.message.controller;
 
 import com.alibaba.fastjson.JSONObject;
 import com.campus.common.util.R;
-import com.campus.message.domain.Message;
 import com.campus.message.dto.HandleRequestForm;
+import com.campus.message.dto.MessageForm;
 import com.campus.message.dto.PromptInformationForm;
 import com.campus.message.feign.UserClient;
 import com.campus.message.service.impl.MessageServiceImpl;
@@ -24,19 +24,23 @@ public class MessageController {
     @Autowired
     UserClient userClient;
 
+
     @ApiOperation("发送消息(系统/用户/请求)")
     @PostMapping("/send")
-    public R send(@RequestBody Message message) {
-        if (messageService.sendMessage(message)) {
+    public R send(@RequestBody MessageForm form) {
+        if (messageService.sendMessage(form.toMessage())) {
             return R.ok();
         } else {
             return R.failed();
         }
     }
 
-    @ApiOperation("用户登录后的消息初始化-----------------------------")
-    @PostMapping("/initMessage")
+    @ApiOperation("用户登录后的消息初始化")
+    @GetMapping("/initMessage")
     public R initMessage(@RequestHeader("uid") String uid) {
+        if(messageService.initMessage(uid)){
+            return R.ok();
+        }
         return R.failed();
     }
 
@@ -80,6 +84,15 @@ public class MessageController {
             return R.ok(jsonObject);
         }
         return R.failed("数据加载失败");
+    }
+
+    @ApiOperation("用户退出登录进行缓存删除")
+    @GetMapping("/clearCache")
+    public R clearCache(@RequestHeader("uid") String uid){
+        if(messageService.clearCache(uid)){
+            return R.ok();
+        }
+        return R.failed();
     }
 
 
