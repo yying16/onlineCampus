@@ -177,6 +177,12 @@ public class UserController {
         //将模板引擎内容解析成html字符串
         context.setVariable("email", email);
         String emailContent = templateEngine.process("verifySuccess", context);
+
+        //需要通知绑定邮箱界面，用户邮箱已经激活成功，进行刷新或跳转
+
+
+
+        //返回邮件激活成功页面
         return emailContent;
     }
 }
