@@ -20,12 +20,6 @@ public interface UserService{
      * */
     boolean register(RegisterForm form);
 
-
-    /**
-     * 获取所有普通用户id
-     * */
-    List<String> getAllUserId();
-
     /**
      * 生成验证码
      * */

@@ -13,14 +13,12 @@ import com.campus.message.dao.MessageDao;
 import com.campus.message.dao.RelationshipDao;
 import com.campus.message.domain.Message;
 import com.campus.message.domain.Relationship;
-import com.campus.message.feign.UserClient;
 import com.campus.message.pojo.User;
 import com.campus.message.service.MessageService;
 import com.campus.message.socket.WebSocket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -39,8 +37,6 @@ public class MessageServiceImpl implements MessageService {
     @Autowired
     StringRedisTemplate redisTemplate;
 
-    @Autowired
-    UserClient userClient;
 
     @Autowired
     ServiceCenter serviceCenter;
@@ -98,7 +94,7 @@ public class MessageServiceImpl implements MessageService {
                     List<String> receivers = new ArrayList<>();
                     if (receiver.equals("all")) { // 发送全体用户
                         //获取用户列表
-                        receivers = (List<String>) userClient.getAllUserId().getData();
+                        receivers = messageDao.getAllUserId();
                     } else { // 多发
                         receivers = Arrays.asList(receiver.split("#"));
 

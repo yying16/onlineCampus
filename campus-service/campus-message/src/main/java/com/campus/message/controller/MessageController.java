@@ -5,7 +5,6 @@ import com.campus.common.util.R;
 import com.campus.message.dto.HandleRequestForm;
 import com.campus.message.dto.MessageForm;
 import com.campus.message.dto.PromptInformationForm;
-import com.campus.message.feign.UserClient;
 import com.campus.message.service.impl.MessageServiceImpl;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -21,8 +20,6 @@ public class MessageController {
     @Autowired
     MessageServiceImpl messageService;
 
-    @Autowired
-    UserClient userClient;
 
 
     @ApiOperation("发送消息(系统/用户/请求)")

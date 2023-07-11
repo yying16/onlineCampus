@@ -110,17 +110,6 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    /**
-     * 根据验证码
-     * */
-
-    /**
-     * 获取所有普通用户id
-     */
-    @Override
-    public List<String> getAllUserId() {
-        return userDao.getAllUserId();
-    }
 
     /**
      * 发送验证码

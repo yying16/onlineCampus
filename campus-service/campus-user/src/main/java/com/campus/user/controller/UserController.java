@@ -1,12 +1,12 @@
 package com.campus.user.controller;
 
-import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
 import com.campus.user.domain.User;
 import com.campus.user.dto.UpdatePasswordForm;
+import com.campus.user.feign.MessageClient;
+import com.campus.user.pojo.PromptInformationForm;
 import com.campus.user.service.impl.UserServiceImpl;
-import com.campus.user.util.EmailCodeUtil;
 import com.campus.user.util.TokenUtil;
 import lombok.extern.log4j.Log4j2;
 import org.apache.ibatis.annotations.Param;
@@ -17,13 +17,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-
-import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+
+import static com.campus.common.constant.InterfaceRefresh.REFRESH_MAIL;
 
 @RestController
 @RequestMapping("/user")
@@ -43,6 +41,9 @@ public class UserController {
     @Autowired
     TemplateEngine templateEngine;
 
+    @Autowired
+    MessageClient messageClient;
+
     @Value("${email.baseurl}")
     private String baseUrl;
 
@@ -60,18 +61,6 @@ public class UserController {
 
     }
 
-
-    /**
-     * 获取系统中所有普通用户id
-     */
-    @GetMapping("/getAllUserId")
-    public R getAllUserId() {
-        List<String> allUserId = userService.getAllUserId();
-        if (allUserId == null || allUserId.size() == 0) {
-            return R.failed();
-        }
-        return R.ok(allUserId);
-    }
 
     /**
      * 获取用户的自动回复内容
@@ -179,7 +168,7 @@ public class UserController {
         String emailContent = templateEngine.process("verifySuccess", context);
 
         //需要通知绑定邮箱界面，用户邮箱已经激活成功，进行刷新或跳转
-
+        messageClient.sendPromptInformation(new PromptInformationForm(userId,REFRESH_MAIL.code));
 
 
         //返回邮件激活成功页面

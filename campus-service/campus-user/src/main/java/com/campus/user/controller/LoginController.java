@@ -5,6 +5,7 @@ import com.campus.user.domain.User;
 import com.campus.user.dto.LoginByCodeForm;
 import com.campus.user.dto.LoginByEmailForm;
 import com.campus.user.dto.LoginForm;
+import com.campus.user.feign.MessageClient;
 import com.campus.user.service.impl.UserServiceImpl;
 import com.campus.user.util.EmailCodeUtil;
 import com.campus.user.util.RandomUtil;
@@ -53,6 +54,9 @@ public class LoginController {
     @Autowired
     TemplateEngine templateEngine;
 
+    @Autowired
+    MessageClient messageClient;
+
     /**
      * 登录按钮
      */
@@ -63,6 +67,7 @@ public class LoginController {
         if (message == null) { // 账号或密码错误
             return R.failed(null, "用户名或密码错误");
         }
+        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区
         return R.ok(message);
     }
 
@@ -74,6 +79,7 @@ public class LoginController {
         if (message == null) { // 账号或密码错误
             return R.failed(null, "验证码错误");
         }
+        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区
         return R.ok(message);
     }
 
@@ -86,11 +92,11 @@ public class LoginController {
     public R sendSms(@PathVariable String phone) {
 
         //从redis获取验证码，如果获取到直接返回
-        String code = redisTemplate.opsForValue().get(phone+"_code");
+        String code = redisTemplate.opsForValue().get(phone + "_code");
         if (StringUtils.hasLength(code)) {
             //如果有说明现在不是第一次发送，返回新的验证码
             //删除旧的验证码
-            redisTemplate.delete(phone+"_code");
+            redisTemplate.delete(phone + "_code");
         }
 
         //生成随机值，传递给阿里云进行发送
@@ -103,7 +109,7 @@ public class LoginController {
         if (isSend) {
             //发送成功，把发送成功验证码放到redis里面
             //设置有效时间5分钟
-            redisTemplate.opsForValue().set(phone+"_code", code, 5, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(phone + "_code", code, 5, TimeUnit.MINUTES);
             log.info("redis中的验证码是：" + code);
             return R.ok(code, "手机验证码已发送");
         } else {
@@ -131,6 +137,7 @@ public class LoginController {
             log.info("退出登录的用户是：" + user);
             //删除redis中的token
             redisTemplate.delete(user.getUserId());
+            messageClient.clearCache(user.getUserId()); // 删除用户消息缓存区
             return R.ok();
         }
     }
@@ -143,11 +150,11 @@ public class LoginController {
     @GetMapping("sendEmail/{email}")
     public R sendEmail(@PathVariable String email) {
         //从redis获取验证码，如果获取到直接返回
-        String code = redisTemplate.opsForValue().get(email+"_code");
+        String code = redisTemplate.opsForValue().get(email + "_code");
         if (StringUtils.hasLength(code)) {
             //如果有说明现在不是第一次发送，返回新的验证码
             //删除旧的验证码
-            redisTemplate.delete(email+"_code");
+            redisTemplate.delete(email + "_code");
         }
         //生成随机验证码
         code = EmailCodeUtil.generateVerificationCode();
@@ -165,10 +172,10 @@ public class LoginController {
         if (b) {
             //发送成功，把发送成功验证码放到redis里面
             //设置有效时间5分钟
-            redisTemplate.opsForValue().set(email+"_code", code, 5, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(email + "_code", code, 5, TimeUnit.MINUTES);
             log.info("redis中的验证码是：" + code);
             return R.ok(null, "邮箱验证码已发送");
-        }else {
+        } else {
             return R.failed(null, "邮箱验证码发送失败");
         }
     }
@@ -184,6 +191,7 @@ public class LoginController {
         if (message == null) { // 账号或密码错误
             return R.failed(null, "验证码错误");
         }
+        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区
         return R.ok(message);
     }
 }

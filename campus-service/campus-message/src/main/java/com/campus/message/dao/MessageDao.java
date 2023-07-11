@@ -37,4 +37,9 @@ public interface MessageDao extends BaseMapper<Message> {
     @Select("select auto_reply from t_user where user_id = #{uid}")
     String getAutoReply(String uid);
 
+
+    //获取所有普通用户id
+    @Select("select user_id from t_user where deleted = 0 and status = 0")
+    List<String> getAllUserId();
+
 }
