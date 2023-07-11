@@ -281,7 +281,7 @@ public class MessageServiceImpl implements MessageService {
                     break;
                 }
             }
-            String sender = msg.getSender();
+            String sender = msg.getSender(); // 发起好友申请者
             if (index != -1) { // 有找到
                 if (accept) { // 通过好友申请
                     msg.setStatus(MessageStatus.RECEIVE.code); // 改为接受
@@ -382,6 +382,7 @@ public class MessageServiceImpl implements MessageService {
                 JSONArray systemMessage = JSONArray.parseArray(s); // 聊天内容
                 systemMessage.add(0, JSONObject.toJSON(message)); // 添加请求内容
                 redisTemplate.opsForHash().put(receiver, "system", systemMessage.toJSONString()); // 更新redis
+                webSocket.sendOneMessage(receiver,JSONObject.toJSONString(message));
             }
             return true;
         }
