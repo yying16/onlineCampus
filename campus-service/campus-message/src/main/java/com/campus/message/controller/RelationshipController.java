@@ -29,12 +29,6 @@ public class RelationshipController {
         return R.failed();
     }
 
-    @GetMapping("/test")
-    public R test(){
-         User userDetail = messageDao.getUserDetail("1");
-        String json = JSONObject.toJSONString(userDetail);
-        return R.ok(json);
-    }
 
 
 }

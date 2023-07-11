@@ -37,11 +37,6 @@ public interface UserService{
 
     boolean updatePassword(String userId,UpdatePasswordForm form);
 
-    /**
-     * 获取自动回复内容
-     * */
-    String getAutoReply(String uid);
-
     boolean sendEmail(String emailContent, String email);
 
     User getUserByEmail(String email);

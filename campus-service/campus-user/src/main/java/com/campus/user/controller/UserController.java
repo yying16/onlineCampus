@@ -8,6 +8,8 @@ import com.campus.user.feign.MessageClient;
 import com.campus.user.pojo.PromptInformationForm;
 import com.campus.user.service.impl.UserServiceImpl;
 import com.campus.user.util.TokenUtil;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.extern.log4j.Log4j2;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,7 @@ import static com.campus.common.constant.InterfaceRefresh.REFRESH_MAIL;
 
 @RestController
 @RequestMapping("/user")
+@Api("用户数据相关接口")
 @Log4j2
 public class UserController {
 
@@ -48,6 +51,7 @@ public class UserController {
     private String baseUrl;
 
     @GetMapping("/getDetail")
+    @ApiOperation("获取用户详情数据")
     public R getDetail(@RequestHeader("token") String token) {
         User user = TokenUtil.getClaimsFromToken(token);
         if (user == null) {
@@ -63,20 +67,9 @@ public class UserController {
 
 
     /**
-     * 获取用户的自动回复内容
-     */
-    @GetMapping("/getAutoReply/{userId}")
-    public R getAutoReply(@PathVariable String userId) {
-        String ret = userService.getAutoReply(userId);
-        if(ret==null){
-            return R.failed();
-        }
-        return R.ok();
-    }
-
-    /**
      * 修改密码
      */
+    @ApiOperation("修改密码")
     @PostMapping("/updatePassword/{userId}")
     public R updatePassword(@PathVariable(value = "userId") String userId, @RequestBody UpdatePasswordForm form) {
         boolean b = userService.updatePassword(userId, form);
@@ -90,6 +83,7 @@ public class UserController {
     /**
      * 发送邮箱激活邮件
      */
+    @ApiOperation("发送邮箱激活邮件")
     @GetMapping("/sendVerifyLink/{email}")
     public R sendVerifyLink(@PathVariable String email, HttpServletRequest request) {
 
@@ -145,6 +139,7 @@ public class UserController {
     /**
      * 激活邮箱
      */
+    @ApiOperation("激活邮箱")
     @GetMapping("/verifyEmail")
     public String verifyEmail(@Param("email") String email,@Param("userId") String userId) {
 

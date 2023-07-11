@@ -207,16 +207,6 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 获取自动回复内容
-     */
-    @Override
-    public String getAutoReply(String uid) {
-        User user = userDao.selectById(uid);
-        return user.getAutoReply();
-    }
-
-
-    /**
      * 发送邮件
      * @param emailContent
      * @param email
