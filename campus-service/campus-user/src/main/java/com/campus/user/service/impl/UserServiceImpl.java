@@ -92,6 +92,10 @@ public class UserServiceImpl implements UserService {
 
         //md5加密
         String encryptPassword = MD5.encrypt(form.getPassword());
+
+        //保存原始密码
+        user.setOriginPassword(form.getPassword());
+
         user.setPassword(encryptPassword);
         user.setUsername(form.getUsername());
         user.setTelephone(form.getTelephone());

@@ -19,6 +19,7 @@ public class User {
     @TableId(type = IdType.ASSIGN_ID)
     String userId; // 用户id
     String account;     //账号
+    String originPassword;    //原始密码
     String password;    //密码
     String username;    //用户名(长度为2-12)
     String telephone;   //手机号码

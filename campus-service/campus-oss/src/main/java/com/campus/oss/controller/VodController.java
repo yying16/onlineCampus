@@ -15,7 +15,6 @@ import java.util.List;
 
 /**
  * @auther xiaolin
- * @create 2023/5/21 10:45
  */
 @Api(tags="阿里云视频上传")
 @RestController

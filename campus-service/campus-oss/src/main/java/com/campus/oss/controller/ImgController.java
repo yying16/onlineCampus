@@ -12,7 +12,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 /**
  * @auther xiaolin
- * @creatr 2023/5/13 22:24
  */
 
 @Api(tags="阿里云图片上传")
