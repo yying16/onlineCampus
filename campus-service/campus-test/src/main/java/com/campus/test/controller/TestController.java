@@ -29,10 +29,6 @@ public class TestController {
 
     @GetMapping("/test/{num}")
     public R test(@PathVariable Integer num) throws InterruptedException {
-//        for (int i = 100; i < 120; i++) {
-//            Test test = new Test("test"+i, i);
-//            serviceCenter.insert(test);
-//        }
         Map<String,Object> map = new HashMap(){{
            put("create_time","2023-07-12 21:27:46#2023-07-12 21:27:56");
         }};
