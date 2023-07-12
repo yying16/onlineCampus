@@ -1,3 +1,5 @@
+##接口文档
+
 以登录接口为例
 
 1.在文档中找到登录接口路径为/login
@@ -46,4 +48,38 @@ Content-Type: application/json
   "msg": null
 }
 ```
+
+
+
+##数据校验
+因为数据校验在api文档中没有体现，所以在这里写一下
+以注册用例为例
+
+请求格式：
+
+```
+POST http://localhost:7001/campusUser/register
+Content-Type: application/json
+
+{
+  "account": "1712131536",
+  "password": "123456",
+  "username":"yying",
+  "telephone": "1312843878"
+}
+```
+
+响应体数据：
+
+```json
+{
+  "message": "请求参数有误",
+  "errors": {
+    "telephone": "手机号不合法"
+  },
+  "code": 400
+}
+```
+
+
 
