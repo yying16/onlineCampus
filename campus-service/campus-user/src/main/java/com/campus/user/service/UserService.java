@@ -42,4 +42,17 @@ public interface UserService{
     User getUserByEmail(String email);
 
     void activateEmail(String email,String userId);
+
+    /**
+     * 数据校验-账号
+     * */
+    boolean checkAccountHasRegister(String account);
+
+    /**
+     * 数据校验-手机号
+     * */
+    boolean checkTelephoneHasRegister(String telephone);
+
+
+
 }

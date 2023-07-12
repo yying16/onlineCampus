@@ -178,6 +178,11 @@ public class ServiceCenter {
 //    }
 
     /**
+     * 加载数据
+     * */
+    
+
+    /**
      * 查询数据（单个）
      */
     public <T> Object search(String id, Class<T> clazz) {
