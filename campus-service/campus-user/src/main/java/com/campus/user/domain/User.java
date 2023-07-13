@@ -23,10 +23,15 @@ public class User {
     String password;    //密码
     String username;    //用户名(长度为2-12)
     String telephone;   //手机号码
+    String userImage;   //用户头像
     String email;       //邮箱
     String autoReply;   //自动回复内容
     Boolean status;     //身份（true为管理员，false为普通用户）
     Integer credit;     // 信用
+
+    String address;     //地址
+
+    String consignee;   //收货人
     @TableLogic(value = "false", delval = "true")
     Boolean deleted;        //逻辑删除
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")

@@ -1,7 +1,7 @@
 server:
   port: 7003
   servlet:
-    context-path: /campus-contact
+    context-path: /campusContact
 spring:
   servlet:
     multipart:
@@ -48,6 +48,14 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     listener:
       ack-mode: manual_immediate
+  data:
+    mongodb:
+      host: 47.115.219.35
+      port: 27017
+      database: campus
+      authentication-database: admin
+      username: admin
+      password: '123456'
 mybatis-plus:
   global-config:
     db-config:

@@ -9,6 +9,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * author yying
+ */
+
 @Data
 @TableName("t_message")
 @AllArgsConstructor
