@@ -2,7 +2,11 @@ package com.campus.trade.service;
 
 import com.campus.trade.domain.Product;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.campus.trade.dto.ProductForm;
+import com.campus.trade.dto.AddProductForm;
+import com.campus.trade.vo.ShowProduct;
+
+import java.util.List;
+import java.util.Map;
 
 /**
 * @author xiaolin
@@ -11,5 +15,9 @@ import com.campus.trade.dto.ProductForm;
 */
 public interface ProductService extends IService<Product> {
 
-    boolean addProduct(ProductForm productForm);
+    boolean addProduct(AddProductForm addProductForm);
+
+    List<ShowProduct> listProduct(Map<String,Object> searchProductForm);
+
+    ShowProduct getByTheId(String id);
 }

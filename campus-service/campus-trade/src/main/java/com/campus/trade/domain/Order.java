@@ -25,19 +25,26 @@ public class Order implements Serializable {
     private String orderId;
 
     /**
+     * 订单号
+     */
+    private String orderNo;
+
+    /**
      * 下单用户id
      */
     private String userId;
+
+    /**
+     * 卖家id
+     */
+    private String sellerId;
 
     /**
      * 下单产品id
      */
     private String productId;
 
-    /**
-     * 数量
-     */
-    private Integer num;
+
 
     /**
      * 总价
@@ -47,7 +54,7 @@ public class Order implements Serializable {
     /**
      * 状态
      */
-    private Integer status;
+    private Integer status; //状态（0未支付，1已支付，2已发货，3已收货）
 
     /**
      * 创建时间
@@ -64,7 +71,7 @@ public class Order implements Serializable {
     /**
      * 逻辑删除
      */
-    private Integer deleted;
+    private Boolean deleted;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

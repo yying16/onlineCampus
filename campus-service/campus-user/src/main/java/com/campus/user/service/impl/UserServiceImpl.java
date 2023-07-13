@@ -3,6 +3,7 @@ package com.campus.user.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.MD5;
 import com.campus.common.util.R;
@@ -34,7 +35,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserService {
 
     @Autowired
     StringRedisTemplate redisTemplate;

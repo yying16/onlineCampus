@@ -1,17 +1,22 @@
 package com.campus.user.controller;
 
+import com.alibaba.nacos.shaded.org.checkerframework.checker.units.qual.A;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
 import com.campus.user.domain.User;
 import com.campus.user.dto.UpdatePasswordForm;
+import com.campus.user.dto.UpdateUserForm;
 import com.campus.user.feign.MessageClient;
 import com.campus.user.pojo.PromptInformationForm;
 import com.campus.user.service.impl.UserServiceImpl;
 import com.campus.user.util.TokenUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import lombok.extern.log4j.Log4j2;
 import org.apache.ibatis.annotations.Param;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -27,8 +32,8 @@ import static com.campus.common.constant.InterfaceRefresh.REFRESH_MAIL;
 
 @RestController
 @RequestMapping("/user")
-@Api("用户数据相关接口")
 @Log4j2
+@Api(tags="用户数据相关接口")
 public class UserController {
 
     @Autowired
@@ -50,8 +55,8 @@ public class UserController {
     @Value("${email.baseurl}")
     private String baseUrl;
 
+    @ApiOperation(value = "获取用户信息")
     @GetMapping("/getDetail")
-    @ApiOperation("获取用户详情数据")
     public R getDetail(@RequestHeader("token") String token) {
         User user = TokenUtil.getClaimsFromToken(token);
         if (user == null) {
@@ -66,12 +71,42 @@ public class UserController {
     }
 
 
+    //根据用户id获取用户信息
+    @ApiOperation(value = "根据用户id获取用户信息")
+    @GetMapping("{userId}")
+    public R getUserById(@ApiParam("用户id") @PathVariable("userId") String userId) {
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        User user = userService.getOne(wrapper);
+        if (user != null) {
+            return R.ok(user);
+        } else {
+            return R.failed("用户不存在");
+        }
+    }
+
+
+    //更新用户信息
+    @ApiOperation(value = "更新用户信息")
+    @PostMapping("/updateUser")
+    public R updateUser(@ApiParam("用户对象") @RequestBody UpdateUserForm updateUserForm) {
+        User user = new User();
+        BeanUtils.copyProperties(updateUserForm, user);
+        boolean b = userService.updateById(user);
+        if (b) {
+            return R.ok();
+        } else {
+            return R.failed();
+        }
+    }
+
+
     /**
      * 修改密码
      */
-    @ApiOperation("修改密码")
+    @ApiOperation(value = "修改密码")
     @PostMapping("/updatePassword/{userId}")
-    public R updatePassword(@PathVariable(value = "userId") String userId, @RequestBody UpdatePasswordForm form) {
+    public R updatePassword(@ApiParam("用户id") @PathVariable(value = "userId") String userId,@ApiParam("对象：包括password") @RequestBody UpdatePasswordForm form) {
         boolean b = userService.updatePassword(userId, form);
         if (b) {
             return R.ok();
@@ -83,9 +118,9 @@ public class UserController {
     /**
      * 发送邮箱激活邮件
      */
-    @ApiOperation("发送邮箱激活邮件")
+    @ApiOperation(value = "发送邮箱激活邮件")
     @GetMapping("/sendVerifyLink/{email}")
-    public R sendVerifyLink(@PathVariable String email, HttpServletRequest request) {
+    public R sendVerifyLink(@ApiParam("邮箱") @PathVariable String email, HttpServletRequest request) {
 
 
         //判断邮箱是否已经被绑定
@@ -139,9 +174,9 @@ public class UserController {
     /**
      * 激活邮箱
      */
-    @ApiOperation("激活邮箱")
+    @ApiOperation(value = "激活邮箱")
     @GetMapping("/verifyEmail")
-    public String verifyEmail(@Param("email") String email,@Param("userId") String userId) {
+    public String verifyEmail(@ApiParam("邮箱") @Param("email") String email,@ApiParam("用户id") @Param("userId") String userId) {
 
         //查看redis中是否有验证链接
         String link = redisTemplate.opsForValue().get(email+"_link");

@@ -6,9 +6,10 @@
 
     <resultMap id="BaseResultMap" type="com.campus.trade.domain.Order">
             <id property="orderId" column="order_id" jdbcType="VARCHAR"/>
+            <result property="orderNo" column="order_no" jdbcType="VARCHAR"/>
             <result property="userId" column="user_id" jdbcType="VARCHAR"/>
+            <result property="sellerId" column="seller_id" jdbcType="VARCHAR"/>
             <result property="productId" column="product_id" jdbcType="VARCHAR"/>
-            <result property="num" column="num" jdbcType="INTEGER"/>
             <result property="totalPrice" column="total_price" jdbcType="DECIMAL"/>
             <result property="status" column="status" jdbcType="TINYINT"/>
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
@@ -16,8 +17,8 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        order_id,user_id,product_id,
-        num,total_price,status,
+        order_id,order_no,user_id,seller_id,product_id,
+        total_price,status,
         create_time,update_time
     </sql>
 </mapper>

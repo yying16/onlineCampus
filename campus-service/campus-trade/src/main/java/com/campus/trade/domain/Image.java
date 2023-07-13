@@ -12,41 +12,41 @@ import lombok.Data;
 
 /**
  *
- * @TableName t_category
+ * @TableName t_image
  */
-@TableName(value ="t_category")
+@TableName(value ="t_image")
 @Data
-public class Category implements Serializable {
+public class Image implements Serializable {
     /**
-     * 分类id
+     *
      */
     @TableId(type = IdType.ASSIGN_ID)
-    private String categoryId;
+    private String imgId;
 
     /**
-     * 分类名
+     *
      */
-    private String name;
+    private String imgUrl;
 
     /**
-     * 上级id
+     *
      */
-    private String parentId;
+    private String otherId;
 
     /**
-     * 创建时间
+     *
      */
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
     private String createTime;
 
     /**
-     * 修改时间
+     *
      */
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
     private String updateTime;
 
     /**
-     * 逻辑删除
+     *
      */
     private Boolean deleted;
 

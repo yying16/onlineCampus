@@ -2,6 +2,10 @@ package com.campus.trade.service;
 
 import com.campus.trade.domain.Category;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.campus.trade.vo.ShowCategory;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
 * @author xiaolin
@@ -10,4 +14,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface CategoryService extends IService<Category> {
 
+    List<ShowCategory> getCategoryList();
+
+    void saveCategory(MultipartFile file, CategoryService categoryService);
+
+    boolean deleteAllSubject(String subjectId);
 }

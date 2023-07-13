@@ -1,27 +1,25 @@
-package com.campus.trade.domain;
+package com.campus.trade.vo;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import java.io.Serializable;
-import java.math.BigDecimal;
-import java.util.Date;
-
+import com.campus.trade.domain.Image;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 /**
- *
- * @TableName t_product
+ * @auther xiaolin
+ * @create 2023/7/13 10:54
  */
-@TableName(value ="t_product")
 @Data
-public class Product implements Serializable {
+public class ShowProduct {
     /**
      * 商品id
      */
-    @TableId(type = IdType.ASSIGN_ID)
+
     private String productId;
 
     /**
@@ -69,7 +67,29 @@ public class Product implements Serializable {
     /**
      * 逻辑删除
      */
-    private Boolean deleted;
+    private Integer deleted;
+
+
+    //用户名
+    private String userName;
+
+    //父分类名
+    private String categoryName;
+
+    //子分类名
+    private String subCategoryName;
+
+
+
+    //用户头像
+    private String userAvatar;
+
+
+    //商品图片列表
+    private List<String> imageUrls;
+
+
+
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
