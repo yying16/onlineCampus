@@ -68,18 +68,6 @@ public class UserController {
     }
 
 
-    /**
-     * 获取用户的自动回复内容
-     */
-    @ApiOperation(value = "获取用户的自动回复内容")
-    @GetMapping("/getAutoReply/{userId}")
-    public R getAutoReply(@ApiParam("用户id")@PathVariable String userId) {
-        String ret = userService.getAutoReply(userId);
-        if(ret==null){
-            return R.failed();
-        }
-        return R.ok();
-    }
 
     /**
      * 修改密码
