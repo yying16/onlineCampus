@@ -66,7 +66,7 @@ public class DynamicController {
      * @return
      */
     @GetMapping("/searchCityWide")
-
+    @ApiOperation("切换为同城")
     public R searchCityWide(@Param("city") String city,@RequestHeader("uid") String uid) {
         List<Dynamic> list = dynamicService.searchCityWide(city,uid);
         if (list == null)
