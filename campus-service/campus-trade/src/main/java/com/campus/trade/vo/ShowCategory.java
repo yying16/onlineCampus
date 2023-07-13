@@ -1,26 +1,24 @@
-package com.campus.trade.domain;
+package com.campus.trade.vo;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import java.io.Serializable;
-import java.util.Date;
-
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
+import org.apache.catalina.LifecycleState;
+
+import java.io.Serializable;
+import java.util.List;
 
 /**
- *
- * @TableName t_category
+ * @auther xiaolin
+ * @create 2023/7/13 14:22
  */
-@TableName(value ="t_category")
 @Data
-public class Category implements Serializable {
+public class ShowCategory implements Serializable {
     /**
      * 分类id
      */
-    @TableId(type = IdType.ASSIGN_ID)
     private String categoryId;
 
     /**
@@ -48,8 +46,9 @@ public class Category implements Serializable {
     /**
      * 逻辑删除
      */
-    private Boolean deleted;
+    private Integer deleted;
 
-    @TableField(exist = false)
+    private List<ShowCategory> children;
+
     private static final long serialVersionUID = 1L;
 }

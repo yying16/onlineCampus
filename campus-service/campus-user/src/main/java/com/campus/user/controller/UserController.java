@@ -1,10 +1,12 @@
 package com.campus.user.controller;
 
 import com.alibaba.nacos.shaded.org.checkerframework.checker.units.qual.A;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
 import com.campus.user.domain.User;
 import com.campus.user.dto.UpdatePasswordForm;
+import com.campus.user.dto.UpdateUserForm;
 import com.campus.user.feign.MessageClient;
 import com.campus.user.pojo.PromptInformationForm;
 import com.campus.user.service.impl.UserServiceImpl;
@@ -14,6 +16,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.extern.log4j.Log4j2;
 import org.apache.ibatis.annotations.Param;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -67,6 +70,35 @@ public class UserController {
 
     }
 
+
+    //根据用户id获取用户信息
+    @ApiOperation(value = "根据用户id获取用户信息")
+    @GetMapping("{userId}")
+    public R getUserById(@ApiParam("用户id") @PathVariable("userId") String userId) {
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        User user = userService.getOne(wrapper);
+        if (user != null) {
+            return R.ok(user);
+        } else {
+            return R.failed("用户不存在");
+        }
+    }
+
+
+    //更新用户信息
+    @ApiOperation(value = "更新用户信息")
+    @PostMapping("/updateUser")
+    public R updateUser(@ApiParam("用户对象") @RequestBody UpdateUserForm updateUserForm) {
+        User user = new User();
+        BeanUtils.copyProperties(updateUserForm, user);
+        boolean b = userService.updateById(user);
+        if (b) {
+            return R.ok();
+        } else {
+            return R.failed();
+        }
+    }
 
 
     /**
