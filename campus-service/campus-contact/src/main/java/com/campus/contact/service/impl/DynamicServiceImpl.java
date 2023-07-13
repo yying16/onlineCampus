@@ -1,7 +1,5 @@
 package com.campus.contact.service.impl;
 
-import cn.hutool.core.date.DateField;
-import cn.hutool.core.date.DateUtil;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.util.TimeUtil;
 import com.campus.contact.dao.DynamicDao;
@@ -12,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -31,14 +28,14 @@ public class DynamicServiceImpl implements DynamicService {
     }
 
     @Override
-    public List<Dynamic> searchDynamic(String content) {
-        Criteria criteria = Criteria.where("content").regex(".*" + content + ".*");
+    public List<Dynamic> searchDynamic(String content, String uid) {
+        Criteria criteria = Criteria.where("content").regex(".*" + content + ".*").orOperator(Criteria.where("status").is(0), Criteria.where("targets").is(uid)); // 公开内容
         return dynamicDao.search(criteria);
     }
 
     @Override
-    public List<Dynamic> searchCityWide(String city) {
-        Criteria criteria = Criteria.where("city").is(city);
+    public List<Dynamic> searchCityWide(String city, String uid) {
+        Criteria criteria = Criteria.where("city").is(city).orOperator(Criteria.where("status").is(0), Criteria.where("targets").is(uid));
         return dynamicDao.search(criteria);
     }
 

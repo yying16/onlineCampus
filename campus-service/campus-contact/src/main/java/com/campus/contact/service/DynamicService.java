@@ -16,14 +16,14 @@ public interface DynamicService {
      *
      * @param content 搜索内容
      */
-    public List<Dynamic> searchDynamic(String content);
+    public List<Dynamic> searchDynamic(String content,String uid);
 
     /**
      * 查找同城
      *
      * @param city 当前用户城市
      */
-    public List<Dynamic> searchCityWide(String city);
+    List<Dynamic> searchCityWide(String city, String uid);
 
     /**
      * 查看我的动态

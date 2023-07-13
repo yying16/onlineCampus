@@ -52,8 +52,8 @@ public class DynamicController {
      */
     @GetMapping("/searchDynamic")
     @ApiOperation("模糊查询动态")
-    public R searchDynamic(@Param("content") String content) {
-        List<Dynamic> list = dynamicService.searchDynamic(content);
+    public R searchDynamic(@Param("content") String content,@RequestHeader("uid") String uid) {
+        List<Dynamic> list = dynamicService.searchDynamic(content,uid);
         if (list == null)
             return R.failed();
         return R.ok(list);
@@ -67,8 +67,8 @@ public class DynamicController {
      */
     @GetMapping("/searchCityWide")
 
-    public R searchCityWide(@Param("city") String city) {
-        List<Dynamic> list = dynamicService.searchCityWide(city);
+    public R searchCityWide(@Param("city") String city,@RequestHeader("uid") String uid) {
+        List<Dynamic> list = dynamicService.searchCityWide(city,uid);
         if (list == null)
             return R.failed();
         return R.ok(list);
