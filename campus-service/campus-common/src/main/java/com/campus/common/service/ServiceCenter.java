@@ -56,7 +56,7 @@ public class ServiceCenter {
     static final int maxRepetitions = 10; // 最大重复数
     static final String lockKey = "CACHE_RESOURCE_KEY";
     static final int minCacheDuration = 20; // 最小过期时间（分钟）
-    static final int maxCacheDuration = 60; // 最小过期时间（分钟）
+    static final int maxCacheDuration = 40; // 最大过期时间（分钟）
     static final long taskFlushInterval = 30; // 任务刷新间隔(分钟)
     static final int refreshRetryTimes = 5; // 刷新任务重试次数
     @Autowired
@@ -357,7 +357,7 @@ public class ServiceCenter {
     /**
      * 根据id列表获取对应的数据集合
      */
-    public <T> List<T> getDataByIds(List<String> ids, Class<T> clazz) {
+    private <T> List<T> getDataByIds(List<String> ids, Class<T> clazz) {
         BaseMapper<T> baseMapper = getMapper(clazz);
         String primaryKey = getName(clazz) + "_id";
         QueryWrapper<T> wrapper = new QueryWrapper<>();
@@ -396,15 +396,11 @@ public class ServiceCenter {
                 Object ret = redisTemplate.opsForValue().get(h + id);
                 return ret;
             } else { // 没有缓存
-                redisTemplate.opsForValue().set(h + id, "{}", getCacheTime(), TimeUnit.SECONDS); // 返回空数据
                 boolean b = tryLock(h, id); // true则表示获取锁成功
                 while (!b) { // 没有得到互斥锁
                     b = tryLock(h, id);
                 }
-                ServiceData serviceData = new ServiceData(ServiceData.SELECT, null, clazz.getName());
-                String data = JSONObject.toJSONString(serviceData);
-                kafkaTemplate.send("service", getName(clazz), data);
-                return clazz.newInstance();
+                return selectMySql(id,clazz);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -424,6 +420,7 @@ public class ServiceCenter {
 
     /**
      * 插入数据(先写入数据库，再写入缓存）
+     * @return id
      */
     public <T> String insert(T t) {
         try {
@@ -510,7 +507,7 @@ public class ServiceCenter {
                     break;
                 }
                 case ServiceData.DELETE: { // 删除
-                    deleteMySql(data, serviceData.getId());
+                    deleteMySql(data.getClass(), serviceData.getId());
                     break;
                 }
                 case ServiceData.SELECT: { // 删除
@@ -529,11 +526,11 @@ public class ServiceCenter {
      */
     public <T> Object selectMySql(String id, Class<T> clazz) {
         try {
-            BaseMapper<T> mapper = getMapper(clazz.newInstance());
+            BaseMapper<T> mapper = getMapper(clazz);
             String h = getName(clazz);
-            Object ret = mapper.selectById(id);
+            Object ret = mapper.selectById(id); // 获取数据
             String value = JSONObject.toJSONString(ret);
-            redisTemplate.opsForValue().set(h + id, value, getCacheTime(), TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(h + id, value, getCacheTime(), TimeUnit.SECONDS); // 设置缓存
             unlock(h, id); // 解锁
             return ret;
         } catch (Exception e) {
@@ -574,7 +571,7 @@ public class ServiceCenter {
     /**
      * 用于异步更新
      */
-    public void update(Object t, String id) {
+    private void update(Object t, String id) {
         // 删除mysql中的数据
         int flag = 2;
         while (0 < flag && flag <= maxRepetitions) { // flag 在 ( 0 , maxRepetitions ] 区间循环，每次错误就flag++
@@ -590,9 +587,9 @@ public class ServiceCenter {
     /**
      * 逻辑删除(Mysql)
      */
-    public <T> boolean deleteMySql(T t, String id) {
+    public <T> boolean deleteMySql(Class<T> clazz, String id) {
         try {
-            BaseMapper<T> mapper = getMapper(t);
+            BaseMapper<T> mapper = getMapper(clazz);
             mapper.deleteById(id);
             return true;
         } catch (Exception e) {
