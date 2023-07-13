@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -207,16 +208,6 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 获取自动回复内容
-     */
-    @Override
-    public String getAutoReply(String uid) {
-        User user = userDao.selectById(uid);
-        return user.getAutoReply();
-    }
-
-
-    /**
      * 发送邮件
      * @param emailContent
      * @param email
@@ -254,6 +245,36 @@ public class UserServiceImpl implements UserService {
         User user = userDao.selectOne(queryWrapper);
         user.setEmail(email);
         userDao.updateById(user);
+    }
+
+    /**
+     * 数据校验-账号
+     *
+     * @param account
+     */
+    @Override
+    public boolean checkAccountHasRegister(String account) {
+        try {
+            return userDao.selectById(account) != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * 数据校验-手机号
+     *
+     * @param telephone
+     */
+    @Override
+    public boolean checkTelephoneHasRegister(String telephone) {
+        try {
+            QueryWrapper<User> wrapper = new QueryWrapper<>();
+            wrapper.eq("telephone",telephone);
+            return userDao.selectOne(wrapper) != null;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
 
