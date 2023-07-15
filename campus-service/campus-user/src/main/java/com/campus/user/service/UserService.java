@@ -20,12 +20,6 @@ public interface UserService{
      * */
     boolean register(RegisterForm form);
 
-
-    /**
-     * 获取所有普通用户id
-     * */
-    List<String> getAllUserId();
-
     /**
      * 生成验证码
      * */
@@ -43,8 +37,22 @@ public interface UserService{
 
     boolean updatePassword(String userId,UpdatePasswordForm form);
 
+    boolean sendEmail(String emailContent, String email);
+
+    User getUserByEmail(String email);
+
+    void activateEmail(String email,String userId);
+
     /**
-     * 获取自动回复内容
+     * 数据校验-账号
      * */
-    String getAutoReply(String uid);
+    boolean checkAccountHasRegister(String account);
+
+    /**
+     * 数据校验-手机号
+     * */
+    boolean checkTelephoneHasRegister(String telephone);
+
+
+
 }

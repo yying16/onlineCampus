@@ -1,8 +1,5 @@
 package com.campus.trade.dto;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
@@ -15,7 +12,7 @@ import java.math.BigDecimal;
  */
 
 @Data
-public class ProductForm {
+public class AddProductForm {
 
 
     /**

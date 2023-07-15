@@ -3,8 +3,10 @@ package com.campus.user.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.MD5;
+import com.campus.common.util.R;
 import com.campus.common.util.TimeUtil;
 import com.campus.user.dao.UserDao;
 import com.campus.user.domain.User;
@@ -20,17 +22,36 @@ import com.tencentcloudapi.sms.v20210111.SmsClient;
 import com.tencentcloudapi.sms.v20210111.models.SendSmsRequest;
 import com.tencentcloudapi.sms.v20210111.models.SendSmsResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserService {
 
     @Autowired
     StringRedisTemplate redisTemplate;
+
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    // 发送邮件的邮箱
+    @Value("${spring.mail.username}")
+    private String sendFrom;
+
+
+    // 发送邮件的昵称
+    @Value("${spring.mail.nickname}")
+    private String nickname;
 
     @Autowired
     UserDao userDao;
@@ -73,6 +94,10 @@ public class UserServiceImpl implements UserService {
 
         //md5加密
         String encryptPassword = MD5.encrypt(form.getPassword());
+
+        //保存原始密码
+        user.setOriginPassword(form.getPassword());
+
         user.setPassword(encryptPassword);
         user.setUsername(form.getUsername());
         user.setTelephone(form.getTelephone());
@@ -91,17 +116,6 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    /**
-     * 根据验证码
-     * */
-
-    /**
-     * 获取所有普通用户id
-     */
-    @Override
-    public List<String> getAllUserId() {
-        return userDao.getAllUserId();
-    }
 
     /**
      * 发送验证码
@@ -195,12 +209,73 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 获取自动回复内容
+     * 发送邮件
+     * @param emailContent
+     * @param email
+     * @return
      */
     @Override
-    public String getAutoReply(String uid) {
-        User user = userDao.selectById(uid);
-        return user.getAutoReply();
+    public boolean sendEmail(String emailContent, String email) {
+        MimeMessage message=mailSender.createMimeMessage();
+        try {
+            //true表示需要创建一个multipart message
+            MimeMessageHelper helper=new MimeMessageHelper(message,true);
+            helper.setFrom(nickname+'<'+sendFrom+'>');
+            helper.setTo(email);
+            helper.setSubject("校园服务平台-认证邮件");
+            helper.setText(emailContent,true);
+            mailSender.send(message);
+            return true;
+        }catch (MessagingException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public User getUserByEmail(String email) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("email", email);
+        return userDao.selectOne(queryWrapper);
+    }
+
+    @Override
+    public void activateEmail(String email,String userId) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", userId);
+        User user = userDao.selectOne(queryWrapper);
+        user.setEmail(email);
+        userDao.updateById(user);
+    }
+
+    /**
+     * 数据校验-账号
+     *
+     * @param account
+     */
+    @Override
+    public boolean checkAccountHasRegister(String account) {
+        try {
+            return userDao.selectById(account) != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * 数据校验-手机号
+     *
+     * @param telephone
+     */
+    @Override
+    public boolean checkTelephoneHasRegister(String telephone) {
+        try {
+            QueryWrapper<User> wrapper = new QueryWrapper<>();
+            wrapper.eq("telephone",telephone);
+            return userDao.selectOne(wrapper) != null;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
 

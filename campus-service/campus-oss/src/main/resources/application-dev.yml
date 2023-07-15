@@ -1,0 +1,60 @@
+
+aliyun:
+  oss:
+    file:
+      bucketname: edu20230513
+      endpoint: oss-cn-guangzhou.aliyuncs.com
+      keyid: LTAI5tDDc7oFqhiZFejDVZtp
+      keysecret: UWBM3EChOz3WNt4NiiJ4N8E0dTZH00
+
+server:
+  port: 7005
+  servlet:
+    context-path: /campusOss
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 1024MB
+  application:
+    name: campus-oss
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 117.72.10.120:8848 #Nacos地址
+  datasource:
+    druid:
+      url: jdbc:mysql://47.115.219.35:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
+      driverClassName: com.mysql.jdbc.Driver
+      max-active: 20
+      min-idle: 8
+      initial-size: 10
+    username: root
+    password: 123456
+  redis:
+    database: 5
+    host: 47.115.219.35
+    port: 6379
+    timeout: 10000
+  kafka:
+    bootstrap-servers: 47.115.219.35:9092
+    producer:
+      retries: 3 # 重新发送次数
+      batch-size: 16384
+      buffer-memory: 33554432
+      acks: 1
+      # 指定消息key和消息体的编解码方式
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: default-group
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: manual_immediate

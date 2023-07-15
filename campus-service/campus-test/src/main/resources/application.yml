@@ -26,12 +26,12 @@ spring:
     username: root
     password: 123456
   redis:
-    database: 3
+    database: 11
     host: 47.115.219.35
     port: 6379
     timeout: 10000
   kafka:
-    bootstrap-servers: 127.0.0.1:9092
+    bootstrap-servers: 47.115.219.35:9092
     producer:
       retries: 3 # 重新发送次数
       batch-size: 16384

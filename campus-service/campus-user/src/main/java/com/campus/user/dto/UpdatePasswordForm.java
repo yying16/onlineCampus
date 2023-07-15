@@ -14,6 +14,6 @@ public class UpdatePasswordForm {
 
     @NotNull(message = "密码不能为空")
     @NotBlank(message = "密码不能为空")
-    String password; // 密码
+    private String password; // 密码
 
 }

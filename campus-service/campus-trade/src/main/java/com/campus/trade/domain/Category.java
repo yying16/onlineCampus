@@ -48,7 +48,7 @@ public class Category implements Serializable {
     /**
      * 逻辑删除
      */
-    private Integer deleted;
+    private Boolean deleted;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

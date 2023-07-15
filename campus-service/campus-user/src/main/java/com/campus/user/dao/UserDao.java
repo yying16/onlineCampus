@@ -16,10 +16,6 @@ public interface UserDao extends BaseMapper<User> {
     @Select("select * from t_user where deleted = 0 and password = #{password} and (account = #{loginName} or telephone = #{loginName} or email = #{loginName})")
     User getUser(LoginForm loginForm);
 
-    //获取所有普通用户id
-    @Select("select user_id from t_user where deleted = 0 and status = 0")
-    List<String> getAllUserId();
-
     @Select("select * from t_user where telephone = #{telephone}")
     User getUserByTelephone(String telephone);
 
