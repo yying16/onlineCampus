@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ *
+ * author kakakaka
  * 解析表单
  *
  * 将表单中的数据注入对应类的对象中
