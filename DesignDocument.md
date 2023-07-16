@@ -26,7 +26,7 @@ token在redis中的存储结构{key:uid,value:{token:token,data:User()}}
 系统发送的消息（sender="system")
 ####redis结构
 *自动回复消息*（【autoReply】Hash: {key:用户id，value:自动回复内容}）
-
+    
 (放在里面的都是有设置自动回复内容的并且已经下线了的)
 
 【不过期，只手动添加删除】
