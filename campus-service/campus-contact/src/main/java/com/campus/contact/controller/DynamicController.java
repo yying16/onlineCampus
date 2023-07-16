@@ -16,10 +16,9 @@ import java.util.List;
 /**
  * author yying
  */
-
+@Api("动态模块接口")
 @RestController
 @RequestMapping("/dynamic")
-@Api("动态模块接口")
 public class DynamicController {
 
     @Autowired
