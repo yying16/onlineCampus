@@ -1,6 +1,7 @@
 package com.campus.common.util;
 
 import com.campus.common.exception.FormException;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -14,11 +15,16 @@ import java.util.Map;
  *
  * 将表单中的数据注入对应类的对象中
  * */
-
+@Slf4j
 public class FormTemplate {
-    public static <T> T analyzeTemplate(Object form, Class<T> clazz) throws FormException {
-        if(form == null){
-            throw new FormException("表单为空");
+    public static <T> T analyzeTemplate(Object form, Class<T> clazz) {
+        try{
+            if(form == null){
+                throw new FormException("表单为空");
+            }
+        }catch (FormException e){
+            e.printStackTrace();
+            return null;
         }
         T object;
         try {
@@ -26,7 +32,8 @@ public class FormTemplate {
             object = clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
             // 如果对象创建失败，则抛出运行时异常
-            throw new RuntimeException("无法创建类型为 " + clazz.getSimpleName() + " 的对象", e);
+            log.info("无法创建类型为 " + clazz.getSimpleName() + " 的对象", e);
+            return null;
         }
 
         // 获取表单对象的字段
@@ -66,7 +73,7 @@ public class FormTemplate {
                 }
             } catch (Exception e) {
                 // 如果设置属性值失败，则抛出运行时异常
-                throw new RuntimeException("无法为字段 " + targetField.getName() + " 设置属性值", e);
+                log.info("无法为字段 " + targetField.getName() + " 设置属性值", e);
             }
         }
 
@@ -74,7 +81,7 @@ public class FormTemplate {
         return object;
     }
 
-    public static Method getSetterMethod(Class<?> clazz, String fieldName, Class<?> fieldType) {
+    private static Method getSetterMethod(Class<?> clazz, String fieldName, Class<?> fieldType) {
         // 构造目标类字段对应的 setter 方法名称
         String setterMethodName = "set" + capitalize(fieldName);
         try {
@@ -82,11 +89,12 @@ public class FormTemplate {
             return clazz.getDeclaredMethod(setterMethodName, fieldType);
         } catch (NoSuchMethodException e) {
             // 如果没有找到对应的 setter 方法，则返回 null
+            e.printStackTrace();
             return null;
         }
     }
 
-    public static Method getGetterMethod(Class<?> clazz, String fieldName, Class<?> fieldType) {
+    private static Method getGetterMethod(Class<?> clazz, String fieldName, Class<?> fieldType) {
         // 构造目标类字段对应的 getter 方法名称
         String getterMethodName = "get" + capitalize(fieldName);
         try {
@@ -94,6 +102,7 @@ public class FormTemplate {
             return clazz.getDeclaredMethod(getterMethodName);
         } catch (NoSuchMethodException e) {
             // 如果没有找到对应的 getter 方法，则返回 null
+            e.printStackTrace();
             return null;
         }
     }

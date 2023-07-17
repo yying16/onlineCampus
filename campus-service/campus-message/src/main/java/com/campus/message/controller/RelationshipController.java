@@ -23,12 +23,4 @@ public class RelationshipController {
     @Autowired
     MessageDao messageDao;
 
-    @ApiOperation("接收好友请求")
-    @GetMapping("/acceptRequest")
-    public R acceptRequest(@RequestHeader("uid") String uid, @Param("msgId") String msgId) {
-        return R.failed();
-    }
-
-
-
 }
