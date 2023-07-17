@@ -484,6 +484,28 @@ public class ServiceCenter {
     }
 
     /**
+     * 删除数据
+     */
+    public <T> boolean delete(String id,Class<T> clazz) {
+        try {
+            T t = clazz.newInstance();
+            ServiceData serviceData = new ServiceData(ServiceData.DELETE, t, clazz.getName(), id);
+            String data = JSONObject.toJSONString(serviceData);
+            if (redisTemplate.opsForValue().get(getName(t, id)) != null) {
+                redisTemplate.opsForValue().getAndDelete(getName(t, id));
+            }
+            redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id缓存
+            kafkaTemplate.send("service", getName(t, ""), data); // 异步更新数据库
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+
+
+    /**
      * kafka中间件(用于同步 redis 和 mysql数据）
      * topic: service
      * key: 用于设置分区，对应模块的crud
