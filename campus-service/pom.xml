@@ -20,6 +20,7 @@
         <module>campus-trade</module>
         <module>campus-oss</module>
         <module>campus-parttime</module>
+        <module>campus-recruit</module>
 
     </modules>
     <dependencies>
