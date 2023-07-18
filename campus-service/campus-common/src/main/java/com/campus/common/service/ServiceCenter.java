@@ -60,7 +60,7 @@ public class ServiceCenter {
     static final long taskFlushInterval = 30; // 任务刷新间隔(分钟)
     static final int refreshRetryTimes = 5; // 刷新任务重试次数
     @Autowired
-    public StringRedisTemplate redisTemplate;
+    private StringRedisTemplate redisTemplate;
 
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
@@ -433,6 +433,7 @@ public class ServiceCenter {
             setArg(t, "updateTime", TimeUtil.getCurrentTime());
             insertMySql(t);
             String json = JSONObject.toJSON(t).toString(); // 要写入redis的数据
+            redisTemplate.opsForList().leftPush(h,id); // 添加到id列表缓存
             redisTemplate.opsForValue().set(key, json, getCacheTime(), TimeUnit.SECONDS); // 写入redis
             return id;
         } catch (Exception e) {
@@ -472,7 +473,7 @@ public class ServiceCenter {
             ServiceData serviceData = new ServiceData(ServiceData.DELETE, t, t.getClass().getName(), id);
             String data = JSONObject.toJSONString(serviceData);
             if (redisTemplate.opsForValue().get(getName(t, id)) != null) {
-                redisTemplate.opsForValue().getAndDelete(getName(t, id));
+                redisTemplate.delete(getName(t, id));
             }
             redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id缓存
             kafkaTemplate.send("service", getName(t, ""), data); // 异步更新数据库
@@ -492,9 +493,9 @@ public class ServiceCenter {
             ServiceData serviceData = new ServiceData(ServiceData.DELETE, t, clazz.getName(), id);
             String data = JSONObject.toJSONString(serviceData);
             if (redisTemplate.opsForValue().get(getName(t, id)) != null) {
-                redisTemplate.opsForValue().getAndDelete(getName(t, id));
+                redisTemplate.delete(getName(t, id));
             }
-            redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id缓存
+            redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id列表缓存
             kafkaTemplate.send("service", getName(t, ""), data); // 异步更新数据库
             return true;
         } catch (Exception e) {
@@ -601,7 +602,7 @@ public class ServiceCenter {
         }
         if (flag == 0) { // 更新成功
             // 双删
-            redisTemplate.opsForValue().getAndDelete(getName(t, id)); // 二次删除redis缓存
+            redisTemplate.delete(getName(t, id)); // 二次删除redis缓存
             redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id缓存
         }
     }

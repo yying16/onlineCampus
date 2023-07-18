@@ -22,8 +22,6 @@ public class MessageController {
     @Autowired
     MessageServiceImpl messageService;
 
-
-
     @ApiOperation("发送消息(系统/用户/请求)")
     @PostMapping("/send")
     public R send(@RequestBody MessageForm form) {
