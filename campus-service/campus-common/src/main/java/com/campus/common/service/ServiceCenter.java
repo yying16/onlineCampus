@@ -80,6 +80,7 @@ public class ServiceCenter {
 
     /**
      * 查询数据(查询统一从数据库获取，不做缓存）
+     * and连接
      * 结合具体业务
      */
     public <T> List<T> search(Map<String, Object> condition, Class<T> clazz) {
@@ -193,7 +194,7 @@ public class ServiceCenter {
                             case "java.lang.String": { // 判断是否为时间（时间则区间对比，字符串则关键字匹配）
                                 String finalValue = String.valueOf(value);
                                 if (arg.endsWith("Time")) { // 时间
-                                    String[] se = finalValue.split("\\s");
+                                    String[] se = finalValue.split("#");
                                     Date s = TimeUtil.parse(se[0]); // 开始时间
                                     Date e = TimeUtil.parse(se[1]); // 结束时间
                                     wrapper.between(camel2under(arg), s, e);
