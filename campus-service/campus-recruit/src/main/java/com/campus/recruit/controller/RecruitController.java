@@ -80,12 +80,22 @@ public class RecruitController {
         return R.failed();
     }
 
-    @ApiOperation("查询招募")
+    @ApiOperation("条件查询招募")
     @PostMapping("/searchRecruit")
     public R searchRecruit(@RequestBody Map condition) {
         List search = serviceCenter.search(condition, Recruit.class);
-        if(search!=null){
+        if (search != null) {
             return R.ok(search);
+        }
+        return R.failed();
+    }
+
+    @ApiOperation("招募首页懒加载")
+    @GetMapping("/lazyLoading")
+    public R lazyLoading(@Param("num") Integer num) {
+        List<Recruit> recruits = serviceCenter.loadData(num, Recruit.class);
+        if(recruits!=null){
+            return R.ok(recruits);
         }
         return R.failed();
     }

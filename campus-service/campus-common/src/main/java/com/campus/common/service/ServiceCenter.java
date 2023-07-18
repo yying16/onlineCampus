@@ -325,7 +325,7 @@ public class ServiceCenter {
                         ret.add(datas.get(i));
                     }
                 }
-                List<T> list = getOtherData(num - 1, cnt, clazz); // 直接从数据库中获取的数据
+                List<T> list = getOtherData(num , cnt, clazz); // 直接从数据库中获取的数据
                 for (int i = 0; i < list.size(); i++) {
                     String id = String.valueOf(getArg(list.get(i), getName(clazz) + "Id")); // 获取id
                     if (!idList.contains(id)) { // 没有并发原因导致的冲突
