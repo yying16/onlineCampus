@@ -1,7 +1,9 @@
 package com.campus.message.controller;
 
 import com.alibaba.fastjson.JSONObject;
+import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
+import com.campus.message.domain.Message;
 import com.campus.message.dto.HandleRequestForm;
 import com.campus.message.dto.MessageForm;
 import com.campus.message.dto.PromptInformationForm;
@@ -20,12 +22,11 @@ public class MessageController {
     @Autowired
     MessageServiceImpl messageService;
 
-
-
     @ApiOperation("发送消息(系统/用户/请求)")
     @PostMapping("/send")
     public R send(@RequestBody MessageForm form) {
-        if (messageService.sendMessage(form.toMessage())) {
+        Message message = FormTemplate.analyzeTemplate(form,Message.class);
+        if (messageService.sendMessage(message)) {
             return R.ok();
         } else {
             return R.failed();
@@ -45,6 +46,7 @@ public class MessageController {
     @ApiOperation("用户处理好友请求")
     @PostMapping("/handleRequest")
     public R handleRequest(@RequestBody HandleRequestForm form, @RequestHeader("uid") String uid) {
+
         if (messageService.handleRequest(uid, form.getMsgId(), form.getAccept())) {
             return R.ok();
         }
