@@ -36,8 +36,9 @@ public class MessageController {
     @ApiOperation("用户登录后的消息初始化")
     @GetMapping("/initMessage")
     public R initMessage(@RequestHeader("uid") String uid) {
-        if(messageService.initMessage(uid)){
-            return R.ok();
+        JSONObject jsonObject = messageService.initMessage(uid);
+        if(jsonObject!=null){
+            return R.ok(jsonObject);
         }
         return R.failed();
     }
@@ -46,7 +47,6 @@ public class MessageController {
     @ApiOperation("用户处理好友请求")
     @PostMapping("/handleRequest")
     public R handleRequest(@RequestBody HandleRequestForm form, @RequestHeader("uid") String uid) {
-
         if (messageService.handleRequest(uid, form.getMsgId(), form.getAccept())) {
             return R.ok();
         }
@@ -64,7 +64,7 @@ public class MessageController {
 
     @ApiOperation("获取用户与好友的聊天记录(用户点击对应聊天窗口)")
     @GetMapping("/getUserChatRecords")
-    public R getUserChatRecords(@Param("friendId") String friendId, @RequestHeader("uid") String uid) {
+    public R getUserChatRecords(@RequestParam("friendId") String friendId, @RequestHeader("uid") String uid) {
         JSONObject jsonObject = messageService.getUserChatRecords(uid, friendId);
         if (jsonObject == null) {
             return R.failed();
@@ -74,7 +74,7 @@ public class MessageController {
 
     @ApiOperation("懒加载用户与好友的聊天记录")
     @GetMapping("/lazyLoadingChatRecords")
-    public R lazyLoadingChatRecords(@Param("friendId") String friendId, @RequestHeader("uid") String uid) {
+    public R lazyLoadingChatRecords(@RequestParam("friendId") String friendId, @RequestHeader("uid") String uid) {
         if(messageService.lazyLoadingChatRecords(uid,friendId)){
             JSONObject jsonObject = messageService.getUserChatRecords(uid, friendId);
             if (jsonObject == null) {
