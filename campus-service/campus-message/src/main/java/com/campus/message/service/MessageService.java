@@ -38,7 +38,7 @@ public interface MessageService {
      * @param uid 当前登录用户id
      * @return 是否初始化成功
      */
-    boolean initMessage(String uid);
+    JSONObject initMessage(String uid);
 
 
     /**
