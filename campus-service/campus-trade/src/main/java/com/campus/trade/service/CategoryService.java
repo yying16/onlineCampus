@@ -19,4 +19,6 @@ public interface CategoryService extends IService<Category> {
     void saveCategory(MultipartFile file, CategoryService categoryService);
 
     boolean deleteAllSubject(String subjectId);
+
+    ShowCategory getCategory(String categoryId);
 }

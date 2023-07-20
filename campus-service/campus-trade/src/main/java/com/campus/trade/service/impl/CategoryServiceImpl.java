@@ -77,7 +77,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, Category>
 
         //删除二级分类
         baseMapper.selectList(wrapper).forEach(category -> {
-            boolean delete = serviceCenter.delete(category);
+            boolean delete = serviceCenter.delete(category.getCategoryId(), Category.class);
             if(!delete){
                 throw new RuntimeException("删除失败");
             }
@@ -85,9 +85,28 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, Category>
 
         //删除一级分类
 //        int i = baseMapper.deleteById(subjectId);
-        Category search = (Category) serviceCenter.search(subjectId, Category.class);
-        boolean delete = serviceCenter.delete(search);
+//        Category search = (Category) serviceCenter.search(subjectId, Category.class);
+//        boolean delete = serviceCenter.delete(search);
+        boolean delete = serviceCenter.delete(subjectId, Category.class);
         return delete;
+    }
+
+    @Override
+    public ShowCategory getCategory(String categoryId) {
+        Category category = baseMapper.selectById(categoryId);
+        ShowCategory showCategory = new ShowCategory();
+        BeanUtils.copyProperties(category,showCategory);
+        if(category.getParentId().equals("0")){
+            return showCategory;
+        }else {
+            List<ShowCategory> treeNodes = new ArrayList<>();
+            Category thecategory = baseMapper.selectById(category.getParentId());
+            ShowCategory theshowCategory = new ShowCategory();
+            BeanUtils.copyProperties(thecategory,theshowCategory);
+            treeNodes.add(showCategory);
+            theshowCategory.setChildren(treeNodes);
+            return theshowCategory;
+        }
     }
 
     private ShowCategory findChildren(ShowCategory treeNode, List<ShowCategory> treeNodes) {
