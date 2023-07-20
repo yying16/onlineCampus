@@ -490,14 +490,11 @@ public class ServiceCenter {
      */
     public <T> boolean delete(String id,Class<T> clazz) {
         try {
-            T t = clazz.newInstance();
-            ServiceData serviceData = new ServiceData(ServiceData.DELETE, t, clazz.getName(), id);
-            String data = JSONObject.toJSONString(serviceData);
-            if (redisTemplate.opsForValue().get(getName(t, id)) != null) {
-                redisTemplate.delete(getName(t, id));
+            deleteMySql(clazz,id);
+            if (redisTemplate.opsForValue().get(getName(clazz, id)) != null) {
+                redisTemplate.delete(getName(clazz, id));
             }
-            redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id列表缓存
-            kafkaTemplate.send("service", getName(t, ""), data); // 异步更新数据库
+            redisTemplate.opsForList().remove(getName(clazz, ""), 1, id); // 删除id列表缓存
             return true;
         } catch (Exception e) {
             e.printStackTrace();
