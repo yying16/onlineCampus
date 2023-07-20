@@ -658,7 +658,7 @@ public class ServiceCenter {
      */
     private boolean tryLock(String h, String id) {
         String key = lockKey + "_" + h + "_" + id;
-        return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(key, key, Duration.ofSeconds(10)));
+        return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(key, key, Duration.ofSeconds(10))); // 超时时间为10s
     }
 
     /**
