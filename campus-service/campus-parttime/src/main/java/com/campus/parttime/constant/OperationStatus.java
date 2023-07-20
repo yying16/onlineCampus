@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
- * 订单执行状态（0-进行中，1-已完成，2-已取消）
+ * 订单执行状态（0-进行中，1-已完成，2-已取消 3-确定完成）
  */
 @AllArgsConstructor
 @Getter
@@ -15,7 +15,8 @@ import java.util.stream.Stream;
 public enum OperationStatus {
     ACTIVE(0,"进行中"),
     COMPLETED(1,"已完成"),
-    CANCEL(2,"已取消");
+    CANCEL(2,"已取消"),
+    CONFIRM(3,"确定完成");
 
     public Integer code;
     public String msg;

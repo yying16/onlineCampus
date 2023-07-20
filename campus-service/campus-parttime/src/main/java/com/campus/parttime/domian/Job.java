@@ -24,13 +24,16 @@ public class Job {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     String deadline;    // 截止时间
     Integer campusLocation; //兼职所在校区(0-佛山校区，1-广州校区)
-    Integer status;     //兼职职位状态(0-招满，1-关闭，2-开启)
+    Integer status;     // 兼职职位状态(0-招满，1-关闭，2-开启)
+    Integer recruit_num;// 需招聘人数
+    Integer passed_num; // 已通过人数
+    Integer apply_num;  // 已申请人数
     @TableLogic(value = "false", delval = "true")
-    Boolean deleted;    //逻辑删除
+    Boolean deleted;    // 逻辑删除
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    String createTime;  //创建时间
+    String createTime;  // 创建时间
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    String updateTime;  //更新时间
+    String updateTime;  // 更新时间
 
     public Job copy(){
         Job job = new Job();
