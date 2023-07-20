@@ -1,5 +1,6 @@
 package com.campus.trade.service.impl;
 
+import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.alibaba.nacos.shaded.org.checkerframework.checker.units.qual.A;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -117,8 +118,11 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
 
     @Override
     public ShowProduct getByTheId(String id) {
-        Product product = (Product) serviceCenter.search(id, Product.class);
-
+        Object search = serviceCenter.search(id, Product.class);
+        if (search == null) {
+            return null;
+        }
+        Product product = new Gson().fromJson(search.toString(), Product.class);
         ShowProduct showProduct = getShowProduct(product);
 
         return showProduct;

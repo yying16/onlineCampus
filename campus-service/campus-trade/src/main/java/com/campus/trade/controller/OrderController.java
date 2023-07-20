@@ -1,5 +1,6 @@
 package com.campus.trade.controller;
 
+import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
@@ -50,11 +51,13 @@ public class OrderController {
     public R confirmOrder(@ApiParam("商品id") @PathVariable("productId") String productId, @RequestHeader("uid") String uid) {
         //查询商品信息
 //        Product product = productService.getById(productId);
-        Product product = (Product) serviceCenter.search(productId, Product.class);
-
-        if (product == null) {
+//        Product product = (Product) serviceCenter.search(productId, Product.class);
+        Object search = serviceCenter.search(productId, Product.class);
+        if (search == null) {
             return R.failed(null, "商品不存在");
         }
+        Product product = new Gson().fromJson(search.toString(), Product.class);
+
 
         R user = userClient.getUserById(uid);
         //收货地址
@@ -70,7 +73,7 @@ public class OrderController {
         confirmOrderForm.setAddress(address);
         confirmOrderForm.setTelephone(telephone);
         confirmOrderForm.setConsignee(consignee);
-        return R.ok(confirmOrderForm);
+        return R.ok(confirmOrderForm, "查询成功");
     }
 
     //展示生成的订单信息
@@ -81,7 +84,7 @@ public class OrderController {
         if (showOrder == null) {
             return R.failed(null, "订单生成失败");
         }
-        return R.ok(showOrder);
+        return R.ok(showOrder, "订单生成成功");
     }
 
 
@@ -90,51 +93,51 @@ public class OrderController {
     @ApiOperation("修改订单状态")
     public R updateOrderStatus(@PathVariable("orderId") String orderId,@PathVariable("status") Integer status) {
 
-        Order order = (Order) serviceCenter.search(orderId, Order.class);
+        Object search = serviceCenter.search(orderId, Order.class);
+        if (search == null) {
+            return R.failed(null, "订单不存在");
+        }
+        Order order = new Gson().fromJson(search.toString(), Order.class);
         order.setStatus(status);
 
         boolean flag = serviceCenter.update(order);
 
         if (flag) {
-            return R.ok();
+            return R.ok(null, "订单状态修改成功");
         } else {
             return R.failed(null, "订单状态修改失败");
         }
     }
 
     //根据用户id查询订单
-    @GetMapping("/getOrder/{page}/{size}/{uid}")
+    @PostMapping("/getOrder/{page}/{size}/{uid}")
     @ApiOperation("根据用户id查询订单")
     public R getOrder(@ApiParam("页码") @PathVariable("page") long page,@ApiParam("一页展示的数据条数") @PathVariable("size") long size,@RequestBody Map<String, Object> searchOrderForm,@PathVariable("uid") String uid) {
         // 根据页码和每页数据量计算偏移量
         long offset = (page - 1) * size;
         searchOrderForm.put("limit",offset+" "+size);
         List<ShowOrder> showOrderList =  orderService.getOrderListByUid(searchOrderForm,uid);
-        return R.ok(showOrderList);
+        return R.ok(showOrderList, "查询成功");
     }
 
     //根据卖家id查询订单
-    @GetMapping("/getOrderBySellerId/{page}/{size}/{sellerId}")
+    @PostMapping("/getOrderBySellerId/{page}/{size}/{sellerId}")
     @ApiOperation("根据卖家id查询订单")
     public R getOrderBySellerId(@ApiParam("页码") @PathVariable("page") long page,@ApiParam("一页展示的数据条数") @PathVariable("size") long size,@RequestBody Map<String, Object> searchOrderForm,@PathVariable("sellerId") String sellerId) {
         // 根据页码和每页数据量计算偏移量
         long offset = (page - 1) * size;
         searchOrderForm.put("limit",offset+" "+size);
         List<ShowOrder> showOrderList =  orderService.getOrderListBySellerId(searchOrderForm,sellerId);
-        return R.ok(showOrderList);
+        return R.ok(showOrderList, "查询成功");
     }
 
     //根据订单id删除订单
     @DeleteMapping("{orderId}")
     @ApiOperation("根据订单id删除订单")
     public R deleteOrder(@ApiParam("订单id") @PathVariable("orderId") String orderId) {
-        Order order = (Order) serviceCenter.search(orderId, Order.class);
-        if (order == null) {
-            return R.failed(null, "订单不存在");
-        }
-        boolean flag = serviceCenter.delete(order);
+        boolean flag = serviceCenter.delete(orderId, Order.class);
         if (flag) {
-            return R.ok();
+            return R.ok(null, "订单删除成功");
         } else {
             return R.failed(null, "订单删除失败");
         }
