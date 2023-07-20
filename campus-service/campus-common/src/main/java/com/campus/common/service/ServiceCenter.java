@@ -60,7 +60,7 @@ public class ServiceCenter {
     static final long taskFlushInterval = 30; // 任务刷新间隔(分钟)
     static final int refreshRetryTimes = 5; // 刷新任务重试次数
     @Autowired
-    public StringRedisTemplate redisTemplate;
+    private StringRedisTemplate redisTemplate;
 
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
@@ -80,6 +80,7 @@ public class ServiceCenter {
 
     /**
      * 查询数据(查询统一从数据库获取，不做缓存）
+     * and连接
      * 结合具体业务
      */
     public <T> List<T> search(Map<String, Object> condition, Class<T> clazz) {
@@ -193,7 +194,7 @@ public class ServiceCenter {
                             case "java.lang.String": { // 判断是否为时间（时间则区间对比，字符串则关键字匹配）
                                 String finalValue = String.valueOf(value);
                                 if (arg.endsWith("Time")) { // 时间
-                                    String[] se = finalValue.split("\\s");
+                                    String[] se = finalValue.split("#");
                                     Date s = TimeUtil.parse(se[0]); // 开始时间
                                     Date e = TimeUtil.parse(se[1]); // 结束时间
                                     wrapper.between(camel2under(arg), s, e);
@@ -325,7 +326,7 @@ public class ServiceCenter {
                         ret.add(datas.get(i));
                     }
                 }
-                List<T> list = getOtherData(num - 1, cnt, clazz); // 直接从数据库中获取的数据
+                List<T> list = getOtherData(num , cnt, clazz); // 直接从数据库中获取的数据
                 for (int i = 0; i < list.size(); i++) {
                     String id = String.valueOf(getArg(list.get(i), getName(clazz) + "Id")); // 获取id
                     if (!idList.contains(id)) { // 没有并发原因导致的冲突
@@ -433,6 +434,7 @@ public class ServiceCenter {
             setArg(t, "updateTime", TimeUtil.getCurrentTime());
             insertMySql(t);
             String json = JSONObject.toJSON(t).toString(); // 要写入redis的数据
+            redisTemplate.opsForList().leftPush(h,id); // 添加到id列表缓存
             redisTemplate.opsForValue().set(key, json, getCacheTime(), TimeUnit.SECONDS); // 写入redis
             return id;
         } catch (Exception e) {
@@ -472,7 +474,7 @@ public class ServiceCenter {
             ServiceData serviceData = new ServiceData(ServiceData.DELETE, t, t.getClass().getName(), id);
             String data = JSONObject.toJSONString(serviceData);
             if (redisTemplate.opsForValue().get(getName(t, id)) != null) {
-                redisTemplate.opsForValue().getAndDelete(getName(t, id));
+                redisTemplate.delete(getName(t, id));
             }
             redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id缓存
             kafkaTemplate.send("service", getName(t, ""), data); // 异步更新数据库
@@ -482,6 +484,25 @@ public class ServiceCenter {
             return false;
         }
     }
+
+    /**
+     * 删除数据
+     */
+    public <T> boolean delete(String id,Class<T> clazz) {
+        try {
+            deleteMySql(clazz,id);
+            if (redisTemplate.opsForValue().get(getName(clazz, id)) != null) {
+                redisTemplate.delete(getName(clazz, id));
+            }
+            redisTemplate.opsForList().remove(getName(clazz, ""), 1, id); // 删除id列表缓存
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+
 
     /**
      * kafka中间件(用于同步 redis 和 mysql数据）
@@ -579,7 +600,7 @@ public class ServiceCenter {
         }
         if (flag == 0) { // 更新成功
             // 双删
-            redisTemplate.opsForValue().getAndDelete(getName(t, id)); // 二次删除redis缓存
+            redisTemplate.delete(getName(t, id)); // 二次删除redis缓存
             redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id缓存
         }
     }
@@ -637,7 +658,7 @@ public class ServiceCenter {
      */
     private boolean tryLock(String h, String id) {
         String key = lockKey + "_" + h + "_" + id;
-        return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(key, key, Duration.ofSeconds(10)));
+        return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(key, key, Duration.ofSeconds(10))); // 超时时间为10s
     }
 
     /**

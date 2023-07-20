@@ -13,6 +13,7 @@ import com.campus.message.dao.MessageDao;
 import com.campus.message.dao.RelationshipDao;
 import com.campus.message.domain.Message;
 import com.campus.message.domain.Relationship;
+import com.campus.message.pojo.LazyLoadPojo;
 import com.campus.message.pojo.User;
 import com.campus.message.service.MessageService;
 import com.campus.message.socket.WebSocket;
@@ -170,13 +171,16 @@ public class MessageServiceImpl implements MessageService {
      * @return 是否初始化成功
      */
     @Override
-    public boolean initMessage(String uid) {
+    public JSONObject initMessage(String uid) {
+        JSONObject ret = new JSONObject(); // 返回值
         //录入所有系统消息(后续不进行懒加载，一次全导入)
         List<Message> systemMessages = messageDao.getSystemMessage(uid);
         redisTemplate.opsForHash().put(uid, "system", JSONArray.toJSONString(systemMessages));
+        ret.put("system",systemMessages);
         //录入所有请求消息(后续不进行懒加载，一次全导入)
         List<Message> requestMessages = messageDao.getRequestMessage(uid);
         redisTemplate.opsForHash().put(uid, "request", JSONArray.toJSONString(requestMessages));
+        ret.put("request",requestMessages);
         //录入所有用户消息
         List<Message> allDialog = messageDao.getMyAllDialog(uid);
         List<User> friends = messageDao.getFriends(uid);
@@ -208,12 +212,13 @@ public class MessageServiceImpl implements MessageService {
             jsonContent.put("user", friend);
             jsonContent.put("dialog", rel.get(friendId));
             redisTemplate.opsForHash().put(uid, friendId, jsonContent.toJSONString());
+            ret.put(friendId,jsonContent);
         }
         //删除自动回复
         if (redisTemplate.opsForHash().hasKey("autoReply", uid)) {
             redisTemplate.opsForHash().delete("autoReply", uid);
         }
-        return true;
+        return ret;
     }
 
 
@@ -237,7 +242,7 @@ public class MessageServiceImpl implements MessageService {
             String arrayStr = String.valueOf(json.get("dialog"));
             List<Message> list = JSONArray.parseArray(arrayStr, Message.class);
             int num = list.size(); // 获取已缓存聊天记录个数
-            List<Message> loadedMessage = messageDao.lazyLoading(num); // 加载新的数据
+            List<Message> loadedMessage = messageDao.lazyLoading(new LazyLoadPojo(uid,friendId,num)); // 加载新的数据
             list.addAll(loadedMessage); // 添加新加载的数据
             arrayStr = JSONArray.toJSONString(list);
             json.put("dialog", arrayStr);
@@ -412,8 +417,8 @@ public class MessageServiceImpl implements MessageService {
                 }
             }
         }
-        arrayStr = JSONArray.toJSONString(array);
-        json.put("dialog", arrayStr);
+        JSONArray jsonArray = JSONArray.parseArray(JSONArray.toJSONString(array));
+        json.put("dialog", jsonArray);
         redisTemplate.opsForHash().put(uid, friendId, json.toJSONString()); // 更新缓存
         return json;
     }

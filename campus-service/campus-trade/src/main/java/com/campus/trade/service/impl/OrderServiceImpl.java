@@ -1,5 +1,6 @@
 package com.campus.trade.service.impl;
 
+import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.campus.common.service.ServiceCenter;
@@ -110,7 +111,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
             showOrder.setTotalPrice(order.getTotalPrice());
             //商品信息
             String productId = order.getProductId();
-            Product product = (Product) serviceCenter.search(productId, Product.class);
+            Object search = serviceCenter.search(productId, Product.class);
+            Product product = new Gson().fromJson(search.toString(), Product.class);
             showOrder.setProduct(product);
             //买家信息
             R user = userClient.getUserById(order.getUserId());

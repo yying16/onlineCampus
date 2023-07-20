@@ -1,5 +1,6 @@
 package com.campus.trade.controller;
 
+import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
@@ -37,7 +38,7 @@ public class ProductController {
 
     //查看商品列表（条件懒加载）
     @ApiOperation(value = "查看商品列表（条件懒加载）")
-    @GetMapping("/list/{page}/{size}")
+    @PostMapping("/list/{page}/{size}")
     public R listProduct(@ApiParam("页码") @PathVariable("page") long page,@ApiParam("一页展示的数据条数") @PathVariable("size") long size,@ApiParam("查询条件") @RequestBody Map<String, Object> searchProductForm){
 
         // 根据页码和每页数据量计算偏移量
@@ -55,9 +56,9 @@ public class ProductController {
     public R addProduct(@RequestBody AddProductForm addProductForm){
         boolean b = productService.addProduct(addProductForm);
         if(b){
-            return R.ok();
+            return R.ok(null,"发布商品成功");
         }else{
-            return R.failed();
+            return R.failed(null,"发布商品失败");
         }
     }
 
@@ -66,13 +67,20 @@ public class ProductController {
     @ApiOperation(value = "根据商品id删除商品")
     public R deleteProduct(@PathVariable("id") String id){
 
-        Product product = (Product) serviceCenter.search(id, Product.class);
+//        //拿到商品信息json字符串
+//        Object search = serviceCenter.search(id, Product.class);
+//
+//        //将json字符串转换为商品对象
+//        Product product = new Gson().fromJson(search.toString(), Product.class);
+//
+//        boolean delete = serviceCenter.delete(product);
 
-        boolean delete = serviceCenter.delete(product);
+        boolean delete = serviceCenter.delete(id, Product.class);
+
         if(delete){
-            return R.ok();
+            return R.ok(null,"删除商品成功");
         }else{
-            return R.failed();
+            return R.failed(null,"删除商品失败");
         }
     }
 
@@ -99,14 +107,14 @@ public class ProductController {
         BeanUtils.copyProperties(addProductForm,product);
         boolean update = serviceCenter.update(product);
         if(update){
-            return R.ok();
+            return R.ok(null,"修改商品信息成功");
         }else{
-            return R.failed();
+            return R.failed(null,"修改商品信息失败");
         }
     }
 
     //根据用户id查看发布的商品列表
-    @GetMapping("/listByUserId/{page}/{size}/{userId}")
+    @PostMapping("/listByUserId/{page}/{size}/{userId}")
     @ApiOperation(value = "根据用户id查看发布的商品列表")
     public R listProductByUserId(@ApiParam("页码") @PathVariable("page") long page,@ApiParam("一页展示的数据条数") @PathVariable("size") long size,@RequestBody Map<String, Object> searchProductForm,@PathVariable("userId") String userId){
         // 根据页码和每页数据量计算偏移量
