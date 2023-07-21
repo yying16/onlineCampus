@@ -51,7 +51,7 @@ public class DynamicController {
      */
     @GetMapping("/searchDynamic")
     @ApiOperation("模糊查询动态")
-    public R searchDynamic(@Param("content") String content,@RequestHeader("uid") String uid) {
+    public R searchDynamic(@RequestParam("content") String content,@RequestHeader("uid") String uid) {
         List<Dynamic> list = dynamicService.searchDynamic(content,uid);
         if (list == null)
             return R.failed();
@@ -66,7 +66,7 @@ public class DynamicController {
      */
     @GetMapping("/searchCityWide")
     @ApiOperation("切换为同城")
-    public R searchCityWide(@Param("city") String city,@RequestHeader("uid") String uid) {
+    public R searchCityWide(@RequestParam("city") String city,@RequestHeader("uid") String uid) {
         List<Dynamic> list = dynamicService.searchCityWide(city,uid);
         if (list == null)
             return R.failed();
@@ -80,7 +80,7 @@ public class DynamicController {
      */
     @GetMapping("/searchOnesDynamic")
     @ApiOperation("查看用户发布的动态")
-    public R searchOnesDynamic(@Param("uid") String uid) {
+    public R searchOnesDynamic(@RequestParam("uid") String uid) {
         List<Dynamic> list = dynamicService.searchOnesDynamic(uid);
         return R.ok(list);
     }
@@ -94,7 +94,7 @@ public class DynamicController {
      */
     @ApiOperation("逻辑删除动态")
     @PostMapping("/delete")
-    public R deleteDynamicById(@Param("dynamicId") String dynamicId) {
+    public R deleteDynamicById(@RequestParam("dynamicId") String dynamicId) {
         long l = dynamicService.deleteDynamicById(dynamicId);
         if (l == 0)
             return R.failed("删除失败");
@@ -125,7 +125,7 @@ public class DynamicController {
      */
     @ApiOperation("删除直接下级评论")
     @GetMapping("/removeComment")
-    public R deleteComment(@Param("dynamicId") String dynamicId, @Param("commentId") String commentId) {
+    public R deleteComment(@RequestParam("dynamicId") String dynamicId, @Param("commentId") String commentId) {
         long l = dynamicService.deleteComment(dynamicId, commentId);
         if (l == 0L)
             return R.failed("删除失败");
