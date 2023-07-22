@@ -14,10 +14,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 @Repository
@@ -77,7 +74,20 @@ public class DynamicDao {
         query.with(Sort.by(
                 Sort.Order.desc("updateTime")
         ));
-        return mongoTemplate.find(query, Dynamic.class, "dynamic");
+        List<Dynamic> list = mongoTemplate.find(query, Dynamic.class, "dynamic");
+        //排序
+        for (Dynamic dynamic : list) {
+            Collections.sort(dynamic.getComments());
+        }
+        Collections.sort(list);
+        return list;
+    }
+
+    /**
+     * 根据id查找Dynamic
+     * */
+    public Dynamic getDynamicById(String dynamicId){
+        return mongoTemplate.findById(dynamicId,Dynamic.class,"dynamic");
     }
 
     /**

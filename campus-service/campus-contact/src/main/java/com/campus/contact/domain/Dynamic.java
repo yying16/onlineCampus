@@ -1,8 +1,10 @@
 package com.campus.contact.domain;
 
+import com.campus.common.util.TimeUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
@@ -20,7 +22,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Document(collection = "dynamic")
-public class Dynamic {
+public class Dynamic implements Comparable<Dynamic>{
     @Id
     private String _id; // 主键
     @Indexed(unique = true)
@@ -47,4 +49,11 @@ public class Dynamic {
     private String createTime; // 创建时间
     @Indexed
     private String updateTime;// 更新时间
+
+    @Override
+    public int compareTo(@NotNull Dynamic o) {
+        long a = TimeUtil.getTimeStamp(this.createTime);
+        long b = TimeUtil.getTimeStamp(o.createTime);
+        return Long.compare(b,a);
+    }
 }

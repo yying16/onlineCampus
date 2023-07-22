@@ -22,7 +22,7 @@ public class CommentDao {
      *插入comment
      * */
     public String insert(Comment entity){
-        return mongoTemplate.save(entity,"tb_comment").getId();
+        return mongoTemplate.save(entity,"comment").getUuid();
     }
 
     /**
