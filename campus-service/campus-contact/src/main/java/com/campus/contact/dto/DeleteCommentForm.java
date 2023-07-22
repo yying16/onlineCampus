@@ -12,5 +12,5 @@ public class DeleteCommentForm {
     @ApiParam(required = true)
     String dynamicId; // 动态id
     @ApiParam(required = true)
-    String commentId; // 评论
+    String commentId; // 评论id
 }

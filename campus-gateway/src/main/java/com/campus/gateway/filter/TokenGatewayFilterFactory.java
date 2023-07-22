@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.adapter.DefaultServerWebExchange;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,7 +48,7 @@ public class TokenGatewayFilterFactory extends AbstractGatewayFilterFactory<Toke
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
-            try{
+            try {
                 if (!config.isEnabled()) { // 未开启过滤
                     log.info("Token Filter is unable!");
                     return chain.filter(exchange);
@@ -80,8 +82,19 @@ public class TokenGatewayFilterFactory extends AbstractGatewayFilterFactory<Toke
                     response.setStatusCode(HttpStatus.UNAUTHORIZED); // 返回401错误
                     return response.setComplete();
                 }
-                return chain.filter(exchange);
-            }catch (RedisConnectionFailureException e){
+                // 1. 获取ServerHttpRequest对象
+                ServerHttpRequest originalRequest = exchange.getRequest();
+                // 2. 创建自定义请求头
+                HttpHeaders customHeaders = new HttpHeaders();
+                customHeaders.add("test", "ttttttttt");
+                // 3. 创建新的ServerHttpRequest对象并添加自定义请求头
+                ServerHttpRequest requestWithCustomHeaders = originalRequest.mutate()
+                        .headers(httpHeaders -> httpHeaders.addAll(customHeaders))
+                        .build();
+                // 4. 创建新的ServerWebExchange对象并替换原始的请求
+                ServerWebExchange exchangeWithCustomHeaders = exchange.mutate().request(requestWithCustomHeaders).build();
+                return chain.filter(exchangeWithCustomHeaders);
+            } catch (RedisConnectionFailureException e) {
                 e.printStackTrace();
                 ServerHttpResponse response = exchange.getResponse();
                 response.setStatusCode(HttpStatus.UNAUTHORIZED); // 返回401错误

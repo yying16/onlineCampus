@@ -17,9 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * author yying
- */
 @Api("动态模块接口")
 @RestController
 @RequestMapping("/dynamic")
