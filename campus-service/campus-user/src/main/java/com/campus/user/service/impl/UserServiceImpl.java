@@ -4,15 +4,13 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.MD5;
-import com.campus.common.util.R;
 import com.campus.common.util.TimeUtil;
 import com.campus.user.dao.UserDao;
 import com.campus.user.domain.User;
 import com.campus.user.dto.*;
+import com.campus.user.feign.GatewayClient;
 import com.campus.user.service.UserService;
-import com.campus.user.util.TokenUtil;
 import com.campus.user.vo.LoginMessage;
 import com.tencentcloudapi.common.Credential;
 import com.tencentcloudapi.common.exception.TencentCloudSDKException;
@@ -30,9 +28,6 @@ import org.springframework.stereotype.Service;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserService {
@@ -52,6 +47,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     // 发送邮件的昵称
     @Value("${spring.mail.nickname}")
     private String nickname;
+
+    @Autowired
+    GatewayClient gatewayClient;
 
     @Autowired
     UserDao userDao;
@@ -74,9 +72,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             return null;
         }
         //登录成功
-        String token = TokenUtil.generateToken(user.getUserId(), user, tokenCacheTime);
+        JSONObject jsonUser = JSONObject.parseObject(JSONObject.toJSONString(user));
+        String token = gatewayClient.generalToken(jsonUser);
         String uid = user.getUserId();
-        redisTemplate.opsForValue().set(uid, token, tokenCacheTime, TimeUnit.HOURS); //设置token2小时有效期
         return new LoginMessage(uid, token);
     }
 
@@ -107,9 +105,10 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         user.setCreateTime(TimeUtil.getCurrentTime());
         user.setUpdateTime(TimeUtil.getCurrentTime());
         userDao.insert(user);
-        String token = TokenUtil.generateToken(id, user, tokenCacheTime); // token缓存
+        //注册应该不直接登录把
+//        JSONObject jsonUser = JSONObject.parseObject(JSONObject.toJSONString(user));
+//        String token = gatewayClient.generalToken(jsonUser);// token缓存
         if (id != null) { // 数据写入成功
-            redisTemplate.opsForValue().set(id, token, tokenCacheTime, TimeUnit.HOURS);
             return true;
         } else {
             return false;
@@ -170,9 +169,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
 
         if (code.equals(authCode)) { // 验证码正确
             User user = userDao.getUserByTelephone(telephone);
-            String token = TokenUtil.generateToken(user.getUserId(), user, tokenCacheTime);
+            JSONObject jsonUser = JSONObject.parseObject(JSONObject.toJSONString(user));
+            String token = gatewayClient.generalToken(jsonUser);// token缓存
             String uid = user.getUserId();
-            redisTemplate.opsForValue().set(uid, token, tokenCacheTime, TimeUnit.HOURS); //设置token2小时有效期
             return new LoginMessage(uid, token);
         }
         return null;
@@ -186,9 +185,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
 
         if (code.equals(authCode)) { // 验证码正确
             User user = userDao.getUserByEmail(email);
-            String token = TokenUtil.generateToken(user.getUserId(), user, tokenCacheTime);
+            JSONObject jsonUser = JSONObject.parseObject(JSONObject.toJSONString(user));
+            String token = gatewayClient.generalToken(jsonUser);// token缓存
             String uid = user.getUserId();
-            redisTemplate.opsForValue().set(uid, token, tokenCacheTime, TimeUnit.HOURS); //设置token2小时有效期
             return new LoginMessage(uid, token);
         }
         return null;
@@ -210,23 +209,24 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
 
     /**
      * 发送邮件
+     *
      * @param emailContent
      * @param email
      * @return
      */
     @Override
     public boolean sendEmail(String emailContent, String email) {
-        MimeMessage message=mailSender.createMimeMessage();
+        MimeMessage message = mailSender.createMimeMessage();
         try {
             //true表示需要创建一个multipart message
-            MimeMessageHelper helper=new MimeMessageHelper(message,true);
-            helper.setFrom(nickname+'<'+sendFrom+'>');
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setFrom(nickname + '<' + sendFrom + '>');
             helper.setTo(email);
             helper.setSubject("校园服务平台-认证邮件");
-            helper.setText(emailContent,true);
+            helper.setText(emailContent, true);
             mailSender.send(message);
             return true;
-        }catch (MessagingException e) {
+        } catch (MessagingException e) {
             e.printStackTrace();
             return false;
         }
@@ -240,7 +240,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     @Override
-    public void activateEmail(String email,String userId) {
+    public void activateEmail(String email, String userId) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_id", userId);
         User user = userDao.selectOne(queryWrapper);
@@ -271,7 +271,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     public boolean checkTelephoneHasRegister(String telephone) {
         try {
             QueryWrapper<User> wrapper = new QueryWrapper<>();
-            wrapper.eq("telephone",telephone);
+            wrapper.eq("telephone", telephone);
             return userDao.selectOne(wrapper) != null;
         } catch (Exception e) {
             return false;

@@ -1,11 +1,10 @@
-package com.campus.user.util;
+package com.campus.gateway.util;
 
-import com.alibaba.fastjson.JSONObject;
-import com.campus.user.domain.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
+import com.alibaba.fastjson.JSONObject;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -16,7 +15,7 @@ public class TokenUtil {
     private static final String SECRET_KEY = "(aud9h9.a!!)";
 
     // 生成token
-    public static String generateToken(String id, User user, long expiration) {
+    public static String generateToken(String id, JSONObject user, long expiration) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", id);
         claims.put("user", user);
@@ -38,13 +37,13 @@ public class TokenUtil {
 
 
     // 获取token中的信息
-    public static User getClaimsFromToken(String token) {
+    public static JSONObject getClaimsFromToken(String token) {
         try{
             Claims claims = Jwts.parser()
                     .setSigningKey(SECRET_KEY)
                     .parseClaimsJws(token)
                     .getBody();
-            User user = JSONObject.parseObject(JSONObject.toJSONString(claims.get("user")),User.class); //将hash转换为user类型
+            JSONObject user = JSONObject.parseObject(JSONObject.toJSONString(claims.get("user"))); //将hash转换为user类型
             return user;
         }catch (MalformedJwtException e){
             return null;
@@ -57,6 +56,7 @@ public class TokenUtil {
             Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
             return true;
         } catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
     }

@@ -1,5 +1,6 @@
 package com.campus.gateway.filter;
 
+import com.campus.gateway.util.TokenUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -56,44 +57,40 @@ public class TokenGatewayFilterFactory extends AbstractGatewayFilterFactory<Toke
                 ServerHttpRequest request = exchange.getRequest();
                 HttpHeaders headers = request.getHeaders();
                 String path = request.getURI().getPath();
-                log.info("path = {}", path);
+                log.info("path = {}", path); // 打印请求路径
                 for (String p : patterns) { // patterns中的路径无须校验token
                     if (path.contains(p)) {
                         return chain.filter(exchange);
                     }
                 }
                 String token = headers.getFirst("token");
-                String uid = headers.getFirst("uid"); // uid用于未携带token时进行缓存区获取token
                 if (token == null) {
                     token = request.getQueryParams().getFirst("token");
                 }
-                if (uid == null) {
-                    uid = request.getQueryParams().getFirst("uid");
-                }
-                log.info("token is {} and uid is {}", token, uid);
+                log.info("token is {}", token);
                 ServerHttpResponse response = exchange.getResponse();
-                if (token == null || token.length() == 0 || uid == null || uid.length() == 0) { // 令牌过期
+                if (token == null || token.length() == 0) { // 是否携带令牌
                     response.setStatusCode(HttpStatus.UNAUTHORIZED);
                     return response.setComplete();
                 }
-                String authToken = redisTemplate.opsForValue().get(uid); // 获取用户的token
-                log.info("authToken is {}", authToken);
-                if (authToken == null || !authToken.equals(token)) {
+                if (TokenUtil.isTokenValid(token)) { // 令牌有效
+                    log.info("authToken is {}", token);
+                    // 1. 获取ServerHttpRequest对象
+                    ServerHttpRequest originalRequest = exchange.getRequest();
+                    // 2. 创建自定义请求头
+                    HttpHeaders customHeaders = new HttpHeaders();
+                    customHeaders.add("test", "ttttttttt");
+                    // 3. 创建新的ServerHttpRequest对象并添加自定义请求头
+                    ServerHttpRequest requestWithCustomHeaders = originalRequest.mutate()
+                            .headers(httpHeaders -> httpHeaders.addAll(customHeaders))
+                            .build();
+                    // 4. 创建新的ServerWebExchange对象并替换原始的请求
+                    ServerWebExchange exchangeWithCustomHeaders = exchange.mutate().request(requestWithCustomHeaders).build();
+                    return chain.filter(exchangeWithCustomHeaders);
+                } else {
                     response.setStatusCode(HttpStatus.UNAUTHORIZED); // 返回401错误
                     return response.setComplete();
                 }
-                // 1. 获取ServerHttpRequest对象
-                ServerHttpRequest originalRequest = exchange.getRequest();
-                // 2. 创建自定义请求头
-                HttpHeaders customHeaders = new HttpHeaders();
-                customHeaders.add("test", "ttttttttt");
-                // 3. 创建新的ServerHttpRequest对象并添加自定义请求头
-                ServerHttpRequest requestWithCustomHeaders = originalRequest.mutate()
-                        .headers(httpHeaders -> httpHeaders.addAll(customHeaders))
-                        .build();
-                // 4. 创建新的ServerWebExchange对象并替换原始的请求
-                ServerWebExchange exchangeWithCustomHeaders = exchange.mutate().request(requestWithCustomHeaders).build();
-                return chain.filter(exchangeWithCustomHeaders);
             } catch (RedisConnectionFailureException e) {
                 e.printStackTrace();
                 ServerHttpResponse response = exchange.getResponse();

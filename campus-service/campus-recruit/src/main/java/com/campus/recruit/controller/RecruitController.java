@@ -100,9 +100,4 @@ public class RecruitController {
         return R.failed();
     }
 
-    @GetMapping("/test")
-    public R test(@RequestHeader("test") String test){
-        return R.ok(test);
-    }
-
 }
