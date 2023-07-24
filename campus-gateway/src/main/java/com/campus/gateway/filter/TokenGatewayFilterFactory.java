@@ -73,6 +73,25 @@ public class TokenGatewayFilterFactory extends AbstractGatewayFilterFactory<Toke
                     response.setStatusCode(HttpStatus.UNAUTHORIZED);
                     return response.setComplete();
                 }
+                /**
+                 * 测试账号
+                 * */
+                if(token.equals("t1")||token.equals("t2")||token.equals("t3")||token.equals("t4")){
+                    String uid = token;
+                    log.info("正在使用测试账号 {} ",uid);
+                    ServerHttpRequest originalRequest = exchange.getRequest();
+                    // 2. 创建自定义请求头
+                    HttpHeaders customHeaders = new HttpHeaders();
+                    customHeaders.add("uid",uid);
+                    // 3. 创建新的ServerHttpRequest对象并添加自定义请求头
+                    ServerHttpRequest requestWithCustomHeaders = originalRequest.mutate()
+                            .headers(httpHeaders -> httpHeaders.addAll(customHeaders))
+                            .build();
+                    // 4. 创建新的ServerWebExchange对象并替换原始的请求
+                    ServerWebExchange exchangeWithCustomHeaders = exchange.mutate().request(requestWithCustomHeaders).build();
+                    return chain.filter(exchangeWithCustomHeaders);
+                }
+
                 if (TokenUtil.isTokenValid(token)) { // 令牌有效
                     String uid = TokenUtil.getUidFromToken(token);
                     log.info("authToken is {}", token);
