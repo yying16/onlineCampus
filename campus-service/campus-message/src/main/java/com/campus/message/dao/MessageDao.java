@@ -21,7 +21,7 @@ public interface MessageDao extends BaseMapper<Message> {
     List<Message> lazyLoading(LazyLoadPojo pojo);
 
     // 获取myId对应的好友列表
-    @Select("select user_id, account,username,telephone,email,credit from t_relationship tr,t_user tu where ((tr.sender = #{myId} and tr.receiver = tu.user_id) or (tr.receiver = #{myId} and tr.sender = tu.user_id) ) and tr.status = 0 and tr.deleted = 0")
+    @Select("select user_id, account,username,user_image,telephone,email,credit from t_relationship tr,t_user tu where ((tr.sender = #{myId} and tr.receiver = tu.user_id) or (tr.receiver = #{myId} and tr.sender = tu.user_id) ) and tr.status = 0 and tr.deleted = 0")
     List<User> getFriends(String myId);
 
     //获取系统消息

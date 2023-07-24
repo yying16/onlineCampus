@@ -8,11 +8,14 @@ import com.campus.message.dto.HandleRequestForm;
 import com.campus.message.dto.MessageForm;
 import com.campus.message.dto.PromptInformationForm;
 import com.campus.message.service.impl.MessageServiceImpl;
+import com.campus.message.vo.InitUserMessageData;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/message")
@@ -42,6 +45,19 @@ public class MessageController {
         }
         return R.failed();
     }
+
+    @ApiOperation("用户消息初始化")
+    @GetMapping("/initUserMessage")
+    public R initUserMessage(@RequestHeader("uid") String uid) {
+        List<InitUserMessageData> list = messageService.initUserMessage(uid);
+        if(list!=null){
+            return R.ok(list);
+        }
+        return R.failed();
+    }
+
+
+
 
 
     @ApiOperation("用户处理好友请求")
