@@ -61,7 +61,7 @@ public class UserController {
     @ApiOperation(value = "获取用户信息")
     @GetMapping("/getDetail")
     public R getDetail(@RequestHeader("uid") String uid) {
-        String userStr = redisTemplate.opsForValue().get(uid);
+        String userStr = String.valueOf(redisTemplate.opsForValue().get("user"+uid));
         User user = JSONObject.parseObject(userStr, User.class);
         if (user == null) {
             return R.failed("令牌无效");

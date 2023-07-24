@@ -17,7 +17,7 @@ public class TokenUtil {
     // 生成token
     public static String generateToken(String id, JSONObject user, long expiration) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("id", id);
+        claims.put("uid", id);
         claims.put("user", user);
         return Jwts.builder()
                 .setClaims(claims)
@@ -45,6 +45,19 @@ public class TokenUtil {
                     .getBody();
             JSONObject user = JSONObject.parseObject(JSONObject.toJSONString(claims.get("user"))); //将hash转换为user类型
             return user;
+        }catch (MalformedJwtException e){
+            return null;
+        }
+    }
+
+    // 根据token获取uid
+    public static String getUidFromToken(String token) {
+        try{
+            Claims claims = Jwts.parser()
+                    .setSigningKey(SECRET_KEY)
+                    .parseClaimsJws(token)
+                    .getBody();
+            return String.valueOf(claims.get("uid"));
         }catch (MalformedJwtException e){
             return null;
         }

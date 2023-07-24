@@ -43,8 +43,8 @@ public class LoginController {
     @Autowired
     TemplateEngine templateEngine;
 
-    @Autowired
-    MessageClient messageClient;
+//    @Autowired
+//    MessageClient messageClient;
 
     /**
      * 登录按钮
@@ -56,7 +56,7 @@ public class LoginController {
         if (message == null) { // 账号或密码错误
             return R.failed(null, "用户名或密码错误");
         }
-        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区
+//        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区(换成前端发起请求)
         return R.ok(message);
     }
 
@@ -68,7 +68,7 @@ public class LoginController {
         if (message == null) { // 账号或密码错误
             return R.failed(null, "验证码错误");
         }
-        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区
+//        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区(换成前端发起请求)
         return R.ok(message);
     }
 
@@ -118,7 +118,7 @@ public class LoginController {
         log.info("退出登录的用户是：" + uid);
         //删除redis中的token
         redisTemplate.delete(uid);
-        messageClient.clearCache(uid); // 删除用户消息缓存区
+//        messageClient.clearCache(uid); // 删除用户消息缓存区（前端调用）
         return R.ok();
     }
 
@@ -171,7 +171,7 @@ public class LoginController {
         if (message == null) { // 账号或密码错误
             return R.failed(null, "验证码错误");
         }
-        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区
+//        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区（前端调用）
         return R.ok(message);
     }
 }

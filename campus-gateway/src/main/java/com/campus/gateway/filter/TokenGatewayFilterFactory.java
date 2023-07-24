@@ -74,12 +74,13 @@ public class TokenGatewayFilterFactory extends AbstractGatewayFilterFactory<Toke
                     return response.setComplete();
                 }
                 if (TokenUtil.isTokenValid(token)) { // 令牌有效
+                    String uid = TokenUtil.getUidFromToken(token);
                     log.info("authToken is {}", token);
                     // 1. 获取ServerHttpRequest对象
                     ServerHttpRequest originalRequest = exchange.getRequest();
                     // 2. 创建自定义请求头
                     HttpHeaders customHeaders = new HttpHeaders();
-                    customHeaders.add("test", "ttttttttt");
+                    customHeaders.add("uid",uid);
                     // 3. 创建新的ServerHttpRequest对象并添加自定义请求头
                     ServerHttpRequest requestWithCustomHeaders = originalRequest.mutate()
                             .headers(httpHeaders -> httpHeaders.addAll(customHeaders))
