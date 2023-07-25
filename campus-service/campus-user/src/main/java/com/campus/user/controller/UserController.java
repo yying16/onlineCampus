@@ -7,7 +7,6 @@ import com.campus.common.util.R;
 import com.campus.user.domain.User;
 import com.campus.user.dto.UpdatePasswordForm;
 import com.campus.user.dto.UpdateUserForm;
-import com.campus.user.feign.GatewayClient;
 import com.campus.user.feign.MessageClient;
 import com.campus.user.pojo.PromptInformationForm;
 import com.campus.user.service.impl.UserServiceImpl;
@@ -51,9 +50,6 @@ public class UserController {
 
     @Autowired
     MessageClient messageClient;
-
-    @Autowired
-    GatewayClient gatewayClient;
 
     @Value("${email.baseurl}")
     private String baseUrl;
@@ -196,16 +192,5 @@ public class UserController {
 
         //返回邮件激活成功页面
         return emailContent;
-    }
-
-
-    /**
-     * 测试方法
-     */
-    @GetMapping("/test")
-    public R test() {
-        JSONObject user = new JSONObject();
-        final String s = gatewayClient.generalToken(user);
-        return R.ok(s);
     }
 }
