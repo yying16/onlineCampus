@@ -100,4 +100,14 @@ public interface MessageService {
      * @param uid 当前登陆用户
      * */
     boolean clearCache(String uid);
+
+
+    /**
+     * 清除未读
+     * 删除缓存
+     * 修改数据库
+     * 再删除缓存
+     * 重新添加缓存
+     * */
+    boolean clearUnRead(String uid);
 }

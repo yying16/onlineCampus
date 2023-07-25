@@ -110,5 +110,14 @@ public class MessageController {
         return R.failed();
     }
 
+    @ApiOperation("清除未读")
+    @GetMapping("clearUnRead")
+    public R clearUnRead(@RequestHeader("uid") String uid){
+        if(messageService.clearUnRead(uid)){
+            return R.ok();
+        }
+        return R.failed();
+    }
+
 
 }

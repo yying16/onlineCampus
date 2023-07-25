@@ -43,4 +43,8 @@ public interface MessageDao extends BaseMapper<Message> {
     @Select("select user_id from t_user where deleted = 0 and status = 0")
     List<String> getAllUserId();
 
+    //获取所有普通用户id
+    @Select("update t_message t set t.status = 1 where (sender = #{uid} or receiver = #{uid}) and t.status = 0 and deleted = 0")
+    void clearUnRead(String uid);
+
 }

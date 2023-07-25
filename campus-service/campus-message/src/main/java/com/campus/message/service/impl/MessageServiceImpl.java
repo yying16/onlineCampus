@@ -498,6 +498,20 @@ public class MessageServiceImpl implements MessageService {
         return true;
     }
 
+    @Override
+    public boolean clearUnRead(String uid) {
+        try{
+            //清除缓存
+            clearCache(uid);
+            messageDao.clearUnRead(uid); // 修改数据库
+            initMessage(uid); // 重新加载数据
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
     /**
      * 修改好友聊天数据
      */
