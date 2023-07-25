@@ -25,6 +25,10 @@ public class TimeUtil {
             return new Date();
         }
     }
+
+    public static long getTimeStamp(String time){
+        return parse(time).getTime();
+    }
     public static String format(Date date){
         return format.format(date);
     }

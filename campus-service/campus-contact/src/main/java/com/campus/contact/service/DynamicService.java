@@ -48,10 +48,10 @@ public interface DynamicService {
     /**
      * 插入直接下级评论
      *
-     * @param _id     当前动态_id
+     * @param dynamicId     当前动态id
      * @param comment 直接下级评论
      */
-    public String insertComment(String _id, Comment comment);
+    public Comment insertComment(String dynamicId, Comment comment);
 
     /**
      * 删除直接下级评论
@@ -59,7 +59,7 @@ public interface DynamicService {
      * @param dynamicId 动态id
      * @param commentId 一级评论id
      */
-    public long deleteComment(String dynamicId, String commentId);
+    public boolean deleteComment(String dynamicId, String commentId);
 
     /**
      * 点赞

@@ -17,6 +17,7 @@ import com.campus.message.pojo.LazyLoadPojo;
 import com.campus.message.pojo.User;
 import com.campus.message.service.MessageService;
 import com.campus.message.socket.WebSocket;
+import com.campus.message.vo.InitUserMessageData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -43,8 +44,7 @@ public class MessageServiceImpl implements MessageService {
     ServiceCenter serviceCenter;
 
     @Autowired
-    RelationshipDao relationshipDao;
-
+    RelationshipServiceImpl relationshipService;
     /**
      * 写入消息（系统消息要特殊判断
      *
@@ -122,7 +122,7 @@ public class MessageServiceImpl implements MessageService {
                         String receiver = msg.getReceiver();
                         String json = JSONObject.toJSONString(msg); // 消息json格式对象
                         //更新消息列表缓存
-                        JSONObject friend = JSONObject.parseObject(String.valueOf(redisTemplate.opsForHash().get(sender, receiver))); // 好友信息
+                        JSONObject friend = JSONObject.parseObject(String.valueOf(redisTemplate.opsForHash().get("message"+sender, receiver))); // 好友信息
                         if (friend == null) {
                             friend = new JSONObject();
                             friend.put("dialog", new JSONArray());
@@ -130,7 +130,7 @@ public class MessageServiceImpl implements MessageService {
                         JSONArray dialog = JSONArray.parseArray(String.valueOf(friend.get("dialog"))); // 聊天内容
                         dialog.add(0, JSONObject.toJSON(msg)); // 在最底部添加聊天内容
                         friend.put("dialog", dialog);
-                        redisTemplate.opsForHash().put(sender, receiver, friend.toJSONString()); // 更新redis
+                        redisTemplate.opsForHash().put("message"+sender, receiver, friend.toJSONString()); // 更新redis
                         // websocket转发消息
                         webSocket.sendOneMessage(receiver, json);
                     } else {
@@ -145,10 +145,10 @@ public class MessageServiceImpl implements MessageService {
                         String receiver = msg.getReceiver();
                         String json = JSONObject.toJSONString(msg); // 消息json格式对象
                         //更新消息列表缓存
-                        String d = redisTemplate.opsForHash().get(sender, "request") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get(sender, "request"));
+                        String d = redisTemplate.opsForHash().get("message"+sender, "request") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get("message"+sender, "request"));
                         JSONArray dialog = JSONArray.parseArray(d); // 聊天内容
                         dialog.add(0, JSONObject.toJSON(msg)); // 添加请求内容
-                        redisTemplate.opsForHash().put(sender, "request", dialog.toJSONString()); // 更新redis
+                        redisTemplate.opsForHash().put("message"+sender, "request", dialog.toJSONString()); // 更新redis
                         // websocket转发消息
                         webSocket.sendOneMessage(receiver, json);
                     } else {
@@ -175,15 +175,15 @@ public class MessageServiceImpl implements MessageService {
         JSONObject ret = new JSONObject(); // 返回值
         //录入所有系统消息(后续不进行懒加载，一次全导入)
         List<Message> systemMessages = messageDao.getSystemMessage(uid);
-        redisTemplate.opsForHash().put(uid, "system", JSONArray.toJSONString(systemMessages));
-        ret.put("system",systemMessages);
+        redisTemplate.opsForHash().put("message"+uid, "system", JSONArray.toJSONString(systemMessages));
+        ret.put("system", systemMessages);
         //录入所有请求消息(后续不进行懒加载，一次全导入)
         List<Message> requestMessages = messageDao.getRequestMessage(uid);
-        redisTemplate.opsForHash().put(uid, "request", JSONArray.toJSONString(requestMessages));
-        ret.put("request",requestMessages);
+        redisTemplate.opsForHash().put("message"+uid, "request", JSONArray.toJSONString(requestMessages));
+        ret.put("request", requestMessages);
         //录入所有用户消息
         List<Message> allDialog = messageDao.getMyAllDialog(uid);
-        List<User> friends = messageDao.getFriends(uid);
+        List<User> friends = relationshipService.getFriends(uid);
         Map<String, List<Message>> rel = new HashMap<>();
         for (int i = 0; i < friends.size(); i++) {
             String friendId = String.valueOf(friends.get(i).getUserId());
@@ -211,13 +211,70 @@ public class MessageServiceImpl implements MessageService {
             String friendId = String.valueOf(friend.getUserId());
             jsonContent.put("user", friend);
             jsonContent.put("dialog", rel.get(friendId));
-            redisTemplate.opsForHash().put(uid, friendId, jsonContent.toJSONString());
-            ret.put(friendId,jsonContent);
+            redisTemplate.opsForHash().put("message"+uid, friendId, jsonContent.toJSONString());
+            ret.put(friendId, jsonContent);
         }
         //删除自动回复
         if (redisTemplate.opsForHash().hasKey("autoReply", uid)) {
             redisTemplate.opsForHash().delete("autoReply", uid);
         }
+        return ret;
+    }
+
+    /**
+     * 初始化用户消息
+     * 返回的数据结构：
+     * {
+     * userId:{}
+     * }
+     *
+     * @param uid 当前登录用户id
+     * @return 是否初始化成功
+     */
+    @Override
+    public List<InitUserMessageData> initUserMessage(String uid) {
+        List<InitUserMessageData> ret = new ArrayList<>();
+        List<Message> allDialog = messageDao.getMyAllDialog(uid); // 获取所有聊天内容(限300条)
+        List<User> friends = relationshipService.getFriends(uid); // 获取好友列表
+        Map<String, String> recentContent = new HashMap<>();
+        Map<String, String> recentTime = new HashMap<>();
+        for (int i = 0; i < friends.size(); i++) {
+            String friendId = String.valueOf(friends.get(i).getUserId());
+            recentContent.put(friendId, ""); // 保证map值不为空
+
+        }
+        for (int i = 0; i < allDialog.size(); i++) {
+            Message message = allDialog.get(i);
+            String friendId = null;
+            String content = message.getContent();
+            String time = message.getCreateTime();
+            String receiver = message.getReceiver();
+            String sender = message.getSender();
+            if (uid.equals(sender)) { // 作为发送者
+                friendId = receiver;
+            }
+            if (uid.equals(receiver)) { // 作为发送者
+                friendId = sender;
+            }
+            if (friendId != null && recentContent.containsKey(friendId) && recentContent.get(friendId).length()==0) { // 只保留第一次，第一次就是最新的
+                recentContent.put(friendId,content);
+                recentTime.put(friendId,time);
+            }
+        }
+        for (User friend : friends) {
+            InitUserMessageData data = new InitUserMessageData();
+            data.setUserId(friend.getUserId());
+            data.setUsername(friend.getUsername());
+            data.setUserImage(friend.getUserImage());
+            data.setRecentContent(recentContent.get(friend.getUserId()));
+            if(recentContent.get(friend.getUserId()).length()>0){
+                data.setRecentTime(recentTime.get(friend.getUserId()));
+            }else{
+                data.setRecentTime("");
+            }
+            ret.add(data);
+        }
+        Collections.sort(ret);
         return ret;
     }
 
@@ -234,7 +291,7 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public boolean lazyLoadingChatRecords(String uid, String friendId) {
         try {
-            String jsonStr = String.valueOf(redisTemplate.opsForHash().get(uid, friendId));
+            String jsonStr = String.valueOf(redisTemplate.opsForHash().get("message"+uid, friendId));
             JSONObject json = JSONObject.parseObject(jsonStr);
             if (json.get("dialog") == null) {
                 json.put("dialog", new JSONArray());
@@ -242,12 +299,12 @@ public class MessageServiceImpl implements MessageService {
             String arrayStr = String.valueOf(json.get("dialog"));
             List<Message> list = JSONArray.parseArray(arrayStr, Message.class);
             int num = list.size(); // 获取已缓存聊天记录个数
-            List<Message> loadedMessage = messageDao.lazyLoading(new LazyLoadPojo(uid,friendId,num)); // 加载新的数据
+            List<Message> loadedMessage = messageDao.lazyLoading(new LazyLoadPojo(uid, friendId, num)); // 加载新的数据
             list.addAll(loadedMessage); // 添加新加载的数据
             arrayStr = JSONArray.toJSONString(list);
             json.put("dialog", arrayStr);
             jsonStr = json.toJSONString();
-            redisTemplate.opsForHash().put(uid, friendId, jsonStr);
+            redisTemplate.opsForHash().put("message"+uid, friendId, jsonStr);
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -272,7 +329,7 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public boolean handleRequest(String uid, String msgId, Boolean accept) {
         try {
-            List<Message> list = JSONArray.parseArray(String.valueOf(redisTemplate.opsForHash().get(uid, "request")), Message.class);
+            List<Message> list = JSONArray.parseArray(String.valueOf(redisTemplate.opsForHash().get("message"+uid, "request")), Message.class);
             int index = -1;
             Message msg = new Message(); // 找到msgId对应的消息
             for (int i = 0; i < list.size(); i++) {
@@ -282,7 +339,7 @@ public class MessageServiceImpl implements MessageService {
                     break;
                 }
             }
-            String sender = msg.getSender(); // 发起好友申请者
+            String sender = msg.getSender(); // （发起好友申请）者
             if (index != -1) { // 有找到
                 if (accept) { // 通过好友申请
                     msg.setStatus(MessageStatus.RECEIVE.code); // 改为接受
@@ -292,7 +349,7 @@ public class MessageServiceImpl implements MessageService {
                 messageDao.updateById(msg); // 更新数据库
                 list.set(index, msg); // 更新列表
                 String listStr = JSONArray.toJSONString(list);
-                redisTemplate.opsForHash().put(uid, "request", listStr);// 更新缓存
+                redisTemplate.opsForHash().put("message"+uid, "request", listStr);// 更新缓存
                 if (accept) {
                     //新建relationship 写入数据库
                     Relationship rs = new Relationship();
@@ -300,10 +357,10 @@ public class MessageServiceImpl implements MessageService {
                     rs.setSender(sender);
                     rs.setReceiver(msg.getReceiver());
                     rs.setStatus(RelationshipStatus.NORMAL.code);
-                    relationshipDao.insert(rs);
+                    relationshipService.addFriend(rs);// 插入数据
                 }
-                if (redisTemplate.opsForHash().hasKey(sender, "request")) { // 如果对方在线（更新发送者的redis)
-                    List<Message> l = JSONArray.parseArray(String.valueOf(redisTemplate.opsForHash().get(sender, "request")), Message.class);
+                if (redisTemplate.opsForHash().hasKey("message"+sender, "request")) { // 如果对方在线（更新发送者的redis)
+                    List<Message> l = JSONArray.parseArray(String.valueOf(redisTemplate.opsForHash().get("message"+sender, "request")), Message.class);
                     int idx = -1;
                     for (int i = 0; i < list.size(); i++) {
                         if (list.get(i).getMessageId().equals(msgId)) {
@@ -314,7 +371,7 @@ public class MessageServiceImpl implements MessageService {
                     if (idx != -1) { // 更新发送者的redis
                         l.set(idx, msg); // 更新列表
                         String lStr = JSONArray.toJSONString(list);
-                        redisTemplate.opsForHash().put(sender, "request", lStr);// 更新缓存
+                        redisTemplate.opsForHash().put("message"+sender, "request", lStr);// 更新缓存
                     }
                 }
                 //系统发提醒消息给发送者
@@ -337,13 +394,13 @@ public class MessageServiceImpl implements MessageService {
                     value.put("dialog", new JSONArray());
                     value.put("user", senderDetail);
                     String valueStr = value.toJSONString();
-                    redisTemplate.opsForHash().put(uid, sender, valueStr);
+                    redisTemplate.opsForHash().put("message"+uid, sender, valueStr);
                     if (webSocket.isOnline(sender)) { // 如果对方也在线
                         JSONObject value2 = new JSONObject();
-                        value.put("dialog", new JSONArray());
-                        value.put("user", user);
+                        value2.put("dialog", new JSONArray());
+                        value2.put("user", user);
                         String valueStr2 = value2.toJSONString();
-                        redisTemplate.opsForHash().put(sender, uid, valueStr2);
+                        redisTemplate.opsForHash().put("message"+sender, uid, valueStr2);
                     }
                 }
             }
@@ -379,11 +436,11 @@ public class MessageServiceImpl implements MessageService {
         if (insert(message)) { // 消息插入成功
             //判断对方是否在线，在线则写入对方的消息缓存
             if (webSocket.isOnline(receiver)) { // 对方在线时
-                String s = redisTemplate.opsForHash().get(receiver, "system") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get(receiver, "system"));
+                String s = redisTemplate.opsForHash().get("message"+receiver, "system") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get("message"+receiver, "system"));
                 JSONArray systemMessage = JSONArray.parseArray(s); // 聊天内容
                 systemMessage.add(0, JSONObject.toJSON(message)); // 添加请求内容
-                redisTemplate.opsForHash().put(receiver, "system", systemMessage.toJSONString()); // 更新redis
-                webSocket.sendOneMessage(receiver,JSONObject.toJSONString(message));
+                redisTemplate.opsForHash().put("message"+receiver, "system", systemMessage.toJSONString()); // 更新redis
+                webSocket.sendOneMessage(receiver, JSONObject.toJSONString(message));
             }
             return true;
         }
@@ -400,7 +457,7 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public JSONObject getUserChatRecords(String uid, String friendId) {
-        String jsonStr = String.valueOf(redisTemplate.opsForHash().get(uid, friendId));
+        String jsonStr = String.valueOf(redisTemplate.opsForHash().get("message"+uid, friendId));
         JSONObject json = JSONObject.parseObject(jsonStr);
         if (json.get("dialog") == null) {
             json.put("dialog", new JSONArray());
@@ -419,7 +476,7 @@ public class MessageServiceImpl implements MessageService {
         }
         JSONArray jsonArray = JSONArray.parseArray(JSONArray.toJSONString(array));
         json.put("dialog", jsonArray);
-        redisTemplate.opsForHash().put(uid, friendId, json.toJSONString()); // 更新缓存
+        redisTemplate.opsForHash().put("message"+uid, friendId, json.toJSONString()); // 更新缓存
         return json;
     }
 
@@ -440,11 +497,25 @@ public class MessageServiceImpl implements MessageService {
         return true;
     }
 
+    @Override
+    public boolean clearUnRead(String uid) {
+        try{
+            //清除缓存
+            clearCache(uid);
+            messageDao.clearUnRead(uid); // 修改数据库
+            initMessage(uid); // 重新加载数据
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
     /**
      * 修改好友聊天数据
      */
     private boolean changeDialog(String uid, String friendId, String msgId, String arg, Object argValue) {
-        String jsonStr = String.valueOf(redisTemplate.opsForHash().get(uid, friendId));
+        String jsonStr = String.valueOf(redisTemplate.opsForHash().get("message"+uid, friendId));
         JSONObject json = JSONObject.parseObject(jsonStr);
         if (json.get("dialog") == null) {
             json.put("dialog", new JSONArray());

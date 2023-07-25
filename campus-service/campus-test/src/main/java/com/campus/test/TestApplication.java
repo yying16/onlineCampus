@@ -12,7 +12,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 
 @EnableDiscoveryClient
-@SpringBootApplication(scanBasePackages = {"com.campus.common","com.campus.test"})
+@SpringBootApplication(scanBasePackages = {"com.campus.common", "com.campus.test"})
 public class TestApplication {
 
     @Autowired
@@ -25,9 +25,9 @@ public class TestApplication {
     }
 
     @Bean
-    public CommandLineRunner CommandLineRunner(){
-        return args->{
-            serviceCenter.registerTask(Test.class);
+    public CommandLineRunner CommandLineRunner() {
+        return args -> {
+            //TODO
         };
     }
 }

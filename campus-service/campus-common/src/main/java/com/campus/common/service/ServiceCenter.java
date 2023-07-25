@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.campus.common.pojo.IncrementData;
 import com.campus.common.pojo.ServiceData;
 import com.campus.common.util.IPageUtil;
 import com.campus.common.util.R;
@@ -68,9 +69,106 @@ public class ServiceCenter {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(); // 线程池
 
 
+    /**
+     * kafka中间件(用于同步 redis 和 mysql数据）
+     * topic: service
+     * key: 用于设置分区，对应模块的crud
+     * value:{ method: insert/update/delete , data: 要存储/更新（主键匹配）/修改的数据 }
+     */
+    @KafkaListener(topics = "service")
+    public void tradeListener(ConsumerRecord<String, String> record, Acknowledgment ack) {
+        try {
+            ServiceData serviceData = JSONObject.parseObject(record.value(), ServiceData.class);
+            String json = String.valueOf(serviceData.getData());
+            String type = serviceData.getType();
+            Class<?> cls = Class.forName(type);
+            Object data = JSONObject.parseObject(json, cls); // 类型转换
+            switch (serviceData.getMethod()) {
+                case ServiceData.INCREMENT: { // 自增
+                    increment(JSONObject.parseObject(json, IncrementData.class));
+                    break;
+                }
+                case ServiceData.INSERT: { // 插入
+                    insertMySql(data);
+                    break;
+                }
+                case ServiceData.UPDATE: { // 更新
+                    update(data, serviceData.getId());
+                    break;
+                }
+                case ServiceData.DELETE: { // 删除
+                    deleteMySql(data.getClass(), serviceData.getId());
+                    break;
+                }
+                case ServiceData.SELECT: { // 删除
+                    selectMySql(serviceData.getId(), cls);
+                    break;
+                }
+            }
+            ack.acknowledge();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * 自增函数(对应字段数据类型必须为Integer)
+     * 因为此类方法对高并发要求较高，因此采用异步更新持久化数据方式
+     * 更新redis和mysql的自增字段（mysql异步更新）
+     * redis缓存结构必须为value，且键为className+id（如product111）
+     * 如果不是这个数据结构的话就只更新mysql
+     * <p>
+     * 用于访问量/收藏量/关注数量 ++
+     * @param id 需要自增的元组主键（如product的productId)
+     * @param clazz 需要自增的元组所属的表对应的类（如 t_product -> clazz = Product.class)
+     * @param args 需要自增的属性（驼峰命名）（如productNum）
+     * @return 是否修改成功（即修改已有的缓存以及发出异步mysql修改信息）
+     */
+    public <T> boolean increment(String id, Class<T> clazz, String... args) {
+        //更新redis
+        String h = getName(clazz)+id;
+        String jsonStr = redisTemplate.opsForValue().get(h);
+        if(jsonStr!=null){ // 缓存格式匹配且存在缓存
+            T t = JSONObject.parseObject(jsonStr,clazz);
+            for(String arg:args){ // 依次修改变量值
+                setArg(t,arg,((Integer) getArg(t,arg))+1); // 自增
+            }
+            jsonStr = JSONObject.toJSONString(t);
+            redisTemplate.opsForValue().set(h, jsonStr, getCacheTime(), TimeUnit.SECONDS); // 重新写入redis
+        }
+        //异步更新数据库
+        IncrementData<T> data = new IncrementData(id, clazz, args);
+        ServiceData serviceData = new ServiceData(ServiceData.INCREMENT, data, clazz.getName());
+        String dataStr = JSONObject.toJSONString(serviceData);
+        kafkaTemplate.send("service", getName(clazz), dataStr); // 异步更新数据库
+        return true;
+    }
+
+    /**
+     * 异步修改数据库进行自增
+     */
+    private  <T> boolean increment(IncrementData<T> data) {
+        String[] args = data.getArgs();
+        Class<T> clazz = data.getClazz();
+        String id = data.getId();
+        BaseMapper<T> mapper = getMapper(clazz);
+        T t = mapper.selectById(id);
+        for(String arg:args){
+            setArg(t,arg,((Integer) getArg(t,arg))+1); // 自增
+        }
+        mapper.updateById(t);
+        return true;
+    }
+
+    /**
+     * 注册刷新任务
+     * <p>
+     * 用于定时刷新首页数据
+     */
     public <T> boolean registerTask(Class<T> clazz) {
         Task<T> task = new Task(this.threadPool, this.jdbcTemplate, clazz);
         this.threadPool.schedule(task, 1, TimeUnit.SECONDS); // 1s后启动
@@ -109,10 +207,10 @@ public class ServiceCenter {
                         int i = 0;
                         while (i < str.length) {
                             if (fieldNames.indexOf(str[i]) > 0) { // 有效域变量
-                                if(i+1>=str.length){
+                                if (i + 1 >= str.length) {
                                     log.info("参数个数错误,默认升序");
                                     ad = "asc";
-                                }else{
+                                } else {
                                     ad = str[i + 1];
                                 }
                                 if (ad.equals("asc")) {
@@ -122,14 +220,14 @@ public class ServiceCenter {
                                 } else {
                                     log.info("order参数有误");
                                 }
-                            }else{
+                            } else {
                                 log.info("排序参数字段不存在");
                             }
-                            i+=2;
+                            i += 2;
                         }
                     } else if (arg.equals("limit")) {
-                        String limit = String.valueOf(condition.get(arg)).replace(" ",",");
-                        wrapper.last("limit "+limit);
+                        String limit = String.valueOf(condition.get(arg)).replace(" ", ",");
+                        wrapper.last("limit " + limit);
                     } else {
                         Object value = condition.get(arg); // 条件要求
                         Field field = clazz.getDeclaredField(arg);
@@ -326,7 +424,7 @@ public class ServiceCenter {
                         ret.add(datas.get(i));
                     }
                 }
-                List<T> list = getOtherData(num , cnt, clazz); // 直接从数据库中获取的数据
+                List<T> list = getOtherData(num, cnt, clazz); // 直接从数据库中获取的数据
                 for (int i = 0; i < list.size(); i++) {
                     String id = String.valueOf(getArg(list.get(i), getName(clazz) + "Id")); // 获取id
                     if (!idList.contains(id)) { // 没有并发原因导致的冲突
@@ -401,7 +499,7 @@ public class ServiceCenter {
                 while (!b) { // 没有得到互斥锁
                     b = tryLock(h, id);
                 }
-                return selectMySql(id,clazz);
+                return selectMySql(id, clazz);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -421,6 +519,7 @@ public class ServiceCenter {
 
     /**
      * 插入数据(先写入数据库，再写入缓存）
+     *
      * @return id
      */
     public <T> String insert(T t) {
@@ -434,7 +533,7 @@ public class ServiceCenter {
             setArg(t, "updateTime", TimeUtil.getCurrentTime());
             insertMySql(t);
             String json = JSONObject.toJSON(t).toString(); // 要写入redis的数据
-            redisTemplate.opsForList().leftPush(h,id); // 添加到id列表缓存
+            redisTemplate.opsForList().leftPush(h, id); // 添加到id列表缓存
             redisTemplate.opsForValue().set(key, json, getCacheTime(), TimeUnit.SECONDS); // 写入redis
             return id;
         } catch (Exception e) {
@@ -488,13 +587,13 @@ public class ServiceCenter {
     /**
      * 删除数据
      */
-    public <T> boolean delete(String id,Class<T> clazz) {
+    public <T> boolean delete(String id, Class<T> clazz) {
         try {
-            deleteMySql(clazz,id);
-            if (redisTemplate.opsForValue().get(getName(clazz, id)) != null) {
-                redisTemplate.delete(getName(clazz, id));
+            deleteMySql(clazz, id);
+            if (redisTemplate.opsForValue().get(getName(clazz)+id) != null) {
+                redisTemplate.delete(getName(clazz)+ id);
             }
-            redisTemplate.opsForList().remove(getName(clazz, ""), 1, id); // 删除id列表缓存
+            redisTemplate.opsForList().remove(getName(clazz), 1, id); // 删除id列表缓存
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -502,45 +601,6 @@ public class ServiceCenter {
         }
     }
 
-
-
-    /**
-     * kafka中间件(用于同步 redis 和 mysql数据）
-     * topic: service
-     * key: 用于设置分区，对应模块的crud
-     * value:{ method: insert/update/delete , data: 要存储/更新（主键匹配）/修改的数据 }
-     */
-    @KafkaListener(topics = "service")
-    public void tradeListener(ConsumerRecord<String, String> record, Acknowledgment ack) {
-        try {
-            ServiceData serviceData = JSONObject.parseObject(record.value(), ServiceData.class);
-            String json = String.valueOf(serviceData.getData());
-            String type = serviceData.getType();
-            Class<?> cls = Class.forName(type);
-            Object data = JSONObject.parseObject(json, cls);
-            switch (serviceData.getMethod()) {
-                case ServiceData.INSERT: { // 插入
-                    insertMySql(data);
-                    break;
-                }
-                case ServiceData.UPDATE: { // 更新
-                    update(data, serviceData.getId());
-                    break;
-                }
-                case ServiceData.DELETE: { // 删除
-                    deleteMySql(data.getClass(), serviceData.getId());
-                    break;
-                }
-                case ServiceData.SELECT: { // 删除
-                    selectMySql(serviceData.getId(), cls);
-                    break;
-                }
-            }
-            ack.acknowledge();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
 
     /**
      * 根据id查询数据
@@ -750,121 +810,4 @@ public class ServiceCenter {
         return c;
     }
 
-
-//    /**
-//     * 查询数据(错误）
-//     * 结合具体业务
-//     */
-//    public <T> IPage search(Map<String, Object> condition, Class<T> clazz, long currentPage, long pageSize) {
-//        try {
-//            if (clazz == null || currentPage <= 0 || pageSize <= 0) { // 参数校验
-//                return null;
-//            }
-//            String h = getName(clazz);
-//            List<T> list = getCacheList(clazz);
-//            list = list.stream().map(i -> JSONObject.parseObject(String.valueOf(i), clazz)).collect(Collectors.toList()); // 将json格式映射成clazz
-//            if (condition == null || condition.isEmpty()) { // 查询所有
-//                IPage iPage = IPageUtil.listToIPage(list, currentPage, pageSize);
-//                return iPage;
-//            } else { // 条件搜索
-//                Field[] fields = clazz.getDeclaredFields();
-//                List<Object> ans = new ArrayList(list);
-//                List<Field> fieldList = Arrays.asList(fields); // 域变量集合
-//                Map<String, Field> map = new HashMap<>(); // 域变量名称->域变量
-//                List<String> fieldNames = fieldList.stream().map(Field::getName).collect(Collectors.toList()); // 域变量名称集合
-//                Set<String> set = new HashSet<>(condition.keySet()); // 拷贝
-//                for (String arg : set) {
-//                    if (!fieldNames.contains(arg)) { // 删除掉没有域变量对应的条件
-//                        condition.remove(arg);
-//                    }
-//                }
-//                for (String arg : condition.keySet()) { // 遍历过滤后的条件
-//                    Object value = condition.get(arg);
-//                    Field field = clazz.getDeclaredField(arg);
-//                    String fieldTypeName = field.getType().getTypeName();
-//                    switch (fieldTypeName) { // 不考虑Float，Short，Character
-//                        case "java.lang.Boolean": { // 判断是否值相同
-//                            Boolean finalValue = Boolean.parseBoolean(value.toString());
-//                            ans = ans.stream().filter(a -> Objects.equals(getArg(a, arg), finalValue)).collect(Collectors.toList());
-//                            break;
-//                        }
-//                        case "java.lang.Integer": { // 先判断为单值匹配还是区间匹配
-//                            if (String.valueOf(value).matches("\\d")) { // 单值匹配
-//                                Object finalValue = Integer.parseInt(value.toString());
-//                                ans = ans.stream().filter(a -> Objects.equals(getArg(a, arg), finalValue)).collect(Collectors.toList());
-//                            } else { // 区间匹配格式 '1#2' 用#隔开
-//                                String finalValue = String.valueOf(value);
-//                                String[] se = finalValue.split("#");
-//                                Integer s = Integer.parseInt(se[0]);
-//                                Integer e = Integer.parseInt(se[0]);
-//                                ans = ans.stream().filter(a -> {
-//                                    Integer d = (Integer) getArg(a, arg);
-//                                    return s < d && d < e;
-//                                }).collect(Collectors.toList());
-//                            }
-//                            break;
-//                        }
-//                        case "java.lang.Long": {
-//                            if (String.valueOf(value).matches("\\d")) { // 单值匹配
-//                                Object finalValue = Long.parseLong(value.toString());
-//                                ans = ans.stream().filter(a -> Objects.equals(getArg(a, arg), finalValue)).collect(Collectors.toList());
-//                            } else { // 区间匹配格式 '1#2' 用#隔开
-//                                String finalValue = String.valueOf(value);
-//                                String[] se = finalValue.split("#");
-//                                Long s = Long.parseLong(se[0]);
-//                                Long e = Long.parseLong(se[0]);
-//                                ans = ans.stream().filter(a -> {
-//                                    Long d = (Long) getArg(a, arg);
-//                                    return s < d && d < e;
-//                                }).collect(Collectors.toList());
-//                            }
-//                            break;
-//                        }
-//                        case "java.lang.Double": {
-//                            if (String.valueOf(value).matches("\\d")) { // 单值匹配
-//                                Object finalValue = Double.parseDouble(value.toString());
-//                                ans = ans.stream().filter(a -> Objects.equals(getArg(a, arg), finalValue)).collect(Collectors.toList());
-//                            } else { // 区间匹配格式 '1#2' 用#隔开
-//                                String finalValue = String.valueOf(value);
-//                                String[] se = finalValue.split("#");
-//                                Double s = Double.parseDouble(se[0]);
-//                                Double e = Double.parseDouble(se[0]);
-//                                ans = ans.stream().filter(a -> {
-//                                    Double d = (Double) getArg(a, arg);
-//                                    return s < d && d < e;
-//                                }).collect(Collectors.toList());
-//                            }
-//                            break;
-//                        }
-//                        case "java.lang.String": { // 判断是否为时间（时间则区间对比，字符串则关键字匹配）
-//                            String finalValue = String.valueOf(value);
-//                            if (arg.endsWith("Time")) { // 时间
-//                                String[] se = finalValue.split("#");
-//                                Date s = TimeUtil.parse(se[0]); // 开始时间
-//                                Date e = TimeUtil.parse(se[1]); // 结束时间
-//                                long st = s.getTime();
-//                                long et = e.getTime();
-//                                ans = ans.stream().filter(a -> {
-//                                    Date d = TimeUtil.parse(String.valueOf(getArg(a, arg)));
-//                                    if (d == null) // 空值处理
-//                                        return false;
-//                                    long dt = d.getTime();
-//                                    return st < dt && dt < et;
-//                                }).collect(Collectors.toList());
-//                                break;
-//                            } else {
-//                                ans = ans.stream().filter(a -> String.valueOf(getArg(a, arg)).contains(finalValue)).collect(Collectors.toList());
-//                                break;
-//                            }
-//                        }
-//                    }
-//
-//                }
-//                return IPageUtil.listToIPage(ans,currentPage,pageSize);
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//        }
-//    }
 }

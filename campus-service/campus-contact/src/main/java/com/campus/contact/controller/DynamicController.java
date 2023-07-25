@@ -1,21 +1,22 @@
 package com.campus.contact.controller;
 
+import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
 import com.campus.contact.domain.Comment;
 import com.campus.contact.domain.Dynamic;
+import com.campus.contact.dto.AddCommentForm;
+import com.campus.contact.dto.DeleteCommentForm;
 import com.campus.contact.service.impl.CommentServiceImpl;
 import com.campus.contact.service.impl.DynamicServiceImpl;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * author yying
- */
 @Api("动态模块接口")
 @RestController
 @RequestMapping("/dynamic")
@@ -51,7 +52,10 @@ public class DynamicController {
      */
     @GetMapping("/searchDynamic")
     @ApiOperation("模糊查询动态")
-    public R searchDynamic(@RequestParam("content") String content,@RequestHeader("uid") String uid) {
+    public R searchDynamic(@RequestParam(value = "content",required = false) String content,@RequestHeader("uid") String uid) {
+        if(content==null){
+            content = "";
+        }
         List<Dynamic> list = dynamicService.searchDynamic(content,uid);
         if (list == null)
             return R.failed();
@@ -101,36 +105,6 @@ public class DynamicController {
         return R.ok("删除成功");
     }
 
-    /**
-     * 在动态下发布直接评论
-     *
-     * @param dynamicId 动态id
-     * @param comment   要添加的评论
-     * @return (result - > 新添加的动态id)
-     */
-    @ApiOperation("在动态下发布直接评论")
-    @PostMapping("/addComment/{dynamicId}")
-    public R addComment(@PathVariable String dynamicId, @RequestBody Comment comment) {
-        comment.setParent(dynamicId);
-        String commentId = dynamicService.insertComment(dynamicId, comment);
-        return R.ok(commentId);
-    }
-
-    /**
-     * 删除直接下级评论
-     *
-     * @param dynamicId 动态id
-     * @param commentId 一级评论id
-     * @return 是否删除成功
-     */
-    @ApiOperation("删除直接下级评论")
-    @GetMapping("/removeComment")
-    public R deleteComment(@RequestParam("dynamicId") String dynamicId, @Param("commentId") String commentId) {
-        long l = dynamicService.deleteComment(dynamicId, commentId);
-        if (l == 0L)
-            return R.failed("删除失败");
-        return R.ok("删除成功");
-    }
 
     /**
      * 点赞
@@ -164,35 +138,97 @@ public class DynamicController {
         return R.ok();
     }
 
+//    /**
+//     * 在动态下发布直接评论
+//     *
+//     * @param dynamicId 动态id
+//     * @param comment   要添加的评论
+//     * @return (result - > 新添加的动态id)
+//     */
+//    @ApiOperation("在动态下发布直接评论")
+//    @PostMapping("/addComment/{dynamicId}")
+//    public R addComment(@PathVariable String dynamicId, @RequestBody Comment comment) {
+//        comment.setParent(dynamicId);
+//        String commentId = dynamicService.insertComment(dynamicId, comment);
+//        return R.ok(commentId);
+//    }
+//
+//    /**
+//     * 删除直接下级评论
+//     *
+//     * @param dynamicId 动态id
+//     * @param commentId 一级评论id
+//     * @return 是否删除成功
+//     */
+//    @ApiOperation("删除直接下级评论")
+//    @GetMapping("/removeComment")
+//    public R deleteComment(@RequestParam("dynamicId") String dynamicId, @Param("commentId") String commentId) {
+//        long l = dynamicService.deleteComment(dynamicId, commentId);
+//        if (l == 0L)
+//            return R.failed("删除失败");
+//        return R.ok("删除成功");
+//    }
+//
+//
+//    /**
+//     * 添加评论下的评论
+//     *
+//     * @param superId 该评论回复的评论
+//     * @param comment 要添加的评论
+//     * @return (result - > 添加评论后 ， 该动态下的所有评论区)
+//     */
+//    @PostMapping("/insertComment")
+//    @ApiOperation("添加评论下的评论")
+//    public R insertComment(@Param("superId") String superId, @RequestBody Comment comment) {
+//        List<Comment> list = commentService.insertComment(superId, comment);
+//        if (list == null)
+//            return R.failed();
+//        return R.ok(list);
+//    }
+//
+//    /**
+//     * 删除评论下的评论
+//     *
+//     * @param dynamicId 要删除的评论id
+//     * @return (result - > 删除后 ， 该动态下的所有评论区)
+//     */
+//    @PostMapping("/deleteComment")
+//    @ApiOperation("删除评论下的评论")
+//    public R deleteComment(@Param("dynamicId") String dynamicId) {
+//        List<Comment> list = commentService.deleteComment(dynamicId);
+//        if (list == null)
+//            return R.failed();
+//        return R.ok(list);
+//    }
 
     /**
-     * 添加评论下的评论
-     *
-     * @param superId 该评论回复的评论
-     * @param comment 要添加的评论
-     * @return (result - > 添加评论后 ， 该动态下的所有评论区)
-     */
-    @PostMapping("/insertComment")
-    @ApiOperation("添加评论下的评论")
-    public R insertComment(@Param("superId") String superId, @RequestBody Comment comment) {
-        List<Comment> list = commentService.insertComment(superId, comment);
-        if (list == null)
-            return R.failed();
-        return R.ok(list);
+     * 在动态下发布评论
+     * */
+    @ApiOperation("在动态下发布直接评论")
+    @PostMapping("/addComment")
+    public R addComment(@RequestBody AddCommentForm form){
+        String dynamicId = form.getDynamicId();
+        Comment comment = FormTemplate.analyzeTemplate(form, Comment.class);
+        assert comment != null;
+        Comment com = dynamicService.insertComment(dynamicId, comment);
+        if(com!=null){
+            return R.ok(com);
+        }
+        return R.failed();
     }
 
     /**
-     * 删除评论下的评论
-     *
-     * @param dynamicId 要删除的评论id
-     * @return (result - > 删除后 ， 该动态下的所有评论区)
-     */
+     * 删除动态下的评论
+     * */
+    @ApiOperation("删除动态下的评论")
     @PostMapping("/deleteComment")
-    @ApiOperation("删除评论下的评论")
-    public R deleteComment(@Param("dynamicId") String dynamicId) {
-        List<Comment> list = commentService.deleteComment(dynamicId);
-        if (list == null)
-            return R.failed();
-        return R.ok(list);
+    public R deleteComment(@RequestBody DeleteCommentForm form){
+        String dynamicId = form.getDynamicId();
+        String commentId = form.getCommentId();
+        if(dynamicService.deleteComment(dynamicId,commentId)){
+            return R.ok();
+        }
+        return R.failed();
     }
+
 }

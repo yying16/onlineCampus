@@ -1,7 +1,6 @@
 package com.campus.user.controller;
 
 import com.campus.common.util.R;
-import com.campus.user.domain.User;
 import com.campus.user.dto.LoginByCodeForm;
 import com.campus.user.dto.LoginByEmailForm;
 import com.campus.user.dto.LoginForm;
@@ -9,17 +8,12 @@ import com.campus.user.feign.MessageClient;
 import com.campus.user.service.impl.UserServiceImpl;
 import com.campus.user.util.EmailCodeUtil;
 import com.campus.user.util.RandomUtil;
-import com.campus.user.util.TokenUtil;
 import com.campus.user.vo.LoginMessage;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.thymeleaf.TemplateEngine;
@@ -27,12 +21,8 @@ import org.thymeleaf.context.Context;
 
 import javax.annotation.Resource;
 
-import javax.mail.MessagingException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,13 +39,12 @@ public class LoginController {
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
-
     //模板引擎
     @Autowired
     TemplateEngine templateEngine;
 
-    @Autowired
-    MessageClient messageClient;
+//    @Autowired
+//    MessageClient messageClient;
 
     /**
      * 登录按钮
@@ -67,7 +56,7 @@ public class LoginController {
         if (message == null) { // 账号或密码错误
             return R.failed(null, "用户名或密码错误");
         }
-        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区
+//        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区(换成前端发起请求)
         return R.ok(message);
     }
 
@@ -79,7 +68,7 @@ public class LoginController {
         if (message == null) { // 账号或密码错误
             return R.failed(null, "验证码错误");
         }
-        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区
+//        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区(换成前端发起请求)
         return R.ok(message);
     }
 
@@ -125,21 +114,12 @@ public class LoginController {
     @GetMapping("logout")
     public R logout(HttpServletRequest request) {
         //获取当前登录用户的token
-        String token = request.getHeader("token");
-        if (token == null) {
-            return R.failed("用户未登录");
-        }
-        //从token中获取用户信息
-        User user = TokenUtil.getClaimsFromToken(token);
-        if (user == null) {
-            return R.failed("token令牌无效");
-        } else {
-            log.info("退出登录的用户是：" + user);
-            //删除redis中的token
-            redisTemplate.delete(user.getUserId());
-            messageClient.clearCache(user.getUserId()); // 删除用户消息缓存区
-            return R.ok();
-        }
+        String uid = request.getHeader("uid");
+        log.info("退出登录的用户是：" + uid);
+        //删除redis中的token
+        redisTemplate.delete(uid);
+//        messageClient.clearCache(uid); // 删除用户消息缓存区（前端调用）
+        return R.ok();
     }
 
 
@@ -191,7 +171,7 @@ public class LoginController {
         if (message == null) { // 账号或密码错误
             return R.failed(null, "验证码错误");
         }
-        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区
+//        messageClient.initMessage(message.getUid()); // 初始化用户消息缓存区（前端调用）
         return R.ok(message);
     }
 }

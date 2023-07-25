@@ -51,31 +51,31 @@ public class DynamicServiceImpl implements DynamicService {
     }
 
     @Override
-    public String insertComment(String dynamicId, Comment comment) {
-        updateDynamic(dynamicId);
+    public Comment insertComment(String dynamicId, Comment comment) {
+        updateDynamic(dynamicId); // 更新
+        comment.setUuid(IdWorker.getIdStr(comment));//设置uuid
         comment.setCreateTime(TimeUtil.getCurrentTime());
         comment.setUpdateTime(TimeUtil.getCurrentTime());
-        comment.setId(dynamicId + "#" + IdWorker.getIdStr(comment));//设置uuid
         dynamicDao.insertSubList(dynamicId, "comments", comment);
-        return comment.getId();
+        return comment;
     }
 
     @Override
-    public long deleteComment(String dynamicId, String commentId) {
+    public boolean deleteComment(String dynamicId, String commentId) {
         updateDynamic(dynamicId);
         Dynamic dynamic = detail(dynamicId);
         List<Comment> list = dynamic.getComments();
         Comment comment = null;
         for (int i = 0; i < list.size(); i++) {
-            if (String.valueOf(list.get(i).getId()).equals(commentId)) {
+            if (String.valueOf(list.get(i).getUuid()).equals(commentId)) {
                 comment = list.get(i);
                 break;
             }
         }
-        if (comment == null) {
-            return 0L;
+        if (comment == null) { // 找不到对应的comment
+            return false;
         }
-        return dynamicDao.deleteSubList(dynamicId, "comments", comment);
+        return dynamicDao.deleteSubList(dynamicId, "comments", comment)!=0L;
     }
 
     public List<Comment> getComments(String dynamicId) {

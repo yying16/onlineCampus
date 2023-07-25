@@ -8,6 +8,7 @@ public class ServiceData<T> {
     public final static int UPDATE = 204;
     public final static int DELETE = 306;
     public final static int SELECT = 408;
+    public final static int INCREMENT = 510;
     private int method;
     private Object data;
     private String id;
@@ -16,6 +17,7 @@ public class ServiceData<T> {
     ServiceData() {
 
     }
+
 
     public ServiceData(int method, Object data,String type) {
         this.method = method;

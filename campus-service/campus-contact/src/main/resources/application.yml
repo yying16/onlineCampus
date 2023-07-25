@@ -24,12 +24,13 @@ spring:
       min-idle: 8
       initial-size: 10
     username: root
-    password: 123456
+    password: olcampus8888
   redis:
     database: 1
     host: 47.115.219.35
     port: 6379
     timeout: 10000
+    password: olcampus8888
   kafka:
     bootstrap-servers: 47.115.219.35:9092
     producer:
@@ -55,7 +56,7 @@ spring:
       database: campus
       authentication-database: admin
       username: admin
-      password: '123456'
+      password: 'olcampus8888'
 mybatis-plus:
   global-config:
     db-config:

@@ -8,11 +8,14 @@ import com.campus.message.dto.HandleRequestForm;
 import com.campus.message.dto.MessageForm;
 import com.campus.message.dto.PromptInformationForm;
 import com.campus.message.service.impl.MessageServiceImpl;
+import com.campus.message.vo.InitUserMessageData;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/message")
@@ -27,9 +30,9 @@ public class MessageController {
     public R send(@RequestBody MessageForm form) {
         Message message = FormTemplate.analyzeTemplate(form,Message.class);
         if (messageService.sendMessage(message)) {
-            return R.ok();
+            return R.ok(null,"发送成功");
         } else {
-            return R.failed();
+            return R.failed(null,"发送失败");
         }
     }
 
@@ -39,6 +42,16 @@ public class MessageController {
         JSONObject jsonObject = messageService.initMessage(uid);
         if(jsonObject!=null){
             return R.ok(jsonObject);
+        }
+        return R.failed();
+    }
+
+    @ApiOperation("用户消息初始化")
+    @GetMapping("/initUserMessage")
+    public R initUserMessage(@RequestHeader("uid") String uid) {
+        List<InitUserMessageData> list = messageService.initUserMessage(uid);
+        if(list!=null){
+            return R.ok(list);
         }
         return R.failed();
     }
@@ -89,6 +102,15 @@ public class MessageController {
     @GetMapping("/clearCache")
     public R clearCache(@RequestHeader("uid") String uid){
         if(messageService.clearCache(uid)){
+            return R.ok();
+        }
+        return R.failed();
+    }
+
+    @ApiOperation("清除未读")
+    @GetMapping("clearUnRead")
+    public R clearUnRead(@RequestHeader("uid") String uid){
+        if(messageService.clearUnRead(uid)){
             return R.ok();
         }
         return R.failed();

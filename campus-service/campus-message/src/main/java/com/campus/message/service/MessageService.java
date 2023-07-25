@@ -3,6 +3,7 @@ package com.campus.message.service;
 import com.alibaba.fastjson.JSONObject;
 import com.campus.message.constant.MessageType;
 import com.campus.message.domain.Message;
+import com.campus.message.vo.InitUserMessageData;
 
 import java.util.List;
 
@@ -39,6 +40,16 @@ public interface MessageService {
      * @return 是否初始化成功
      */
     JSONObject initMessage(String uid);
+
+
+    /**
+     * 初始化用户消息
+     * 将用户相关的数据写入redis(最近50条）
+     *
+     * @param uid 当前登录用户id
+     * @return 是否初始化成功
+     */
+    List<InitUserMessageData> initUserMessage(String uid);
 
 
     /**
@@ -89,4 +100,14 @@ public interface MessageService {
      * @param uid 当前登陆用户
      * */
     boolean clearCache(String uid);
+
+
+    /**
+     * 清除未读
+     * 删除缓存
+     * 修改数据库
+     * 再删除缓存
+     * 重新添加缓存
+     * */
+    boolean clearUnRead(String uid);
 }

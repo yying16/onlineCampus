@@ -42,4 +42,11 @@ public class TestController {
         return R.ok(list);
     }
 
+    @GetMapping("/test3")
+    public R test3(){
+        String id = "1679120366271119362";
+        serviceCenter.increment(id,Test.class,"testNumber");
+        return R.ok();
+    }
+
 }
