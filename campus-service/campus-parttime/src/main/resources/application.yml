@@ -26,7 +26,7 @@ spring:
     username: root
     password: olcampus8888
   redis:
-    database: 3
+    database: 6
     host: 47.115.219.35
     port: 6379
     timeout: 10000

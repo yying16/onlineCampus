@@ -1,7 +1,5 @@
 package com.campus.parttime.service;
 
-import com.campus.parttime.domian.Job;
-
 public interface PublisherService {
     /**
      * 1.新增兼职信息:boolean insertJob(Job job); // boolean insertMySql(T t);

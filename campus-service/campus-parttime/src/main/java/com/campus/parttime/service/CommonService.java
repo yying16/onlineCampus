@@ -1,10 +1,5 @@
 package com.campus.parttime.service;
 
-import com.alibaba.fastjson.JSONObject;
-import com.campus.parttime.domian.Job;
-
-import java.util.List;
-
 public interface CommonService {
     /**
      * 1.更新兼职状态（系统操作）:boolean setJobStatus(String jobId); //boolean update(T t)

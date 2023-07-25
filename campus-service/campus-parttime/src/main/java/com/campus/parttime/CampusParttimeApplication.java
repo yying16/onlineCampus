@@ -8,7 +8,6 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.ConfigurableApplicationContext;
 
 @SpringBootApplication(scanBasePackages = {"com.campus.common","com.campus.parttime"})
-@EnableFeignClients
 @EnableDiscoveryClient
 public class CampusParttimeApplication {
 
@@ -16,5 +15,4 @@ public class CampusParttimeApplication {
         ConfigurableApplicationContext context = SpringApplication.run(CampusParttimeApplication.class, args);
         SpringContextUtil.setApplicationContext(context);
     }
-
 }
