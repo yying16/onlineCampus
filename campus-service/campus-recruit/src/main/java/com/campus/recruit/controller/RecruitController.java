@@ -51,7 +51,7 @@ public class RecruitController {
 
     @ApiOperation("删除招募")
     @GetMapping("/deleteRecruit")
-    public R deleteRecruit(@Param("recruitId") String recruitId) {
+    public R deleteRecruit(@RequestParam("recruitId") String recruitId) {
         if (serviceCenter.delete(recruitId, Recruit.class)) {// 主页项直接调用套件存储
             return R.ok();
         }
@@ -60,7 +60,7 @@ public class RecruitController {
 
     @ApiOperation("查看招募详情")
     @GetMapping("/getRecruitDetail")
-    public R getRecruitDetail(@Param("recruitId") String recruitId) {
+    public R getRecruitDetail(@RequestParam("recruitId") String recruitId) {
         Object recruit = serviceCenter.search(recruitId, Recruit.class);
         if (recruit != null) {
             return R.ok(recruit);
@@ -70,7 +70,7 @@ public class RecruitController {
 
     @ApiOperation("结束招募")
     @GetMapping("/finishRecruit")
-    public R finishRecruit(@Param("recruitId") String recruitId) {
+    public R finishRecruit(@RequestParam("recruitId") String recruitId) {
         Recruit recruit = new Recruit();
         recruit.setRecruitId(recruitId);
         recruit.setStatus(FINISHED.code);
@@ -92,12 +92,29 @@ public class RecruitController {
 
     @ApiOperation("招募首页懒加载")
     @GetMapping("/lazyLoading")
-    public R lazyLoading(@Param("num") Integer num) {
+    public R lazyLoading(@RequestParam("num") Integer num) {
         List<Recruit> recruits = serviceCenter.loadData(num, Recruit.class);
-        if(recruits!=null){
+        if (recruits != null) {
             return R.ok(recruits);
         }
         return R.failed();
     }
 
+    @ApiOperation("招募访问量+1")
+    @GetMapping("/incrementVisitNum")
+    public R incrementVisitNum(@RequestParam("recruitId") String recruitId){
+        if(serviceCenter.increment(recruitId,Recruit.class,"visits")){
+            return R.ok();
+        }
+        return R.failed();
+    }
+
+    @ApiOperation("招募投递人数+1,访问量+1")
+    @GetMapping("/incrementDeliverNum")
+    public R incrementRecruitNum(@RequestParam("recruitId") String recruitId){
+        if(serviceCenter.increment(recruitId,Recruit.class,"visits","deliverNum")){
+            return R.ok();
+        }
+        return R.failed();
+    }
 }
