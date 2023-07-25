@@ -30,9 +30,9 @@ public class MessageController {
     public R send(@RequestBody MessageForm form) {
         Message message = FormTemplate.analyzeTemplate(form,Message.class);
         if (messageService.sendMessage(message)) {
-            return R.ok();
+            return R.ok(null,"发送成功");
         } else {
-            return R.failed();
+            return R.failed(null,"发送失败");
         }
     }
 
@@ -55,9 +55,6 @@ public class MessageController {
         }
         return R.failed();
     }
-
-
-
 
 
     @ApiOperation("用户处理好友请求")

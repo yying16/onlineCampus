@@ -20,10 +20,6 @@ public interface MessageDao extends BaseMapper<Message> {
     @Select("select * from t_message where deleted = 0 and type = 0 and (((sender = #{uid} and receiver = #{fid})) or ((sender = #{fid} and receiver = #{uid}))) order by create_time desc limit #{num},20")
     List<Message> lazyLoading(LazyLoadPojo pojo);
 
-    // 获取myId对应的好友列表
-    @Select("select user_id, account,username,user_image,telephone,email,credit from t_relationship tr,t_user tu where ((tr.sender = #{myId} and tr.receiver = tu.user_id) or (tr.receiver = #{myId} and tr.sender = tu.user_id) ) and tr.status = 0 and tr.deleted = 0")
-    List<User> getFriends(String myId);
-
     //获取系统消息
     @Select("select * from t_message where type = 1 and receiver = #{uid} and deleted = 0 order by create_time desc")
     List<Message> getSystemMessage(String uid);

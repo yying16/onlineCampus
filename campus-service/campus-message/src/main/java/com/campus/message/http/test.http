@@ -1,0 +1,32 @@
+### 模拟用户t1登录后的消息初始化(将消息写入缓存)
+GET http://localhost:7002/campusMessage/message/initMessage
+uid:t1
+
+###模拟用户t2登录后的消息初始化(将消息写入缓存)
+GET http://localhost:7002/campusMessage/message/initMessage
+uid:t2
+
+### 发送好友请求
+POST http://localhost:7002/campusMessage/message/send
+uid:t1
+Content-Type: application/json
+
+{
+  "content": "靓仔加个好友吧",
+  "sender": "t1",
+  "receiver": "t2",
+  "type": 2,
+  "isPhoto": false
+}
+
+<> 2023-07-25T111436.200.json
+
+### 接受好友请求
+POST http://localhost:7002/campusMessage/message/handleRequest
+uid:t2
+Content-Type: application/json
+
+{
+  "msgId": "1683688061020889089",
+  "accept": true
+}
