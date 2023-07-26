@@ -59,6 +59,7 @@
 
     <dependencyManagement>
     <dependencies>
+
         <!--Spring Cloud Alibaba 的版本信息-->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>

@@ -18,7 +18,7 @@ public interface MessageClient {
      * 发送系统消息
      */
     @PostMapping("/campusMessage/message/sendPromptInformation")
-    R sendPromptInformation(@RequestBody PromptInformationForm form);
+   R sendPromptInformation(@RequestBody PromptInformationForm form);
 
     /**
      * 登录时用户初始化信息
