@@ -45,7 +45,7 @@ public class PostBehaviourFilter implements GlobalFilter {
             behaviour.setResponseTime(TimeUtil.getCurrentTime());
             behaviour.setDuration(TimeUtil.getTimeInterval(behaviour.getRequestTime(),behaviour.getResponseTime()));
             behaviourService.asyncInsert(behaviour);
-//            serviceCenter.asyInsert(behaviour); // 异步写入数据库
+            redisTemplate.delete("behaviour"+bid);
         }));
     }
 }
