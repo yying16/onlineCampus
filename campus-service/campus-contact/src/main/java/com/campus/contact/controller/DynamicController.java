@@ -5,6 +5,7 @@ import com.campus.common.util.R;
 import com.campus.contact.domain.Comment;
 import com.campus.contact.domain.Dynamic;
 import com.campus.contact.dto.AddCommentForm;
+import com.campus.contact.dto.AddDynamicForm;
 import com.campus.contact.dto.DeleteCommentForm;
 import com.campus.contact.service.impl.CommentServiceImpl;
 import com.campus.contact.service.impl.DynamicServiceImpl;
@@ -32,13 +33,14 @@ public class DynamicController {
     /**
      * 发布动态
      *
-     * @param entity 动态实体
+     * @param form 动态实体
      * @return (dynamicId - > 该动态的id)
      */
     @PostMapping("/insertDynamic")
     @ApiOperation("发布动态")
-    public R insertDynamic(@RequestBody Dynamic entity) {
-        String dynamicId = dynamicService.insertDynamic(entity);
+    public R insertDynamic(@RequestBody AddDynamicForm form) {
+        Dynamic dynamic = FormTemplate.analyzeTemplate(form,Dynamic.class);
+        String dynamicId = dynamicService.insertDynamic(dynamic);
         if (dynamicId == null)
             return R.failed();
         return R.ok(dynamicId);
