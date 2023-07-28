@@ -3,6 +3,7 @@ package com.campus.parttime.controller;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.nacos.shaded.com.google.gson.JsonObject;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
@@ -96,15 +97,17 @@ public class ParttimeController {
         return R.failed();
     }
 
+    //提交到数据库失败
     @ApiOperation("提交兼职申请")
-    @PostMapping("/postJobApply")
-    public R postJobApply(@RequestBody JobInsertForm form) {
-        Apply apply = FormTemplate.analyzeTemplate(form, Apply.class);
-        assert apply != null;
+    @GetMapping("/addJobApply")
+    public R addJobApply(@RequestHeader("uid")String applicantId, @RequestParam("jobId") String jobId) {
+        Apply apply = new Apply();
+        apply.setApplicantId(applicantId);
+        apply.setJobId(jobId);
         apply.setStatus(APPLIED.code); // 初始化状态为已申请
-        String id = serviceCenter.insert(apply); // 调用套件
-        if (id != null) {
-            return R.ok(id);
+        apply.setApplicationId(IdWorker.getIdStr(apply));
+        if (serviceCenter.insertMySql(apply)) { // 插入数据库
+            return R.ok();
         }
         return R.failed();
     }
@@ -117,7 +120,10 @@ public class ParttimeController {
         }
         return R.failed();
     }
-
+    
+    /**
+     *  修改申请状态
+     * */
     @ApiOperation("修改申请状态")
     @GetMapping("/updateApplyStatus")
     public R updateJobStatus(@RequestBody ApplyStatusUpdateForm form) {
@@ -129,9 +135,6 @@ public class ParttimeController {
         return R.failed();
     }
 
-    /**
-     * 成功
-     */
     @ApiOperation("新增执行订单记录")
     @PostMapping("/addJobOperation")
     public R addJobOperation(@RequestBody OperationInserForm form) {
@@ -145,10 +148,6 @@ public class ParttimeController {
         return R.failed();
     }
 
-
-    /**
-     * 删除成功
-     */
     @ApiOperation("删除兼职操作")
     @GetMapping("/deleteJobOperation")
     public R deleteJobOperation(@RequestParam("operationId") String OperationId) {
@@ -158,9 +157,6 @@ public class ParttimeController {
         return R.failed();
     }
 
-    /**
-     * 表单为空
-     */
     @ApiOperation("兼职订单反馈提交")
     @GetMapping("/updateJobFeedback")
     public R updateJobStatus(@RequestParam("operationId") String operationId, @RequestParam("postId") String postId, @RequestParam("feedback") String feedback) {
@@ -168,9 +164,8 @@ public class ParttimeController {
         if (operation == null) {
             return R.failed();
         }
-        //operation.getStatus()== COMPLETED.code && operation.getStatus()== CONFIRM.code &&
         if (feedback != null) {
-            if (postId == operation.getPublisherId()) {
+            if (postId.equals(operation.getPublisherId())) {
                 operation.setFeedback_from_publisher_to_applicant(feedback);
             } else operation.setFeedback_from_applicant_to_publisher(feedback);
             if (serviceCenter.update(operation)) {// 调用套件
@@ -180,20 +175,3 @@ public class ParttimeController {
         } else return R.failed();
     }
 }
-//    public R updateJobStatus(@RequestBody OperationInserForm form, @RequestParam("postId")String postId, @RequestParam("feedback") String feedback ) {
-//        Operation operation = FormTemplate.analyzeTemplate(form,Operation.class);
-//        if (operation == null) {
-//            return R.failed();
-//        }
-//        //operation.getStatus()== COMPLETED.code && operation.getStatus()== CONFIRM.code &&
-//        if(feedback!=null) {
-//            if (postId == operation.getPublisherId()) {
-//                operation.setFeedback_from_publisher_to_applicant(feedback);
-//            } else operation.setFeedback_from_applicant_to_publisher(feedback);
-//            if (serviceCenter.update(operation)) {// 调用套件
-//                log.info("更新成功");
-//                return R.ok();
-//            }else return R.failed();
-//        }else return R.failed();
-//    }
-//}

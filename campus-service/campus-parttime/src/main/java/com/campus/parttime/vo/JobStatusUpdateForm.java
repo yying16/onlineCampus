@@ -9,7 +9,6 @@ import com.campus.parttime.domain.Job;
 @Data
 
 public class JobStatusUpdateForm {
-    Job job;            // 兼职(不确定)
     String jobId;       // 兼职编号
     Integer recruitNum;// 需招聘人数
     Integer passedNum; // 已通过人数
