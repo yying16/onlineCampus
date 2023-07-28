@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.campus.common.pojo.Image;
 import com.campus.common.pojo.IncrementData;
 import com.campus.common.pojo.ServiceData;
 import com.campus.common.util.IPageUtil;
@@ -70,6 +71,31 @@ public class ServiceCenter {
     private JdbcTemplate jdbcTemplate;
 
     private ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(); // 线程池
+
+
+
+    /**
+     * 插入图片数据表
+     * @param images 图片url列表
+     * @param otherId 图片连接的id
+     * */
+    public boolean insertImage(List<String> images,String otherId){
+        StringBuilder str = new StringBuilder("insert into t_image(img_id, img_url, other_id) values ");
+        for (int i = 0; i < images.size(); i++) {
+            str.append("('");
+            str.append(IdWorker.getIdStr(new Image()));
+            str.append("','");
+            str.append(images.get(i));
+            str.append("','");
+            str.append(otherId);
+            str.append("')");
+            if(i!=images.size()-1){
+                str.append(",");
+            }
+        }
+        jdbcTemplate.execute(str.toString());
+        return true;
+    }
 
 
     /**
