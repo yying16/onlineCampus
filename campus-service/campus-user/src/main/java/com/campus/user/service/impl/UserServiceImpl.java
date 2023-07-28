@@ -165,7 +165,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     public LoginMessage login(LoginByCodeForm form) {
         String telephone = form.getTelephone();
         String code = form.getCode();
-        String authCode = redisTemplate.opsForValue().get(telephone);
+        String authCode = redisTemplate.opsForValue().get(telephone+"_code");
 
         if (code.equals(authCode)) { // 验证码正确
             User user = userDao.getUserByTelephone(telephone);

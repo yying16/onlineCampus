@@ -100,3 +100,4 @@ exclude:
     - '/campusUser/login'
     - '/campusUser/register'
     - '/campusUser/send'
+    - '/campusUser/user/getUserByAccount/**'

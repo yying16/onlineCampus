@@ -193,4 +193,22 @@ public class UserController {
         //返回邮件激活成功页面
         return emailContent;
     }
+
+
+    /**
+     * 根据账号获取用户信息（手机号和邮箱）
+     */
+    @ApiOperation(value = "根据账号获取用户信息")
+    @GetMapping("/getUserByAccount/{account}")
+    public R getUserByAccount(@ApiParam("账号") @PathVariable("account") String account) {
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.eq("account", account);
+        wrapper.select("telephone", "email");
+        User user = userService.getOne(wrapper);
+        if (user != null) {
+            return R.ok(user);
+        } else {
+            return R.failed(null,"用户不存在");
+        }
+    }
 }
