@@ -7,20 +7,17 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
- * 订单执行状态（0-进行中，1-已完成，2-已取消 3-确定完成）
+ * 兼职任期(0-短期，1-长期)
  */
 @AllArgsConstructor
 @Getter
-
-public enum OperationStatus {
-    ACTIVE(0,"进行中"),
-    COMPLETED(1,"已完成"),
-    CANCEL(2,"已取消"),
-    CONFIRM(3,"确定完成");
+public enum JobTerm {
+    SHORT(0,"短期"),
+    LONG(1,"长期");
 
     public Integer code;
     public String msg;
-    public static OperationStatus of(Integer code) {
+    public static JobTerm of(Integer code) {
         Objects.requireNonNull(code);
         return Stream.of(values())
                 .filter(bean -> bean.code.equals(code))

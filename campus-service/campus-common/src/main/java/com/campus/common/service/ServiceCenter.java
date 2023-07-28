@@ -349,6 +349,9 @@ public class ServiceCenter {
             String sql = "select " + xxx_id + " from " + t_xxx + " where deleted = 0 order by  update_time desc limit 50";
             List<String> list = jdbcTemplate.queryForList(sql, String.class);
             redisTemplate.delete(h);
+            if(list==null||list.size()==0){
+                return true;
+            }
             redisTemplate.opsForList().leftPushAll(h, list);
             return true;
         } catch (Exception e) {
