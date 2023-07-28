@@ -9,6 +9,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
+
 /**
  * author yying
  */
@@ -47,4 +49,5 @@ public class Message {
         ret.setUpdateTime(this.getUpdateTime());
         return ret;
     }
+
 }
