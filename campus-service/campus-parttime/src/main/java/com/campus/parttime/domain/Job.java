@@ -27,7 +27,7 @@ public class Job {
     Integer workingDays; // 工作天数
     @TableField(exist = false)
     List<String> image;  // 图片
-    Integer status;     // 兼职职位状态(0-招满，1-关闭，2-开启)
+    Integer status;     // 兼职职位状态(0-开启，1-关闭，2-招满)
     Integer recruitNum;// 需招聘人数
     Integer passedNum; // 已通过人数
     Integer applyNum;  // 已申请人数

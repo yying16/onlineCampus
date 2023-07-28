@@ -7,14 +7,14 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
- * 工作状态（0-招满 1-关闭 2-开启）
+ * 工作状态（0-开启 1-关闭 2-招满）
  */
 @AllArgsConstructor
 @Getter
 public enum JobStatus {
-    FULL(0,"招满"),
+    OPEN(0,"开启"),
     CLOSE(1,"关闭"),
-    OPEN(2,"开启");
+    FULL(2,"招满");
 
     public Integer code;
     public String msg;
