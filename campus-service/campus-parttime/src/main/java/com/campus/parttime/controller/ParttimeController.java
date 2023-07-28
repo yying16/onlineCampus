@@ -42,8 +42,8 @@ public class ParttimeController {
      * （兼职发起者）用户自定义发布
      */
     @ApiOperation("发布兼职")
-    @PostMapping("/postJob")
-    public R postJob(@RequestBody JobInsertForm form) {
+    @PostMapping("/addJob")
+    public R addJob(@RequestBody JobInsertForm form) {
         Job job = FormTemplate.analyzeTemplate(form, Job.class);
         assert job != null;
         job.setStatus(OPEN.code); // 初始化状态为已发布
