@@ -20,7 +20,7 @@ spring:
     druid:
       url: jdbc:mysql://47.115.219.35:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
       driverClassName: com.mysql.jdbc.Driver
-      max-active: 20
+      max-active: 100
       min-idle: 8
       initial-size: 10
     username: root
