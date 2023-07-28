@@ -1,0 +1,35 @@
+###
+POST http://localhost:9000/campusParttime/parttime/addJob
+token: t1
+Content-Type: application/json
+
+{
+  "publisherId": "20251102258",
+  "jobTitle": "找家教兼职",
+  "jobContent": "每周两次，去四周，具体日期与家长商讨，每天晚上7；00-9；00，地点:正佳广场附近100m",
+  "salary": "1200",
+  "deadline": "2023-07-31",
+  "location": "1",
+  "recruitNum": "2",
+  "term": "1",
+  "classification": "5",
+  "workingDays": "8"
+}
+
+###
+POST http://localhost:9000/campusParttime/parttime/updateJobInfo
+token:t1
+Content-Type: application/json
+
+{
+  "jobId": "1684904371313364993",
+  "salary": 1250.00,
+  "deadline": "2023-07-30",
+  "location": "1",
+  "recruitNum": "1"
+}
+
+### 新增JobApply
+GET http://localhost:9000/campusParttime/parttime/addJobApply?jobId=1684904371313364993
+token:t1
+

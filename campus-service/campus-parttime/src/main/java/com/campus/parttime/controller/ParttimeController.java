@@ -30,6 +30,11 @@ import static com.campus.parttime.constant.OperationStatus.*;
 /**
  * author kakakaka
  */
+
+/*
+ *   updateMySql:用于更新非首页信息到数据库
+ * */
+
 @RestController
 @RequestMapping("/parttime")
 @Slf4j
@@ -56,32 +61,12 @@ public class ParttimeController {
     }
 
     /**
-     * （兼职发起者）用户自定义修改
+     * （兼职发起者）用户自定义修改(包括了兼职关闭)
      */
     @ApiOperation("修改兼职信息")
     @PostMapping("/updateJobInfo")
     public R updateRecruit(@RequestBody JobUpdateForm form) {
         Job job = FormTemplate.analyzeTemplate(form, Job.class);
-        assert job != null;
-        if (serviceCenter.update(job)) {// 调用套件
-            return R.ok();
-        }
-        return R.failed();
-    }
-
-    /**
-     * 系统修改：使用了vo
-     */
-    @ApiOperation("修改兼职状态信息")
-    @PostMapping("/updateJobStatusInfo")
-    public R updateJobStatus(@RequestBody JobStatusUpdateForm form) {
-        Job job = FormTemplate.analyzeTemplate(form, Job.class);
-        if (job.getPassedNum().equals(job.getRecruitNum())) {
-            job.setStatus(FULL.code);
-        }
-        if (job.getDeleted()) {
-            job.setStatus(CLOSE.code);
-        }
         assert job != null;
         if (serviceCenter.update(job)) {// 调用套件
             return R.ok();
@@ -98,29 +83,56 @@ public class ParttimeController {
         return R.failed();
     }
 
-    //提交到数据库失败
     @ApiOperation("提交兼职申请")
     @GetMapping("/addJobApply")
-    public R addJobApply(@RequestHeader("uid")String applicantId, @RequestParam("jobId") String jobId) {
+    public R addJobApply(@RequestHeader("uid") String applicantId, @RequestParam("jobId") String jobId) {
+        Job job = (Job) serviceCenter.search(jobId, Job.class);
+        if(job.getStatus().equals(CLOSE.code)){
+            log.info("兼职已关闭，提交失败");
+            return R.failed(null,"兼职已关闭，提交失败");
+        }
+        //创建兼职申请记录
         Apply apply = new Apply();
         apply.setApplicantId(applicantId);
         apply.setJobId(jobId);
         apply.setStatus(APPLIED.code); // 初始化状态为已申请
-        Job job = (Job)serviceCenter.search(apply.getJobId(),Job.class);
-        job.setApplyNum(job.getApplyNum()+1);
+        //雪花算法为该申请记录生成主键Id
         apply.setApplicationId(IdWorker.getIdStr(apply));
-        if (serviceCenter.insertMySql(apply)&&serviceCenter.updateMySql(job)) { // 插入数据库
-            return R.ok();
+
+        //将该记录插入数据库中
+        if (serviceCenter.insertMySql(apply)){//记录插入成功
+            log.info("兼职申请插入数据库成功！");//打印日志
+            //修改Job表兼职申请人数
+            job.setApplyNum(job.getApplyNum() + 1);
+            //将修改后的兼职记录修改到数据库中
+            if (serviceCenter.updateMySql(job)) { // 插入数据库
+                log.info("兼职记录修改失败");
+                return R.ok(null,"提交成功");
+            }
+            return R.failed(null,"提交失败，请重试");
         }
-        return R.failed();
+        return R.failed(null,"提交失败，请重试");
     }
 
     @ApiOperation("删除兼职申请记录")
     @GetMapping("/deleteApply")
     public R deleteApply(@RequestParam("applicationId") String applicationId) {
-        if (serviceCenter.delete(applicationId, Apply.class)) {// 调用套件
-            return R.ok();
+        Apply apply = (Apply) serviceCenter.selectMySql(applicationId, Apply.class);
+        assert apply != null;
+        if(apply.getStatus().equals(PASSED.code)){
+            log.info("申请已通过，删除失败");
+            return R.failed(null,"申请已通过，删除失败");
         }
+        if(serviceCenter.deleteMySql(Apply.class,applicationId)){
+            log.info("兼职申请记录删除成功");
+            Job job = (Job) serviceCenter.selectMySql(apply.getJobId(),Job.class);
+            job.setApplyNum(job.getApplyNum()-1);
+            if (serviceCenter.updateMySql(job)) {// 调用套件
+                log.info("兼职申请人数修改成功");
+                return R.ok();
+            }
+        }
+
         return R.failed();
     }
 
@@ -128,14 +140,19 @@ public class ParttimeController {
     @GetMapping("/passApply")
     @Transactional
     public R passApply(@RequestParam("applicationId") String applicationId) {
-        Apply apply = (Apply) serviceCenter.selectMySql(applicationId,Apply.class);
+        Apply apply = (Apply) serviceCenter.selectMySql(applicationId, Apply.class);
+        //申请前判断当前申请是否删除
+        if(apply.getDeleted()){
+            log.info("兼职记录已删除，兼职通过失败");
+            return R.failed("兼职记录已删除");
+        }
         apply.setStatus(PASSED.code);
-        Job job = FormTemplate.analyzeTemplate(serviceCenter.selectMySql(apply.getJobId(),Job.class),Job.class);
-        job.setPassedNum(job.getPassedNum()+1);
-        if(job.getPassedNum().equals(job.getRecruitNum())){
+        Job job = FormTemplate.analyzeTemplate(serviceCenter.selectMySql(apply.getJobId(), Job.class), Job.class);
+        job.setPassedNum(job.getPassedNum() + 1);
+        if (job.getPassedNum().equals(job.getRecruitNum())) {
             job.setStatus(FULL.code);
         }
-        if (serviceCenter.updateMySql(apply)&&serviceCenter.updateMySql(job)) { // 申请和兼职数据更新成功
+        if (serviceCenter.updateMySql(apply) && serviceCenter.updateMySql(job)) { // 申请和兼职数据更新成功
             Operation operation = new Operation();
             operation.setOperationId(IdWorker.getIdStr(operation));
             operation.setApplicantId(apply.getApplicantId());
@@ -145,15 +162,15 @@ public class ParttimeController {
                 return R.ok();
             }
             log.info("兼职申请通过用例异常");
-            return R.failed(null,"数据更新异常");
+            return R.failed(null, "数据更新异常");
         }
         log.info("兼职申请通过用例异常");
-        return R.failed(null,"数据更新异常");
+        return R.failed(null, "数据更新异常");
     }
-    
+
     /**
-     *  修改申请状态
-     * */
+     * 修改申请状态
+     */
     @ApiOperation("修改申请状态")
     @GetMapping("/updateApplyStatus")
     public R updateJobStatus(@RequestBody ApplyStatusUpdateForm form) {
