@@ -33,3 +33,7 @@ Content-Type: application/json
 GET http://localhost:9000/campusParttime/parttime/addJobApply?jobId=1684904371313364993
 token:t1
 
+###
+GET http://localhost:9000/campusParttime/parttime/deleteJob?jobId=1685112244656050178
+token:t1
+

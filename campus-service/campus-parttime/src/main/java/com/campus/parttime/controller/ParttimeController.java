@@ -53,6 +53,7 @@ public class ParttimeController {
         Job job = FormTemplate.analyzeTemplate(form, Job.class);
         assert job != null;
         job.setStatus(OPEN.code); // 初始化状态为已发布
+        
         String id = serviceCenter.insert(job); // 主页项直接调用套件存储
         if (id != null) {
             return R.ok(id);
@@ -63,7 +64,7 @@ public class ParttimeController {
     /**
      * （兼职发起者）用户自定义修改(包括了兼职关闭)
      */
-    @ApiOperation("修改兼职信息")
+    @ApiOperation("修改兼职信息:前端判断passedNum是否为0，非0情况Job表的所有数据都不可以修改，要修改就必须把所有申请退回")
     @PostMapping("/updateJobInfo")
     public R updateRecruit(@RequestBody JobUpdateForm form) {
         Job job = FormTemplate.analyzeTemplate(form, Job.class);
@@ -93,8 +94,8 @@ public class ParttimeController {
         }
         //创建兼职申请记录
         Apply apply = new Apply();
-        apply.setApplicantId(applicantId);
         apply.setJobId(jobId);
+        apply.setApplicantId(applicantId);
         apply.setStatus(APPLIED.code); // 初始化状态为已申请
         //雪花算法为该申请记录生成主键Id
         apply.setApplicationId(IdWorker.getIdStr(apply));
