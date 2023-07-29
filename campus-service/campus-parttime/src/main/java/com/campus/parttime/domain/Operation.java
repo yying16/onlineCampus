@@ -1,4 +1,4 @@
-package com.campus.parttime.domian;
+package com.campus.parttime.domain;
 
 
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -20,7 +20,7 @@ public class Operation {
     String jobId;         //关联的兼职职位编号
     String applicantId;   //兼职申请者编号
     String publisherId;   //雇主编号
-    Integer status;       //执行状态(0-进行中，1-已完成，2-已取消)
+    Integer status;       //执行状态(0-进行中，1-已完成，2-已取消, 3-确定完成)
     String feedback_from_publisher_to_applicant;    // 发布者给申请者的反馈
     String feedback_from_applicant_to_publisher;    // 申请者给发布者的反馈
     @TableLogic(value = "false",delval = "true")
