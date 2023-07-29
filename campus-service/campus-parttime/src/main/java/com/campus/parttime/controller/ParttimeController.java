@@ -19,6 +19,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import static com.campus.parttime.constant.ApplyStatus.APPLIED;
@@ -75,10 +76,10 @@ public class ParttimeController {
     @PostMapping("/updateJobStatusInfo")
     public R updateJobStatus(@RequestBody JobStatusUpdateForm form) {
         Job job = FormTemplate.analyzeTemplate(form, Job.class);
-        if (job.getPassedNum() == job.getRecruitNum()) {
+        if (job.getPassedNum().equals(job.getRecruitNum())) {
             job.setStatus(FULL.code);
         }
-        if (job.getDeleted() == true) {
+        if (job.getDeleted()) {
             job.setStatus(CLOSE.code);
         }
         assert job != null;
@@ -105,8 +106,10 @@ public class ParttimeController {
         apply.setApplicantId(applicantId);
         apply.setJobId(jobId);
         apply.setStatus(APPLIED.code); // 初始化状态为已申请
+        Job job = (Job)serviceCenter.search(apply.getJobId(),Job.class);
+        job.setApplyNum(job.getApplyNum()+1);
         apply.setApplicationId(IdWorker.getIdStr(apply));
-        if (serviceCenter.insertMySql(apply)) { // 插入数据库
+        if (serviceCenter.insertMySql(apply)&&serviceCenter.updateMySql(job)) { // 插入数据库
             return R.ok();
         }
         return R.failed();
@@ -119,6 +122,33 @@ public class ParttimeController {
             return R.ok();
         }
         return R.failed();
+    }
+
+    @ApiOperation("兼职申请通过")
+    @GetMapping("/passApply")
+    @Transactional
+    public R passApply(@RequestParam("applicationId") String applicationId) {
+        Apply apply = (Apply) serviceCenter.selectMySql(applicationId,Apply.class);
+        apply.setStatus(PASSED.code);
+        Job job = FormTemplate.analyzeTemplate(serviceCenter.selectMySql(apply.getJobId(),Job.class),Job.class);
+        job.setPassedNum(job.getPassedNum()+1);
+        if(job.getPassedNum().equals(job.getRecruitNum())){
+            job.setStatus(FULL.code);
+        }
+        if (serviceCenter.updateMySql(apply)&&serviceCenter.updateMySql(job)) { // 申请和兼职数据更新成功
+            Operation operation = new Operation();
+            operation.setOperationId(IdWorker.getIdStr(operation));
+            operation.setApplicantId(apply.getApplicantId());
+            operation.setJobId(apply.getJobId());
+            operation.setPublisherId(job.getPublisherId());
+            if (serviceCenter.insertMySql(operation)) {
+                return R.ok();
+            }
+            log.info("兼职申请通过用例异常");
+            return R.failed(null,"数据更新异常");
+        }
+        log.info("兼职申请通过用例异常");
+        return R.failed(null,"数据更新异常");
     }
     
     /**
@@ -160,7 +190,7 @@ public class ParttimeController {
     @ApiOperation("兼职订单反馈提交")
     @GetMapping("/updateJobFeedback")
     public R updateJobStatus(@RequestParam("operationId") String operationId, @RequestParam("postId") String postId, @RequestParam("feedback") String feedback) {
-        Operation operation = FormTemplate.analyzeTemplate(serviceCenter.search(operationId, Operation.class), Operation.class);
+        Operation operation = FormTemplate.analyzeTemplate(serviceCenter.selectMySql(operationId, Operation.class), Operation.class);
         if (operation == null) {
             return R.failed();
         }

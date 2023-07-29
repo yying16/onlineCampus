@@ -26,8 +26,8 @@ public class Job {
     Integer classification; // 兼职分类(0-代购，1-跑腿，2-学习，3-宣传，4-技术，5-家教，6-助理，7-其他)
     Integer workingDays; // 工作天数
     @TableField(exist = false)
-    List<String> photo;  // 图片
-    Integer status;     // 兼职职位状态(0-招满，1-关闭，2-开启)
+    List<String> image;  // 图片
+    Integer status;     // 兼职职位状态(0-开启，1-关闭，2-招满)
     Integer recruitNum;// 需招聘人数
     Integer passedNum; // 已通过人数
     Integer applyNum;  // 已申请人数

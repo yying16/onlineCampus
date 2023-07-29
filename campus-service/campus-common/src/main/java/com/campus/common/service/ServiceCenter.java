@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.campus.common.pojo.Image;
 import com.campus.common.pojo.IncrementData;
 import com.campus.common.pojo.ServiceData;
 import com.campus.common.util.IPageUtil;
@@ -70,6 +71,55 @@ public class ServiceCenter {
     private JdbcTemplate jdbcTemplate;
 
     private ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(); // 线程池
+
+
+
+    /**
+     * 插入图片数据表
+     * @param images 图片url列表
+     * @param otherId 图片连接的id
+     * */
+    public <T> boolean insertImage(List<String> images,String otherId,Class<T> clazz){
+        try{
+            StringBuilder str = new StringBuilder("insert into t_image(img_id, img_url, other_type, other_id) values ");
+            for (int i = 0; i < images.size(); i++) {
+                str.append("('");
+                str.append(IdWorker.getIdStr(new Image())); // img_id
+                str.append("','");
+                str.append(images.get(i)); // img_url
+                str.append("','");
+                str.append(getName(clazz)); //  other_type
+                str.append("','");
+                str.append(otherId); //  other_id
+                str.append("')");
+                if(i!=images.size()-1){
+                    str.append(",");
+                }
+            }
+            jdbcTemplate.execute(str.toString()); // 执行sql语句
+            return true;
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * 插入图片数据表
+     * @param otherId 图片连接的id
+     * @param clazz 连接图片的类
+     * */
+    public <T> List getImage(String otherId,Class<T> clazz){
+        try{
+            String sql = "select * from t_image where deleted = 0 and other_id='"+otherId+"' and other_type='"+getName(clazz)+"';";
+            return jdbcTemplate.queryForList(sql);
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
 
 
     /**

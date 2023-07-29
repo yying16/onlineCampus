@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -20,10 +21,10 @@ public class JobUpdateForm {
     String jobId;       // 兼职编号
     String jobTitle;    // 兼职职位名称
     String jobContent;  // 兼职详情
-    String salary;      // 兼职薪资
+    BigDecimal salary;      // 兼职薪资
     String deadline;    // 截止时间
     @TableField(exist = false)
-    List<String> photo;  // 图片
+    List<String> image;  // 图片
     Integer location; //兼职所在校区(0-佛山校区，1-广州校区)
     Integer recruitNum; // 需招聘人数
     Integer term; // 兼职任期(0-短期，1-长期)
