@@ -545,7 +545,7 @@ public class ServiceCenter {
             String h = getName(clazz);
             String cache = redisTemplate.opsForValue().get(h + id);
             if (cache != null && cache.length() > 0) { // 如果存在对应缓存
-                Object ret = redisTemplate.opsForValue().get(h + id);
+                Object ret = JSONObject.parseObject(redisTemplate.opsForValue().get(h + id),clazz);
                 return ret;
             } else { // 没有缓存
                 boolean b = tryLock(h, id); // true则表示获取锁成功
