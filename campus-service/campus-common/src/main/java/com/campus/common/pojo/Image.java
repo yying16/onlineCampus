@@ -1,16 +1,15 @@
 package com.campus.common.pojo;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.io.Serializable;
 
 @Data
+@TableName("t_message")
 public class Image implements Serializable {
+
     private String imgId;
     private String imgUrl;
     private String otherId;
