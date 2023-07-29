@@ -35,7 +35,7 @@ public interface UserService{
      */
     LoginMessage login(LoginByEmailForm form);
 
-    boolean updatePassword(String userId,UpdatePasswordForm form);
+    boolean updatePassword(UpdatePasswordForm form);
 
     boolean sendEmail(String emailContent, String email);
 
@@ -54,5 +54,7 @@ public interface UserService{
     boolean checkTelephoneHasRegister(String telephone);
 
 
+    boolean checkCode(CheckCodeForm form);
 
+    boolean checkEmailCode(CheckEmailCodeForm form);
 }

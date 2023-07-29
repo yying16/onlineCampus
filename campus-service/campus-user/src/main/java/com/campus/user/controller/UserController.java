@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
 import com.campus.user.domain.User;
+import com.campus.user.dto.CheckCodeForm;
+import com.campus.user.dto.CheckEmailCodeForm;
 import com.campus.user.dto.UpdatePasswordForm;
 import com.campus.user.dto.UpdateUserForm;
 import com.campus.user.feign.MessageClient;
@@ -100,9 +102,9 @@ public class UserController {
      * 修改密码
      */
     @ApiOperation(value = "修改密码")
-    @PostMapping("/updatePassword/{userId}")
-    public R updatePassword(@ApiParam("用户id") @PathVariable(value = "userId") String userId, @ApiParam("对象：包括password") @RequestBody UpdatePasswordForm form) {
-        boolean b = userService.updatePassword(userId, form);
+    @PostMapping("/updatePassword")
+    public R updatePassword( @ApiParam("对象：包括password") @RequestBody UpdatePasswordForm form) {
+        boolean b = userService.updatePassword(form);
         if (b) {
             return R.ok();
         }
@@ -209,6 +211,34 @@ public class UserController {
             return R.ok(user);
         } else {
             return R.failed(null,"用户不存在");
+        }
+    }
+
+    /**
+     * 查看用户手机验证码是否正确
+     */
+    @ApiOperation(value = "查看用户验证码是否正确")
+    @PostMapping("/checkPhoneCode")
+    public R checkCode( @RequestBody CheckCodeForm form) {
+        boolean b = userService.checkCode(form);
+        if (b) {
+            return R.ok();
+        } else {
+            return R.failed();
+        }
+    }
+
+    /**
+     * 查看用户邮箱验证码是否正确
+     */
+    @ApiOperation(value = "查看用户邮箱验证码是否正确")
+    @PostMapping("/checkEmailCode")
+    public R checkEmailCode( @RequestBody CheckEmailCodeForm form) {
+        boolean b = userService.checkEmailCode(form);
+        if (b) {
+            return R.ok();
+        } else {
+            return R.failed();
         }
     }
 }

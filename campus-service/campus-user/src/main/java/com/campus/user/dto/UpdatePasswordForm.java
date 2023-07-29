@@ -12,6 +12,10 @@ import javax.validation.constraints.NotNull;
 @Data
 public class UpdatePasswordForm {
 
+    @NotNull(message = "账号不能为空")
+    @NotBlank(message = "账号不能为空")
+    private String account; // 账号
+
     @NotNull(message = "密码不能为空")
     @NotBlank(message = "密码不能为空")
     private String password; // 密码

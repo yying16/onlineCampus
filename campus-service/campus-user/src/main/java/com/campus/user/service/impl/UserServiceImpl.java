@@ -2,6 +2,7 @@ package com.campus.user.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.AES;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.campus.common.util.MD5;
@@ -11,6 +12,7 @@ import com.campus.user.domain.User;
 import com.campus.user.dto.*;
 import com.campus.user.feign.GatewayClient;
 import com.campus.user.service.UserService;
+import com.campus.user.util.AESVueUtil;
 import com.campus.user.vo.LoginMessage;
 import com.tencentcloudapi.common.Credential;
 import com.tencentcloudapi.common.exception.TencentCloudSDKException;
@@ -19,6 +21,8 @@ import com.tencentcloudapi.common.profile.HttpProfile;
 import com.tencentcloudapi.sms.v20210111.SmsClient;
 import com.tencentcloudapi.sms.v20210111.models.SendSmsRequest;
 import com.tencentcloudapi.sms.v20210111.models.SendSmsResponse;
+import lombok.extern.log4j.Log4j2;
+import org.apache.commons.codec.DecoderException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -26,10 +30,18 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+import java.io.UnsupportedEncodingException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 @Service
+@Log4j2
 public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserService {
 
     @Autowired
@@ -85,6 +97,8 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
      */
     @Override
     public boolean register(RegisterForm form) {
+
+
         User user = new User();
         String id = IdWorker.getIdStr(user);
         user.setUserId(id);
@@ -165,7 +179,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     public LoginMessage login(LoginByCodeForm form) {
         String telephone = form.getTelephone();
         String code = form.getCode();
-        String authCode = redisTemplate.opsForValue().get(telephone+"_code");
+        String authCode = redisTemplate.opsForValue().get(telephone + "_code");
 
         if (code.equals(authCode)) { // 验证码正确
             User user = userDao.getUserByTelephone(telephone);
@@ -194,15 +208,37 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     }
 
     @Override
-    public boolean updatePassword(String userId, UpdatePasswordForm form) {
+    public boolean updatePassword(UpdatePasswordForm form) {
+        String encryptedAccount = form.getAccount();
+        String encryptedPassword = form.getPassword();
+        // 唯一key作为密钥
+        String uniqueKey = "S0JsiZY2eHlgnRmv";
+
+        log.info("encryptedAccount: " + encryptedAccount);
+        log.info("encryptedPassword: " + encryptedPassword);
+
+        // 解密
+        String account = null;
+        String password = null;
+        try {
+            account = AESVueUtil.decrypt(encryptedAccount, uniqueKey);
+            password = AESVueUtil.decrypt(encryptedPassword, uniqueKey);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        log.info("account: " + account);
+        log.info("password: " + password);
+
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("user_id", userId);
+        queryWrapper.eq("account", account);
         User user = userDao.selectOne(queryWrapper);
+
         if (user == null) {
             return false;
         }
         //md5加密，更新密码
-        user.setPassword(MD5.encrypt(form.getPassword()));
+        user.setPassword(MD5.encrypt(password));
         userDao.updateById(user);
         return true;
     }
@@ -256,7 +292,11 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     @Override
     public boolean checkAccountHasRegister(String account) {
         try {
-            return userDao.selectById(account) != null;
+            //根据account查询用户
+            QueryWrapper<User> wrapper = new QueryWrapper<>();
+            wrapper.eq("account", account);
+
+            return userDao.selectOne(wrapper) != null;
         } catch (Exception e) {
             return false;
         }
@@ -276,6 +316,34 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * 检查验证码是否正确
+     *
+     * @param form
+     * @return
+     */
+    @Override
+    public boolean checkCode(CheckCodeForm form) {
+        String telephone = form.getTelephone();
+        String code = form.getCode();
+        String authCode = redisTemplate.opsForValue().get(telephone + "_code");
+        if (code.equals(authCode)) { // 验证码正确
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean checkEmailCode(CheckEmailCodeForm form) {
+        String email = form.getEmail();
+        String code = form.getCode();
+        String authCode = redisTemplate.opsForValue().get(email+ "_code");
+        if (code.equals(authCode)) { // 验证码正确
+            return true;
+        }
+        return false;
     }
 
 
