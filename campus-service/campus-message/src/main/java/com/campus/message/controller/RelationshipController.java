@@ -69,7 +69,7 @@ public class RelationshipController {
         return R.failed("获取好友列表失败");
     }
 
-    @ApiOperation("添加好友开始聊天")
+    @ApiOperation("添加好友开始聊天（其他模块调用)")
     @GetMapping("/addFriendToChat")
     public R addFriendToChat(@RequestHeader("uid") String uid, @RequestParam("friendId") String friendId) {
         List<User> friends = relationshipService.getFriends(uid);
