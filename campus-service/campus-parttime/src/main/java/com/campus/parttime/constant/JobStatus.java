@@ -14,7 +14,8 @@ import java.util.stream.Stream;
 public enum JobStatus {
     OPEN(0,"开启"),
     CLOSE(1,"关闭"),
-    FULL(2,"招满");
+    FULL(2,"招满"),
+    FINISH(3,"完成");
 
     public Integer code;
     public String msg;

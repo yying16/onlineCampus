@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
- * 兼职申请的状态（0-已申请，1-已通过，2-已完成，3-已拒绝）
+ * 兼职申请的状态（0-已申请，1-已通过，2-已拒绝）
  */
 @AllArgsConstructor
 @Getter
