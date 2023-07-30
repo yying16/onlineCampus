@@ -108,8 +108,8 @@ public class ServiceCenter {
      * */
     public <T> List getImage(String otherId,Class<T> clazz){
         try{
-            String sql = "select * from t_image where deleted = 0 and other_id='"+otherId+"' and other_type='"+getName(clazz)+"';";
-            return jdbcTemplate.queryForList(sql);
+            String sql = "select img_url from t_image where deleted = 0 and other_id='"+otherId+"' and other_type='"+getName(clazz)+"';";
+            return jdbcTemplate.queryForList(sql,String.class);
         }catch (Exception e){
             e.printStackTrace();
             return null;
