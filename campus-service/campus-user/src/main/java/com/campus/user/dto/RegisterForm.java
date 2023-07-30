@@ -14,15 +14,22 @@ public class RegisterForm {
     @NotBlank(message = "账号不能为空")
     @AccountMatchConstraint
     String account;
+
     @Pattern(regexp = "^\\S+$", message = "密码不能包含空格")
     String password;
+
     @NotNull(message = "用户名不能为空")
     @NotBlank(message = "用户名不能为空")
     @Pattern(regexp = "^.{2,10}$", message = "用户名长度应为2-10个字符")
     String username;
+
     @NotNull(message = "电话号码不能为空")
     @NotBlank(message = "电话号码不能为空")
     @Pattern(regexp = "^1[356789]\\d{9}$", message = "手机号不合法")
     @TelephoneMatchConstraint
     String telephone;
+
+    @NotNull(message = "验证码不能为空")
+    @NotBlank(message = "验证码不能为空")
+    String code; // 验证码
 }

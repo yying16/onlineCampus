@@ -1,20 +1,17 @@
 package com.campus.common.service;
 
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.nacos.shaded.org.checkerframework.checker.units.qual.C;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.pojo.Image;
 import com.campus.common.pojo.IncrementData;
 import com.campus.common.pojo.ServiceData;
-import com.campus.common.util.IPageUtil;
-import com.campus.common.util.R;
 import com.campus.common.util.SpringContextUtil;
 import com.campus.common.util.TimeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.beans.MethodInvocationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -153,8 +150,8 @@ public class ServiceCenter {
                     deleteMySql(data.getClass(), serviceData.getId());
                     break;
                 }
-                case ServiceData.SELECT: { // 删除
-                    selectMySql(serviceData.getId(), cls);
+                case ServiceData.SELECT: { // 查找
+                    selectMySqlForCache(serviceData.getId(), cls);
                     break;
                 }
             }
@@ -552,7 +549,7 @@ public class ServiceCenter {
                 while (!b) { // 没有得到互斥锁
                     b = tryLock(h, id);
                 }
-                return selectMySql(id, clazz);
+                return selectMySqlForCache(id, clazz);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -657,8 +654,31 @@ public class ServiceCenter {
 
     /**
      * 根据id查询数据
+     * 补充上查询图片（前提：clazz类对象包含photos/images 字段 ，且该字段类型为List<Sring>
      */
     public <T> Object selectMySql(String id, Class<T> clazz) {
+        try {
+            BaseMapper<T> mapper = getMapper(clazz);
+            Object ret = mapper.selectById(id); // 获取数据
+            try{
+                Method setImages = clazz.getDeclaredMethod("setImages",List.class);
+                List list = getImage(id,clazz);
+                setImages.invoke(ret,list); // 设置图片
+            }catch (Exception e){
+                e.printStackTrace();
+                log.info("图片获取异常");
+            }
+            return ret;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * 根据id查询数据
+     */
+    private  <T> Object selectMySqlForCache(String id, Class<T> clazz) {
         try {
             BaseMapper<T> mapper = getMapper(clazz);
             String h = getName(clazz);
@@ -680,6 +700,14 @@ public class ServiceCenter {
         try {
             BaseMapper<T> mapper = getMapper(t);
             mapper.insert(t);
+            try{
+                Method method = t.getClass().getMethod("getImages");
+                 List<String> list = (List<String>) method.invoke(t);
+                 insertImage(list,String.valueOf(getArg(t,getName(t,"Id"))),t.getClass());
+            }catch (Exception e){
+                e.printStackTrace();
+                log.info("图片插入异常");
+            }
             log.info("insertMySql is ok");
             return true;
         } catch (Exception e) {
