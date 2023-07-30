@@ -182,6 +182,8 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         String authCode = redisTemplate.opsForValue().get(telephone + "_code");
 
         if (code.equals(authCode)) { // 验证码正确
+            //验证码正确后，删除redis中的验证码
+            redisTemplate.delete(telephone + "_code");
             User user = userDao.getUserByTelephone(telephone);
             JSONObject jsonUser = JSONObject.parseObject(JSONObject.toJSONString(user));
             String token = gatewayClient.generalToken(jsonUser);// token缓存
@@ -195,9 +197,12 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     public LoginMessage login(LoginByEmailForm form) {
         String email = form.getEmail();
         String code = form.getCode();
-        String authCode = redisTemplate.opsForValue().get(email);
+        String authCode = redisTemplate.opsForValue().get(email+"_code");
 
         if (code.equals(authCode)) { // 验证码正确
+            //验证码正确后，删除redis中的验证码
+            redisTemplate.delete(email+"_code");
+
             User user = userDao.getUserByEmail(email);
             JSONObject jsonUser = JSONObject.parseObject(JSONObject.toJSONString(user));
             String token = gatewayClient.generalToken(jsonUser);// token缓存
@@ -330,6 +335,8 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         String code = form.getCode();
         String authCode = redisTemplate.opsForValue().get(telephone + "_code");
         if (code.equals(authCode)) { // 验证码正确
+            //验证过后删除验证码
+            redisTemplate.delete(telephone + "_code");
             return true;
         }
         return false;
@@ -339,8 +346,13 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     public boolean checkEmailCode(CheckEmailCodeForm form) {
         String email = form.getEmail();
         String code = form.getCode();
+        //忽略大小写
+        code = code.toLowerCase();
         String authCode = redisTemplate.opsForValue().get(email+ "_code");
+        authCode = authCode.toLowerCase();
         if (code.equals(authCode)) { // 验证码正确
+            //验证过后删除验证码
+            redisTemplate.delete(email+ "_code");
             return true;
         }
         return false;

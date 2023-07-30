@@ -142,7 +142,7 @@ public class LoginController {
         //创建邮件上下文
         Context context = new Context();
         context.setVariable("verifyCode", Arrays.asList(code.split("")));//设置验证码
-        context.setVariable("operate", "登录");//设置操作类型
+        context.setVariable("operate", "邮箱验证");//设置操作类型
 
         //将模板引擎内容解析成html字符串
         String emailContent = templateEngine.process("emailTemplate", context);

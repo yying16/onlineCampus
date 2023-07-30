@@ -103,3 +103,4 @@ exclude:
     - '/campusUser/user/getUserByAccount/'
     - '/campusUser/user/checkCode/'
     - '/campusUser/user/updatePassword/'
+    - '/campusUser/user/checkEmailCode/'
