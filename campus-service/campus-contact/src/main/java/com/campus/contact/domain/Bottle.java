@@ -10,8 +10,6 @@ import java.util.List;
 
 @Data
 @TableName("t_bottle")
-@AllArgsConstructor
-@NoArgsConstructor
 public class Bottle {
     @TableId(type = IdType.ASSIGN_ID)
     String bottleId; // 主键

@@ -44,7 +44,7 @@ public class BottleController {
     @ApiOperation("查看漂流瓶详情")
     @GetMapping("/getBottleDetail")
     public R getBottleDetail(@RequestParam("bottleId") String bottleId) {
-        Bottle bottle = (Bottle) serviceCenter.search(bottleId, Bottle.class);
+        Bottle bottle = (Bottle) serviceCenter.selectMySql(bottleId, Bottle.class);
         if (bottle != null) {
             return R.ok(bottle);
         }
