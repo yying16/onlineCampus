@@ -30,3 +30,17 @@ Content-Type: application/json
   "msgId": "1683688061020889089",
   "accept": true
 }
+
+
+###
+GET http://localhost:7002/campusMessage/message/initMessage
+uid:2
+
+###获取2和他的好友1的聊天记录
+GET http://localhost:7002/campusMessage/message/getUserChatRecords?friendId=1
+uid:2
+
+
+###懒加载2和他的好友1的聊天记录
+GET http://localhost:7002/campusMessage/message/lazyLoadingChatRecords?friendId=1
+uid:2
