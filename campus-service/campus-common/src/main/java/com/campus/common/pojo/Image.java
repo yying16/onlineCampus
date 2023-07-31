@@ -9,7 +9,7 @@ import java.io.Serializable;
 @Data
 @TableName("t_message")
 public class Image implements Serializable {
-
+    @TableId(type = IdType.ASSIGN_ID)
     private String imgId;
     private String imgUrl;
     private String otherId;

@@ -11,6 +11,7 @@ import com.campus.message.constant.MessageType;
 import com.campus.message.dao.MessageDao;
 import com.campus.message.domain.Message;
 import com.campus.message.service.MessageService;
+import com.campus.message.service.impl.MessageServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -52,6 +53,7 @@ public class WebSocket {
 
     @Autowired
     MessageDao messageDao;
+
 
     /**
      * 连接成功时
