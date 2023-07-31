@@ -593,23 +593,42 @@ public class ServiceCenter {
     }
 
     /**
-     * 更新数据
+     * 更新数据（不走kafka，后面再看看需不需要修改）
      */
     public <T> boolean update(T t) {
         try {
             // 删除redis
             String id = String.valueOf(getArg(t, getName(t, "Id")));
-            ServiceData serviceData = new ServiceData(ServiceData.UPDATE, t, t.getClass().getName(), id);
-            String data = JSONObject.toJSONString(serviceData);
-            redisTemplate.delete(getName(t, id));// 删除redis缓存
-            redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id缓存
-            kafkaTemplate.send("service", getName(t, ""), data); // 异步更新数据库
+            String h = getName(t, id);
+            redisTemplate.delete(h);// 删除redis缓存
+            updateMySql(t);
+            redisTemplate.delete(getName(t, id)); // 二次删除redis缓存
             return true;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
     }
+
+
+//    /**
+//     * 更新数据（kafka老是失灵)
+//     */
+//    public <T> boolean update(T t) {
+//        try {
+//            // 删除redis
+//            String id = String.valueOf(getArg(t, getName(t, "Id")));
+//            ServiceData serviceData = new ServiceData(ServiceData.UPDATE, t, t.getClass().getName(), id);
+//            String data = JSONObject.toJSONString(serviceData);
+//            redisTemplate.delete(getName(t, id));// 删除redis缓存
+//            redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id缓存
+//            kafkaTemplate.send("service", getName(t, ""), data); // 异步更新数据库
+//            return true;
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return false;
+//        }
+//    }
 
 
     /**
