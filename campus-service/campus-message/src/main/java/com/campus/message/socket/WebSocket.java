@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.exception.MysqlException;
+import com.campus.common.util.SpringContextUtil;
 import com.campus.common.util.TimeUtil;
 import com.campus.message.constant.MessageStatus;
 import com.campus.message.constant.MessageType;
@@ -82,6 +83,9 @@ public class WebSocket {
     @OnMessage
     public void onMessage(String message, @PathParam("onlineUser") String onlineUser) {
         log.info("【WebSocket消息】" + onlineUser + "发送消息：" + message);
+        Message msg = JSONObject.parseObject(message, Message.class);
+        MessageService messageService = (MessageService) SpringContextUtil.getBean("messageServiceImpl");
+        messageService.sendMessage(msg);
     }
 
     /**
@@ -122,7 +126,7 @@ public class WebSocket {
                     if (MessageType.of(msg.getType()) == USER) { //用户消息
                         log.info("消息类型为用户消息");
                         //写入对方的消息缓存
-                        JSONObject friend = JSONObject.parseObject(String.valueOf(redisTemplate.opsForHash().get("message"+receiver, sender))); // 好友信息
+                        JSONObject friend = JSONObject.parseObject(String.valueOf(redisTemplate.opsForHash().get("message" + receiver, sender))); // 好友信息
                         if (friend == null) {
                             friend = new JSONObject();
                             friend.put("dialog", new JSONArray());
@@ -130,21 +134,21 @@ public class WebSocket {
                         JSONArray dialog = JSONArray.parseArray(String.valueOf(friend.get("dialog"))); // 聊天内容
                         dialog.add(0, JSONObject.toJSON(msg)); // 在最底部添加聊天内容
                         friend.put("dialog", dialog);
-                        redisTemplate.opsForHash().put("message"+receiver, sender, friend.toJSONString()); // 更新redis
+                        redisTemplate.opsForHash().put("message" + receiver, sender, friend.toJSONString()); // 更新redis
                     } else if (MessageType.of(msg.getType()) == REQUEST) { // 请求消息
                         log.info("消息类型为请求消息");
                         //更新对方的请求消息缓存
-                        String d = redisTemplate.opsForHash().get("message"+receiver, "request") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get("message"+receiver, "request"));
+                        String d = redisTemplate.opsForHash().get("message" + receiver, "request") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get("message" + receiver, "request"));
                         JSONArray dialog = JSONArray.parseArray(d); // 聊天内容
                         dialog.add(0, JSONObject.toJSON(msg)); // 添加请求内容
-                        redisTemplate.opsForHash().put("message"+receiver, "request", dialog.toJSONString()); // 更新redis
+                        redisTemplate.opsForHash().put("message" + receiver, "request", dialog.toJSONString()); // 更新redis
                     } else if (MessageType.of(msg.getType()) == SYSTEM) { // 系统消息
                         log.info("消息类型为系统消息");
                         //更新对方的请求消息缓存
-                        String s = redisTemplate.opsForHash().get("message"+receiver, "system") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get("message"+receiver, "system"));
+                        String s = redisTemplate.opsForHash().get("message" + receiver, "system") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get("message" + receiver, "system"));
                         JSONArray systemMessage = JSONArray.parseArray(s); // 聊天内容
                         systemMessage.add(0, JSONObject.toJSON(msg)); // 添加请求内容
-                        redisTemplate.opsForHash().put("message"+receiver, "system", systemMessage.toJSONString()); // 更新redis
+                        redisTemplate.opsForHash().put("message" + receiver, "system", systemMessage.toJSONString()); // 更新redis
                     }
                 }
             } catch (Exception e) {
@@ -198,8 +202,8 @@ public class WebSocket {
 
     /**
      * 判断当前用户是否在线
-     * */
-    public boolean isOnline(String userId){
+     */
+    public boolean isOnline(String userId) {
         Session session = SESSION_POOL.get(userId);
         return session != null && session.isOpen();
     }
