@@ -52,7 +52,7 @@ Content-Type: application/json
 }
 
 ### 新增JobApply
-GET http://localhost:9000/campusParttime/parttime/addJobApply?jobId=1684904371313364993
+GET http://localhost:9000/campusParttime/parttime/addJobApply?jobId=1685853561371643906
 token:t2
 
 ###
@@ -87,3 +87,13 @@ token:t2
 ###
 GET http://localhost:9000/campusParttime/parttime/passApply?applicationId=1685204458224713730
 token:t1
+
+###
+GET http://localhost:9000/campusParttime/parttime/rejectApply
+token:t2
+Content-Type: application/json
+
+{
+  "applicationId": "1686382859536871426",
+  "status": 2
+}

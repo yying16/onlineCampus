@@ -302,19 +302,20 @@ public class ParttimeController {
     public R updateOperationStatus(@RequestHeader("uid") String posterId,@RequestBody OperationStatusUpdateForm form) {
         Operation operation = FormTemplate.analyzeTemplate(form,Operation.class);
         assert operation != null;
+        Operation operationSql = (Operation) serviceCenter.selectMySql(operation.getOperationId(),Operation.class);
 
-        if(posterId.equals(operation.getApplicantId()) && posterId.equals(operation.getPublisherId())){//判断当前Id是否为兼职发布者或执行者Id
-            if(posterId.equals(operation.getApplicantId()) && operation.getStatus().equals(CONFIRM.code)) {//若当前Id为执行者并且需要修改状态为确认完成
+        if(posterId.equals(operationSql.getApplicantId()) || posterId.equals(operationSql.getPublisherId())){//判断当前Id是否为兼职发布者或执行者Id
+            if(posterId.equals(operationSql.getApplicantId()) && operation.getStatus().equals(CONFIRM.code)) {//若当前Id为执行者并且需要修改状态为确认完成
                 return R.failed(null, "您没有权限确认订单完成");
             }
-            if(posterId.equals(operation.getPublisherId()) && operation.getStatus().equals(COMPLETED.code)){//若当前Id为发布者并且需要修改状态为完成
+            if(posterId.equals(operationSql.getPublisherId()) && operation.getStatus().equals(COMPLETED.code)){//若当前Id为发布者并且需要修改状态为完成
                 return R.failed(null, "您没有权限完成订单");
             }
             if(operation.getStatus().equals(CANCEL.code)){//若需要修改状态为取消，需要联系客服进行取消
                 //这里之后再补充
                 return R.failed(null,"请联系客服进行订单取消");
             }else {//可直接修改的情况:直接更新数据库
-                if(posterId.equals(operation.getPublisherId()) && operation.getStatus().equals(CONFIRM.code)) {
+                if(posterId.equals(operationSql.getPublisherId()) && operation.getStatus().equals(CONFIRM.code)) {
                     Job job = (Job)serviceCenter.selectMySql(operation.getJobId(),Job.class);
                     assert job != null;
                     job.setFinishNum(job.getFinishNum() + 1);
@@ -408,10 +409,9 @@ public class ParttimeController {
     @ApiOperation("新增兼职访问量")
     @GetMapping("/addVisitNum")
     public R incrementVisitNum(@RequestParam("jobId") String jobId){
-        if(serviceCenter.increment(jobId,Job.class,"visitNum")){
+        if(serviceCenter.increment(jobId,Job.class,true,"visitNum")){
             return R.ok();
         }
         return R.failed();
     }
-
 }
