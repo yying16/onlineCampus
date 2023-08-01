@@ -20,6 +20,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import static com.campus.parttime.constant.ApplyStatus.APPLIED;
 import static com.campus.parttime.constant.ApplyStatus.PASSED;
 import static com.campus.parttime.constant.JobStatus.*;
@@ -46,7 +50,7 @@ public class ParttimeController {
     ApplyDao applyDao;
 
     /**
-     * （兼职发起者）用户自定义发布
+     * 发布兼职(已测试通过)
      */
     @ApiOperation("发布兼职")
     @PostMapping("/addJob")
@@ -55,7 +59,6 @@ public class ParttimeController {
         assert job != null;
         job.setStatus(OPEN.code); // 初始化状态为已发布
         String id = serviceCenter.insert(job); // 主页项直接调用套件存储
-        serviceCenter.insertImage(form.getImage(),id,Job.class);
         if (id != null) {
             return R.ok(id);
         }
@@ -64,6 +67,7 @@ public class ParttimeController {
 
     /**
      * 普通更新
+     * 无权修改状态为完成或者招满
      * 若applyNum==0 可以直接更新Job信息
      * 若applyNum>0&&passedNum==0,返回强制更新确认信息给前端
      * 若passedNum>0,则返回无法更新
@@ -73,20 +77,29 @@ public class ParttimeController {
     public R updateJob(@RequestBody JobUpdateForm form) {
         Job job = FormTemplate.analyzeTemplate(form, Job.class);
         assert job != null;
-        if(job.getApplyNum().equals(0)) {//若applyNum==0，直接更新Job信息
+        Job jobSql = (Job) serviceCenter.selectMySql(job.getJobId(),Job.class);
+        assert jobSql != null;
+        if(jobSql.getApplyNum().equals(0)) {// 若applyNum==0，直接更新Job信息
+            if(job.getStatus()!=null&&((job.getStatus().equals(FINISH.code)||job.getStatus().equals(FULL.code)))) {
+                return R.failed(null,"您没有设置状态为完成或者招满的权限");
+            }
             if (serviceCenter.update(job)) {// 调用套件
                 return R.ok();
             }
             return R.failed();
         }
-        return R.failed("是否强制更新信息？");
+        if(jobSql.getPassedNum()>0){
+            return R.failed(null,"已有申请通过，无法更新兼职");
+        }
+        return R.failed(null,"是否强制更新信息？");
     }
 
     /**
-     * 强制更新
+     * 强制更新(也包含了修改状态为已关闭)
      * 若applyNum>0&&passedNum==0,进行强制更新
      * 删除：与当前job绑定的所有apply记录
      * 修改：applyNum=0;
+     * 注意：兼职状态无法修改为除了关闭以外的状态
      * 更新：job数据（update到缓存和数据库）
      * 后端调用message模块的sendPromptInformation方法发送提示信息给申请者
      * 返回：vo对象
@@ -97,11 +110,16 @@ public class ParttimeController {
         Job job = FormTemplate.analyzeTemplate(form, Job.class);
         assert job != null;
         Job sqlJob = (Job)serviceCenter.selectMySql(job.getJobId(),Job.class);
+        assert sqlJob != null;
         if(sqlJob.getApplyNum()>0 && sqlJob.getPassedNum().equals(0)){
             //逻辑删除与当前job绑定的所有apply记录
             applyDao.deleteApplyByJobId(job.getJobId());
             //修改applyNum=0
             job.setApplyNum(0);
+            //兼职状态无法修改为除了关闭以外的状态
+            if(!Objects.equals(job.getStatus(), CLOSE.code)){
+                return R.failed(null,"您没有权限修改兼职状态");
+            }
             //更新job数据（update到缓存和数据库）
             if (serviceCenter.update(job)) {
                 //后端调用message模块的sendPromptInformation方法发送提示信息给申请者
@@ -114,14 +132,14 @@ public class ParttimeController {
     }
 
     /**
-     * 删除兼职
+     * 删除兼职(已测试通过)
      * 兼职状态已完成或者已关闭
      */
     @ApiOperation("删除兼职")
     @GetMapping("/deleteJob")
     public R deleteJob(@RequestParam("jobId") String jobId) {
         Job job = (Job)serviceCenter.search(jobId,Job.class);
-        if(job.getStatus().equals(FINISH.code) && job.getStatus().equals(CLOSE.code)){
+        if(job.getStatus().equals(FINISH.code) || job.getStatus().equals(CLOSE.code)){
             if (serviceCenter.delete(jobId, Job.class)) {// 调用套件
                 return R.ok();
             }
@@ -131,7 +149,7 @@ public class ParttimeController {
     }
 
     /**
-     * 提交兼职申请:
+     * 提交兼职申请
      * 若兼职状态为关闭或者招满,无法提交兼职申请;
      * 创建兼职申请记录:初始化基本信息,修改初始状态为已申请,生成主键Id;
      * 修改Job表兼职申请人数;
@@ -176,10 +194,10 @@ public class ParttimeController {
     }
 
     /**
-     * 删除兼职申请记录:
+     * 删除兼职申请记录
      * 若兼职申请状态为已通过,无法删除兼职申请记录;
      * 删除数据库中的兼职申请记录;
-     * 修改Job表的申请人数（申请人数-1）
+     * 修改Job表的申请人数（申请人数-1）;
      * 将修改后的Job对象插入数据库中
      */
     @ApiOperation("删除兼职申请记录")
@@ -204,13 +222,13 @@ public class ParttimeController {
     }
 
     /**
-     * 通过兼职申请:
+     * 通过兼职申请
      * 若兼职申请记录为已删除,无法通过兼职申请;
      * 若当前兼职状态为招满，无法通过兼职申请;
      * 修改当前apply记录的状态为已通过;
-     * 修改当前job记录的获得通过人数（passedNum+1）
-     * 若通过该申请后，兼职招满了，就设置当前的兼职状态为招满
-     * 将修改后的apply和job记录更新到数据库中
+     * 修改当前job记录的获得通过人数（passedNum+1）;
+     * 若通过该申请后，兼职招满了，就设置当前的兼职状态为招满;
+     * 将修改后的apply和job记录更新到数据库中;
      * 若更新成功，新增执行订单operation记录，初始化operation的初始化信息，并插入数据库中
      */
     @ApiOperation("通过兼职申请")
@@ -251,13 +269,13 @@ public class ParttimeController {
     }
 
     /**
-     * 拒绝兼职申请：
-     * 根据表单中的applicationId查找数据库对应的申请记录。若当前记录的申请状态为已通过，无法拒绝该兼职申请
+     * 拒绝兼职申请
+     * 根据表单中的applicationId查找数据库对应的申请记录。若当前记录的申请状态为已通过，无法拒绝该兼职申请;
      * 直接更新数据库
      */
     @ApiOperation("拒绝兼职申请")
-    @GetMapping("/refuseApply")
-    public R refuseApply(@RequestBody ApplyStatusUpdateForm form) {
+    @GetMapping("/rejectApply")
+    public R rejectApply(@RequestBody ApplyStatusUpdateForm form) {
         Apply apply = FormTemplate.analyzeTemplate(form, Apply.class);
         assert apply != null;
         Apply applySql = (Apply) serviceCenter.selectMySql(apply.getApplicationId(),Apply.class);
@@ -271,17 +289,20 @@ public class ParttimeController {
     }
 
     /**
-     * 修改兼职操作状态：
+     * 修改兼职操作状态
+     * (需要解决的问题)：若当前状态修改为确认完成,要将job记录中finishNum+1，并且要判断整个job记录是否全部完成
      * 根据发起修改的ID进行判断：
      * （无权）若当前Id为兼职发布者，则无权修改执行订单状态为完成；若当前Id为兼职执行者，则无权修改执行订单状态为确认完成；若为其他Id，则无权进行所有状态的修改
      * （可修改）若当前Id为兼职发布者，可以将执行订单状态直接修改为确认完成；若当前Id为兼职执行者，可以将执行订单状态直接修改为已完成；（直接更新数据库）
      * （其他处理）若当前Id为兼职执行者或者兼职发布者，想修改执行订单状态为取消,系统会提示取消需要联系客服处理。
+     *
      */
     @ApiOperation("修改兼职操作状态")
     @GetMapping("/updateOperationStatus")
     public R updateOperationStatus(@RequestHeader("uid") String posterId,@RequestBody OperationStatusUpdateForm form) {
         Operation operation = FormTemplate.analyzeTemplate(form,Operation.class);
         assert operation != null;
+
         if(posterId.equals(operation.getApplicantId()) && posterId.equals(operation.getPublisherId())){//判断当前Id是否为兼职发布者或执行者Id
             if(posterId.equals(operation.getApplicantId()) && operation.getStatus().equals(CONFIRM.code)) {//若当前Id为执行者并且需要修改状态为确认完成
                 return R.failed(null, "您没有权限确认订单完成");
@@ -293,10 +314,21 @@ public class ParttimeController {
                 //这里之后再补充
                 return R.failed(null,"请联系客服进行订单取消");
             }else {//可直接修改的情况:直接更新数据库
+                if(posterId.equals(operation.getPublisherId()) && operation.getStatus().equals(CONFIRM.code)) {
+                    Job job = (Job)serviceCenter.selectMySql(operation.getJobId(),Job.class);
+                    assert job != null;
+                    job.setFinishNum(job.getFinishNum() + 1);
+                    if (job.getFinishNum().equals(job.getRecruitNum())) {
+                        job.setStatus(FINISH.code);
+                    }
+                    if(!serviceCenter.updateMySql(job)){
+                        return R.failed(null,"兼职数据更新异常");
+                    }
+                }
                 if (serviceCenter.updateMySql(operation)) {
                     return R.ok();
                 }
-                return R.failed(null, "数据更新异常");
+                return R.failed(null, "执行数据更新异常");
             }
         }else{
             return R.failed(null,"您无权修改执行订单状态");
@@ -304,7 +336,7 @@ public class ParttimeController {
     }
 
     /**
-     * 提交兼职订单反馈：
+     * 提交兼职订单反馈
      * 若feedback为空，无法提交反馈
      */
     @ApiOperation("提交兼职订单反馈")
@@ -322,4 +354,64 @@ public class ParttimeController {
             } else return R.failed();
         } else return R.failed(null,"反馈内容为空");
     }
+
+    @ApiOperation("条件查询兼职")
+    @PostMapping("/searchJob")
+    public R searchRecruit(@RequestBody Map condition) {
+        List search = serviceCenter.search(condition, Job.class);
+        if (search != null) {
+            return R.ok(search);
+        }
+        return R.failed();
+    }
+
+    @ApiOperation("兼职首页懒加载")
+    @GetMapping("/lazyLoading")
+    public R lazyLoading(@RequestParam("num") Integer num) {
+        List<Job> jobs = serviceCenter.loadData(num,Job.class);
+        if (jobs != null) {
+            return R.ok(jobs);
+        }
+        return R.failed();
+    }
+
+    @ApiOperation("查看兼职详情")
+    @GetMapping("/getJobDetail")
+    public R getJobDetail(@RequestParam("jobId") String jobId) {
+        Object job = serviceCenter.search(jobId, Job.class);
+        if (job != null) {
+            return R.ok(job);
+        }
+        return R.failed(null,"当前兼职不存在");
+    }
+
+    @ApiOperation("查看兼职申请详情")
+    @GetMapping("/getApplyDetail")
+    public R getApplyDetail(@RequestParam("applyId") String applyId) {
+        Object apply = serviceCenter.search(applyId, Apply.class);
+        if (apply != null) {
+            return R.ok(apply);
+        }
+        return R.failed(null,"申请详情查看异常");
+    }
+
+    @ApiOperation("查看执行订单详情")
+    @GetMapping("/getOperationDetail")
+    public R getOperationDetail(@RequestParam("operationId") String operationId) {
+        Object operation = serviceCenter.search(operationId, Operation.class);
+        if (operation != null) {
+            return R.ok(operation);
+        }
+        return R.failed(null,"执行订单详情查看异常");
+    }
+
+    @ApiOperation("新增兼职访问量")
+    @GetMapping("/addVisitNum")
+    public R incrementVisitNum(@RequestParam("jobId") String jobId){
+        if(serviceCenter.increment(jobId,Job.class,"visitNum")){
+            return R.ok();
+        }
+        return R.failed();
+    }
+
 }

@@ -724,7 +724,6 @@ public class ServiceCenter {
                  List<String> list = (List<String>) method.invoke(t);
                  insertImage(list,String.valueOf(getArg(t,getName(t,"Id"))),t.getClass());
             }catch (Exception e){
-                e.printStackTrace();
                 log.info("图片插入异常");
             }
             log.info("insertMySql is ok");

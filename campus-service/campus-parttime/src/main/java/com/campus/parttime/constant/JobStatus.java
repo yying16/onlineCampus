@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
- * 工作状态（0-开启 1-关闭 2-招满）
+ * 工作状态（0-开启 1-关闭 2-招满,3-完成）
  */
 @AllArgsConstructor
 @Getter

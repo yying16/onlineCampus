@@ -4,11 +4,11 @@ token: t1
 Content-Type: application/json
 
 {
-  "publisherId": "20251102258",
+  "publisherId": "20251102205",
   "jobTitle": "找家教兼职",
   "jobContent": "每周两次，去四周，具体日期与家长商讨，每天晚上7；00-9；00，地点:正佳广场附近100m",
-  "salary": "1200",
-  "deadline": "2023-07-31",
+  "salary": "1000",
+  "deadline": "2023-08-01",
   "location": "1",
   "recruitNum": "2",
   "term": "1",
@@ -22,18 +22,68 @@ token:t1
 Content-Type: application/json
 
 {
-  "jobId": "1684904371313364993",
-  "salary": 1250.00,
+  "jobId": "1685853561371643906",
+  "salary": 1950.00,
   "deadline": "2023-07-30",
-  "location": "1",
-  "recruitNum": "1"
+  "location": 1
+}
+
+###
+POST http://localhost:9000/campusParttime/parttime/updateJobInfo
+token:t1
+Content-Type: application/json
+
+{
+  "jobId": "1685853561371643906",
+  "salary": 1300.00,
+  "deadline": "2023-07-30",
+  "location": 1
+}
+
+###
+POST http://localhost:9000/campusParttime/parttime/forceUpdateJobInfo
+token:t1
+Content-Type: application/json
+
+{
+  "jobId": "1685109681554624513",
+  "salary": 1300.00,
+  "deadline": "2023-07-30"
 }
 
 ### 新增JobApply
 GET http://localhost:9000/campusParttime/parttime/addJobApply?jobId=1684904371313364993
+token:t2
+
+###
+GET http://localhost:9000/campusParttime/parttime/deleteJob?jobId=1685938217110675458
 token:t1
 
 ###
-GET http://localhost:9000/campusParttime/parttime/deleteJob?jobId=1685112244656050178
+POST http://localhost:9000/campusParttime/parttime/searchJob
+token:t1
+Content-Type: application/json
+
+{
+  "location": "1",
+  "term": "1",
+  "classification": "5"
+}
+
+
+###
+GET http://localhost:9000/campusParttime/parttime/getJobDetail?jobId=1685853561371643906
 token:t1
 
+###
+GET http://localhost:9000/campusParttime/parttime/addVisitNum?jobId=1685853561371643906
+token:t1
+
+###
+GET http://localhost:9000/campusParttime/parttime/updateJobFeedback?operationId=1684859076441444354&feedback=完成的很好
+token:t2
+
+
+###
+GET http://localhost:9000/campusParttime/parttime/passApply?applicationId=1685204458224713730
+token:t1
