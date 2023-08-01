@@ -21,6 +21,8 @@ public class Bottle {
     Integer visits; //浏览次数
     @TableField(exist = false)
     List<String> images; // 图片
+    @TableField(exist = false)
+    List<Reply> replies; // 回复内容
     @TableLogic(value = "false", delval = "true")
     Boolean deleted;        //逻辑删除
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

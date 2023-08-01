@@ -71,14 +71,14 @@ public class ServiceCenter {
     private ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(); // 线程池
 
 
-
     /**
      * 插入图片数据表
-     * @param images 图片url列表
+     *
+     * @param images  图片url列表
      * @param otherId 图片连接的id
-     * */
-    public <T> boolean insertImage(List<String> images,String otherId,Class<T> clazz){
-        try{
+     */
+    public <T> boolean insertImage(List<String> images, String otherId, Class<T> clazz) {
+        try {
             StringBuilder str = new StringBuilder("insert into t_image(img_id, img_url, other_type, other_id) values ");
             for (int i = 0; i < images.size(); i++) {
                 str.append("('");
@@ -90,13 +90,13 @@ public class ServiceCenter {
                 str.append("','");
                 str.append(otherId); //  other_id
                 str.append("')");
-                if(i!=images.size()-1){
+                if (i != images.size() - 1) {
                     str.append(",");
                 }
             }
             jdbcTemplate.execute(str.toString()); // 执行sql语句
             return true;
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
@@ -104,20 +104,19 @@ public class ServiceCenter {
 
     /**
      * 插入图片数据表
+     *
      * @param otherId 图片连接的id
-     * @param clazz 连接图片的类
-     * */
-    public <T> List getImage(String otherId,Class<T> clazz){
-        try{
-            String sql = "select img_url from t_image where deleted = 0 and other_id='"+otherId+"' and other_type='"+getName(clazz)+"';";
-            return jdbcTemplate.queryForList(sql,String.class);
-        }catch (Exception e){
+     * @param clazz   连接图片的类
+     */
+    public <T> List getImage(String otherId, Class<T> clazz) {
+        try {
+            String sql = "select img_url from t_image where deleted = 0 and other_id='" + otherId + "' and other_type='" + getName(clazz) + "';";
+            return jdbcTemplate.queryForList(sql, String.class);
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
-
-
 
 
 //    /**
@@ -171,25 +170,32 @@ public class ServiceCenter {
      * 如果不是这个数据结构的话就只更新mysql
      * <p>
      * 用于访问量/收藏量/关注数量 ++
-     * @param id 需要自增的元组主键（如product的productId)
+     *
+     * @param id    需要自增的元组主键（如product的productId)
      * @param clazz 需要自增的元组所属的表对应的类（如 t_product -> clazz = Product.class)
-     * @param args 需要自增的属性（驼峰命名）（如productNum）
+     * @param args  需要自增的属性（驼峰命名）（如productNum）
+     * @param async 是否异步
      * @return 是否修改成功（即修改已有的缓存以及发出异步mysql修改信息）
      */
-    public <T> boolean increment(String id, Class<T> clazz, String... args) {
+    public <T> boolean increment(String id, Class<T> clazz, Boolean async, String... args) {
         //更新redis
-        String h = getName(clazz)+id;
+        String h = getName(clazz) + id;
         String jsonStr = redisTemplate.opsForValue().get(h);
-        if(jsonStr!=null){ // 缓存格式匹配且存在缓存
-            T t = JSONObject.parseObject(jsonStr,clazz);
-            for(String arg:args){ // 依次修改变量值
-                setArg(t,arg,((Integer) getArg(t,arg))+1); // 自增
+        if (jsonStr != null) { // 缓存格式匹配且存在缓存
+            T t = JSONObject.parseObject(jsonStr, clazz);
+            for (String arg : args) { // 依次修改变量值
+                setArg(t, arg, ((Integer) getArg(t, arg)) + 1); // 自增
             }
             jsonStr = JSONObject.toJSONString(t);
             redisTemplate.opsForValue().set(h, jsonStr, getCacheTime(), TimeUnit.SECONDS); // 重新写入redis
 
         }
-        incrementMysql(id,clazz,args);
+        if (async) {
+            asyncIncrementMysql(id, clazz, args);
+        } else {
+            incrementMysql(id, clazz, args);
+        }
+
         //异步更新数据库
 //        IncrementData<T> data = new IncrementData(id, clazz, args);
 //        ServiceData serviceData = new ServiceData(ServiceData.INCREMENT, data, clazz.getName());
@@ -202,14 +208,27 @@ public class ServiceCenter {
      * 异步修改数据库进行自增
      */
     @Async
-    <T> boolean incrementMysql(String id, Class<T> clazz, String... args) {
+    <T> boolean asyncIncrementMysql(String id, Class<T> clazz, String... args) {
         BaseMapper<T> mapper = getMapper(clazz);
         T t = mapper.selectById(id);
-        for(String arg:args){
-            setArg(t,arg,((Integer) getArg(t,arg))+1); // 自增
+        for (String arg : args) {
+            setArg(t, arg, ((Integer) getArg(t, arg)) + 1); // 自增
         }
         mapper.updateById(t);
         log.info("异步写入数据成功");
+        return true;
+    }
+
+    /**
+     * 同步自增
+     */
+    private <T> boolean incrementMysql(String id, Class<T> clazz, String... args) {
+        BaseMapper<T> mapper = getMapper(clazz);
+        T t = mapper.selectById(id);
+        for (String arg : args) {
+            setArg(t, arg, ((Integer) getArg(t, arg)) + 1); // 自增
+        }
+        mapper.updateById(t);
         return true;
     }
 
@@ -398,7 +417,7 @@ public class ServiceCenter {
             String sql = "select " + xxx_id + " from " + t_xxx + " where deleted = 0 order by  update_time desc limit 50";
             List<String> list = jdbcTemplate.queryForList(sql, String.class);
             redisTemplate.delete(h);
-            if(list==null||list.size()==0){
+            if (list == null || list.size() == 0) {
                 return true;
             }
             redisTemplate.opsForList().leftPushAll(h, list);
@@ -544,7 +563,7 @@ public class ServiceCenter {
             String h = getName(clazz);
             String cache = redisTemplate.opsForValue().get(h + id);
             if (cache != null && cache.length() > 0) { // 如果存在对应缓存
-                Object ret = JSONObject.parseObject(redisTemplate.opsForValue().get(h + id),clazz);
+                Object ret = JSONObject.parseObject(redisTemplate.opsForValue().get(h + id), clazz);
                 return ret;
             } else { // 没有缓存
                 boolean b = tryLock(h, id); // true则表示获取锁成功
@@ -564,10 +583,10 @@ public class ServiceCenter {
      */
     @Async
     public <T> boolean asyInsert(T t) {
-        try{
+        try {
             insertMySql(t);
             log.info("异步写入数据库成功");
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
@@ -649,12 +668,12 @@ public class ServiceCenter {
             String methodName = "get" + t.getClass().getSimpleName() + "Id";
             Method method = t.getClass().getMethod(methodName);
             String id = String.valueOf(method.invoke(t));
-            if (deleteMySql(t.getClass(),id)) {
+            if (deleteMySql(t.getClass(), id)) {
                 if (redisTemplate.opsForValue().get(getName(t, id)) != null) {
                     redisTemplate.delete(getName(t, id));
                 }
                 redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id缓存
-            }else{ // 删除失败
+            } else { // 删除失败
                 return false;
             }
 //            ServiceData serviceData = new ServiceData(ServiceData.DELETE, t, t.getClass().getName(), id);
@@ -674,8 +693,8 @@ public class ServiceCenter {
     public <T> boolean delete(String id, Class<T> clazz) {
         try {
             deleteMySql(clazz, id);
-            if (redisTemplate.opsForValue().get(getName(clazz)+id) != null) {
-                redisTemplate.delete(getName(clazz)+ id);
+            if (redisTemplate.opsForValue().get(getName(clazz) + id) != null) {
+                redisTemplate.delete(getName(clazz) + id);
             }
             redisTemplate.opsForList().remove(getName(clazz), 1, id); // 删除id列表缓存
             return true;
@@ -694,11 +713,18 @@ public class ServiceCenter {
         try {
             BaseMapper<T> mapper = getMapper(clazz);
             Object ret = mapper.selectById(id); // 获取数据
-            try{
-                Method setImages = clazz.getDeclaredMethod("setImages",List.class);
-                List list = getImage(id,clazz);
-                setImages.invoke(ret,list); // 设置图片
-            }catch (Exception e){
+            try {
+                Method[] declaredMethods = clazz.getDeclaredMethods();
+                final List<Method> methodList = Arrays.stream(declaredMethods).filter(m -> m.getName().equals("setImages")).collect(Collectors.toList());
+                if (methodList.size() > 0) {
+                    Method setImages = clazz.getDeclaredMethod("setImages", List.class);
+                    List list = getImage(id, clazz);
+                    setImages.invoke(ret, list); // 设置图片
+                } else {
+                    log.info("该实体类不包含images属性，不进行图片装配");
+                }
+
+            } catch (Exception e) {
                 e.printStackTrace();
                 log.info("图片获取异常");
             }
@@ -712,7 +738,7 @@ public class ServiceCenter {
     /**
      * 根据id查询数据
      */
-    private  <T> Object selectMySqlForCache(String id, Class<T> clazz) {
+    private <T> Object selectMySqlForCache(String id, Class<T> clazz) {
         try {
             BaseMapper<T> mapper = getMapper(clazz);
             String h = getName(clazz);
@@ -734,11 +760,11 @@ public class ServiceCenter {
         try {
             BaseMapper<T> mapper = getMapper(t);
             mapper.insert(t);
-            try{
+            try {
                 Method method = t.getClass().getMethod("getImages");
-                 List<String> list = (List<String>) method.invoke(t);
-                 insertImage(list,String.valueOf(getArg(t,getName(t,"Id"))),t.getClass());
-            }catch (Exception e){
+                List<String> list = (List<String>) method.invoke(t);
+                insertImage(list, String.valueOf(getArg(t, getName(t, "Id"))), t.getClass());
+            } catch (Exception e) {
                 e.printStackTrace();
                 log.info("图片插入异常");
             }
