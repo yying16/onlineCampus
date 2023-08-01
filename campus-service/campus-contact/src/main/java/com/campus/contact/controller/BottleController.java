@@ -4,11 +4,17 @@ import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
 import com.campus.contact.domain.Bottle;
+import com.campus.contact.domain.Reply;
 import com.campus.contact.dto.AddBottleForm;
+import com.campus.contact.dto.ReplyBottleForm;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.campus.contact.constant.BottleStatus.NORMAL;
 
@@ -50,4 +56,34 @@ public class BottleController {
         }
         return R.failed();
     }
+
+    @ApiOperation("回复漂流瓶")
+    @PostMapping("/replyBottle")
+    public R replyBottle(@RequestBody ReplyBottleForm form){
+        Reply reply = FormTemplate.analyzeTemplate(form, Reply.class);
+        assert reply != null;
+        if (serviceCenter.insertMySql(reply)) {
+            return R.ok();
+        }
+        return R.failed();
+    }
+
+    @ApiOperation("查询我的漂流瓶")
+    @PostMapping("/searchMyBottle")
+    public R searchMyBottle(@RequestHeader("uid") String uid) {
+        Map map = new HashMap(){{
+           put("promulgatorId",uid);  // 发布者账号为uid
+        }};
+        List search = serviceCenter.search(map, Bottle.class);
+        if (search != null) {
+            return R.ok(search);
+        }
+        return R.failed();
+    }
+
+//    @ApiOperation("捞个漂流瓶")
+//    @PostMapping("/grabBottle")
+//    public R grabBottle(){
+//
+//    }
 }

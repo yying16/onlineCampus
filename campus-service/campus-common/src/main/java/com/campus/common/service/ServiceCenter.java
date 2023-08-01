@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field;
@@ -119,47 +120,47 @@ public class ServiceCenter {
 
 
 
-    /**
-     * kafka中间件(用于同步 redis 和 mysql数据）
-     * topic: service
-     * key: 用于设置分区，对应模块的crud
-     * value:{ method: insert/update/delete , data: 要存储/更新（主键匹配）/修改的数据 }
-     */
-    @KafkaListener(topics = "service")
-    public void tradeListener(ConsumerRecord<String, String> record, Acknowledgment ack) {
-        try {
-            ServiceData serviceData = JSONObject.parseObject(record.value(), ServiceData.class);
-            String json = String.valueOf(serviceData.getData());
-            String type = serviceData.getType();
-            Class<?> cls = Class.forName(type);
-            Object data = JSONObject.parseObject(json, cls); // 类型转换
-            switch (serviceData.getMethod()) {
-                case ServiceData.INCREMENT: { // 自增
-                    increment(JSONObject.parseObject(json, IncrementData.class));
-                    break;
-                }
-                case ServiceData.INSERT: { // 插入
-                    insertMySql(data);
-                    break;
-                }
-                case ServiceData.UPDATE: { // 更新
-                    update(data, serviceData.getId());
-                    break;
-                }
-                case ServiceData.DELETE: { // 删除
-                    deleteMySql(data.getClass(), serviceData.getId());
-                    break;
-                }
-                case ServiceData.SELECT: { // 查找
-                    selectMySqlForCache(serviceData.getId(), cls);
-                    break;
-                }
-            }
-            ack.acknowledge();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
+//    /**
+//     * kafka中间件(用于同步 redis 和 mysql数据）
+//     * topic: service
+//     * key: 用于设置分区，对应模块的crud
+//     * value:{ method: insert/update/delete , data: 要存储/更新（主键匹配）/修改的数据 }
+//     */
+//    @KafkaListener(topics = "service")
+//    public void tradeListener(ConsumerRecord<String, String> record, Acknowledgment ack) {
+//        try {
+//            ServiceData serviceData = JSONObject.parseObject(record.value(), ServiceData.class);
+//            String json = String.valueOf(serviceData.getData());
+//            String type = serviceData.getType();
+//            Class<?> cls = Class.forName(type);
+//            Object data = JSONObject.parseObject(json, cls); // 类型转换
+//            switch (serviceData.getMethod()) {
+//                case ServiceData.INCREMENT: { // 自增
+////                    increment(JSONObject.parseObject(json, IncrementData.class));
+//                    break;
+//                }
+//                case ServiceData.INSERT: { // 插入
+//                    insertMySql(data);
+//                    break;
+//                }
+//                case ServiceData.UPDATE: { // 更新
+//                    update(data, serviceData.getId());
+//                    break;
+//                }
+//                case ServiceData.DELETE: { // 删除
+//                    deleteMySql(data.getClass(), serviceData.getId());
+//                    break;
+//                }
+//                case ServiceData.SELECT: { // 查找
+//                    selectMySqlForCache(serviceData.getId(), cls);
+//                    break;
+//                }
+//            }
+//            ack.acknowledge();
+//        } catch (ClassNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
 
     /**
@@ -186,28 +187,29 @@ public class ServiceCenter {
             }
             jsonStr = JSONObject.toJSONString(t);
             redisTemplate.opsForValue().set(h, jsonStr, getCacheTime(), TimeUnit.SECONDS); // 重新写入redis
+
         }
+        incrementMysql(id,clazz,args);
         //异步更新数据库
-        IncrementData<T> data = new IncrementData(id, clazz, args);
-        ServiceData serviceData = new ServiceData(ServiceData.INCREMENT, data, clazz.getName());
-        String dataStr = JSONObject.toJSONString(serviceData);
-        kafkaTemplate.send("service", getName(clazz), dataStr); // 异步更新数据库
+//        IncrementData<T> data = new IncrementData(id, clazz, args);
+//        ServiceData serviceData = new ServiceData(ServiceData.INCREMENT, data, clazz.getName());
+//        String dataStr = JSONObject.toJSONString(serviceData);
+//        kafkaTemplate.send("service", getName(clazz), dataStr); // 异步更新数据库
         return true;
     }
 
     /**
      * 异步修改数据库进行自增
      */
-    private  <T> boolean increment(IncrementData<T> data) {
-        String[] args = data.getArgs();
-        Class<T> clazz = data.getClazz();
-        String id = data.getId();
+    @Async
+    <T> boolean incrementMysql(String id, Class<T> clazz, String... args) {
         BaseMapper<T> mapper = getMapper(clazz);
         T t = mapper.selectById(id);
         for(String arg:args){
             setArg(t,arg,((Integer) getArg(t,arg))+1); // 自增
         }
         mapper.updateById(t);
+        log.info("异步写入数据成功");
         return true;
     }
 
@@ -560,10 +562,18 @@ public class ServiceCenter {
     /**
      * 异步写入数据库
      */
+    @Async
     public <T> boolean asyInsert(T t) {
-        ServiceData serviceData = new ServiceData(ServiceData.INSERT, t, t.getClass().getName());
-        String data = JSONObject.toJSONString(serviceData);
-        kafkaTemplate.send("service", getName(t, ""), data); // 异步更新数据库
+        try{
+            insertMySql(t);
+            log.info("异步写入数据库成功");
+        }catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+//        ServiceData serviceData = new ServiceData(ServiceData.INSERT, t, t.getClass().getName());
+//        String data = JSONObject.toJSONString(serviceData);
+//        kafkaTemplate.send("service", getName(t, ""), data); // 异步更新数据库
         return true;
     }
 
@@ -639,13 +649,18 @@ public class ServiceCenter {
             String methodName = "get" + t.getClass().getSimpleName() + "Id";
             Method method = t.getClass().getMethod(methodName);
             String id = String.valueOf(method.invoke(t));
-            ServiceData serviceData = new ServiceData(ServiceData.DELETE, t, t.getClass().getName(), id);
-            String data = JSONObject.toJSONString(serviceData);
-            if (redisTemplate.opsForValue().get(getName(t, id)) != null) {
-                redisTemplate.delete(getName(t, id));
+            if (deleteMySql(t.getClass(),id)) {
+                if (redisTemplate.opsForValue().get(getName(t, id)) != null) {
+                    redisTemplate.delete(getName(t, id));
+                }
+                redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id缓存
+            }else{ // 删除失败
+                return false;
             }
-            redisTemplate.opsForList().remove(getName(t, ""), 1, id); // 删除id缓存
-            kafkaTemplate.send("service", getName(t, ""), data); // 异步更新数据库
+//            ServiceData serviceData = new ServiceData(ServiceData.DELETE, t, t.getClass().getName(), id);
+//            String data = JSONObject.toJSONString(serviceData);
+
+//            kafkaTemplate.send("service", getName(t, ""), data); // 异步更新数据库
             return true;
         } catch (Exception e) {
             e.printStackTrace();
