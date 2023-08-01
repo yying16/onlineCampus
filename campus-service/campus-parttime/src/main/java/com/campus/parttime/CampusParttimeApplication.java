@@ -12,11 +12,13 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @SpringBootApplication(scanBasePackages = {"com.campus.common","com.campus.parttime"})
 @EnableDiscoveryClient
 @EnableTransactionManagement
+@EnableAsync
 public class CampusParttimeApplication {
     @Autowired
     ServiceCenter serviceCenter;

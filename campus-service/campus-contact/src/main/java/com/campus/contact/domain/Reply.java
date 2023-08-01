@@ -15,12 +15,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Reply {
     @TableId(type = IdType.ASSIGN_ID)
-    String replyId;
-    String bottleId;
-    String promulgatorId;
-    String replyContent;
-    Integer visits;
-    Integer likeNum;
+    String replyId; // 主键
+    String bottleId; // 漂流瓶id
+    String promulgatorId; // 回复者
+    String replyContent; // 回复内容
     @TableLogic(value = "false", delval = "true")
     Boolean deleted;        //逻辑删除
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

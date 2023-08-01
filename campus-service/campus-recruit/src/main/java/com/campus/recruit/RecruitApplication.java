@@ -11,10 +11,12 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication(scanBasePackages = {"com.campus.common","com.campus.recruit"})
 @EnableFeignClients
 @EnableDiscoveryClient
+@EnableAsync
 public class RecruitApplication {
 
     @Autowired

@@ -103,7 +103,7 @@ public class RecruitController {
     @ApiOperation("招募访问量+1")
     @GetMapping("/incrementVisitNum")
     public R incrementVisitNum(@RequestParam("recruitId") String recruitId){
-        if(serviceCenter.increment(recruitId,Recruit.class,"visits")){
+        if(serviceCenter.increment(recruitId,Recruit.class,true,"visits")){
             return R.ok();
         }
         return R.failed();
@@ -112,7 +112,7 @@ public class RecruitController {
     @ApiOperation("招募投递人数+1,访问量+1")
     @GetMapping("/incrementDeliverNum")
     public R incrementRecruitNum(@RequestParam("recruitId") String recruitId){
-        if(serviceCenter.increment(recruitId,Recruit.class,"visits","deliverNum")){
+        if(serviceCenter.increment(recruitId,Recruit.class,true,"visits","deliverNum")){
             return R.ok();
         }
         return R.failed();

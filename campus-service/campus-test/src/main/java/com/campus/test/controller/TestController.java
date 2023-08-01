@@ -45,7 +45,7 @@ public class TestController {
     @GetMapping("/test3")
     public R test3(){
         String id = "1679120366271119362";
-        serviceCenter.increment(id,Test.class,"testNumber");
+        serviceCenter.increment(id,Test.class,true,"testNumber");
         return R.ok();
     }
 
