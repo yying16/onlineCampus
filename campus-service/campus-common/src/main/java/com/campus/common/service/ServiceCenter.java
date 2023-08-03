@@ -1,5 +1,6 @@
 package com.campus.common.service;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
@@ -11,9 +12,16 @@ import com.campus.common.util.SpringContextUtil;
 import com.campus.common.util.TimeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.mahout.cf.taste.impl.model.jdbc.MySQLJDBCDataModel;
+import org.apache.mahout.cf.taste.impl.recommender.GenericItemBasedRecommender;
+import org.apache.mahout.cf.taste.impl.similarity.PearsonCorrelationSimilarity;
+import org.apache.mahout.cf.taste.model.DataModel;
+import org.apache.mahout.cf.taste.recommender.RecommendedItem;
+import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
 import org.springframework.beans.MethodInvocationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -21,6 +29,8 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
+import javax.sql.DataSource;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.time.Duration;
@@ -65,10 +75,114 @@ public class ServiceCenter {
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
 
+    @Resource
+    DataSource campusDataSource;
+
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     private ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(); // 线程池
+
+
+    /**
+     * 个性化推荐(用于用户浏览首页项目之后滚到最下方的猜你喜欢推荐）
+     * <p>
+     * 使用基于物品的协同过滤推荐
+     * 同时将新访问的数据写入记录表
+     *
+     * @param uid      当前登录用户id
+     * @param targetId 浏览目标id（job_id/product_id/recruit_id)
+     * @param num      推荐个数（懒加载）
+     * @return 推荐的首页项列表
+     */
+    public <T> List<T> personalizedRecommendation(String uid, String targetId, Integer num, Class<T> clazz) {
+        try {
+            String tableName = "t_" + getName(clazz) + "_record"; // 表名为t_XXX_record
+            String itemIDColumn = getName(clazz) + "_id"; // 对应字段为XXX_id
+            long u = Long.parseLong(uid);
+            long t = Long.parseLong(targetId);
+            DataModel dataModel = new MySQLJDBCDataModel(campusDataSource, tableName, "user_id", itemIDColumn, "score", "visit_time");
+            // 计算相似度
+            ItemSimilarity itemSimilarity = new PearsonCorrelationSimilarity(dataModel);
+            // 构建推荐器，使用基于物品的协同过滤推荐
+            GenericItemBasedRecommender recommender = new GenericItemBasedRecommender(dataModel, itemSimilarity);
+            List<RecommendedItem> recommendedItemList = recommender.recommendedBecause(u, t, num);
+            recommendedItemList.sort((a, b) -> Float.compare(b.getValue(), a.getValue()));
+            insertRecord(uid, targetId, clazz, 1.0); // 修改记录表
+            List<String> ids = recommendedItemList.stream().map(item -> String.valueOf(item.getItemID())).collect(Collectors.toList());
+            return getTuplesByIds(ids, clazz);
+        } catch (Exception e) {
+            e.printStackTrace();
+            List<String> list = JSONArray.parseArray(String.valueOf(redisTemplate.opsForList().range(getName(clazz), 0, num)), String.class);
+            return getTuplesByIds(list, clazz);// 返回最新的列表
+        }
+    }
+
+    /**
+     * 记录用户行为(一般用于绑定用户的浏览/点赞/收藏行为）
+     * 如果存在该元组（用户先前访问过）则t.score+=score
+     * 否则初始化score = 1
+     */
+    @Async
+    public <T> void insertRecord(String uid, String targetId, Class<T> clazz, Double score) {
+        if (score == null)
+            score = 1.0;
+        String tableName = "t_" + getName(clazz) + "_record"; // 表名为t_XXX_record
+        String itemIDColumn = getName(clazz) + "_id"; // 对应字段为XXX_id
+        String sql = "select COUNT(*) from " + tableName + " where " + itemIDColumn + " = '" + targetId + "'";
+        Integer cnt = jdbcTemplate.queryForObject(sql, Integer.class);
+        assert cnt != null;
+        if (cnt.equals(0)) { // 第一次访问,插入数据
+            String idColumn = getName(clazz) + "_record_id";
+            String id = IdWorker.getTimeId();
+            String sql4insert = "insert into t_job_record(" + idColumn + ", " + itemIDColumn + ", " + itemIDColumn + ", score, visit_time) " +
+                    "values(" + id + "," + uid + "," + targetId + ",1.0," + System.currentTimeMillis() + ")";
+            jdbcTemplate.execute(sql4insert); // 执行插入语句
+        } else { // 不是第一次访问，更新数据
+            String sql4update = "update " + tableName + " set score = score " + (score > 0 ? "+" : "-") + score + " where " + itemIDColumn + " = '" + targetId + "' and user_id = '" + uid + "'";
+            jdbcTemplate.execute(sql4update); // 执行更新语句
+        }
+    }
+
+    /**
+     * 根据id列表返回对应的元组
+     * <p>
+     * 根据id列表在对应的表中查找对应的元组
+     * <p>
+     * 在图片表中找到对应的图片列表
+     * <p>
+     * 实体装配上图片
+     */
+    public <T> List<T> getTuplesByIds(List<String> ids, Class<T> clazz) {
+        String tableName = "t_" + getName(clazz);
+        String idColumn = getName(clazz) + "_id";
+        String idsStr = "(";
+        if (ids.size() == 0) {
+            return new ArrayList<>();
+        }
+        idsStr += ids.get(0);
+        for (int i = 1; i < ids.size(); i++) {
+            idsStr = idsStr + "," + ids.get(i);
+        }
+        idsStr += ")";
+        String sql = "select * from " + tableName + " where deleted=0 and " + idColumn + " in " + idsStr;
+        List ret = jdbcTemplate.query(sql, new BeanPropertyRowMapper(clazz)); // 元组列表
+        String sql4photo = "select * from t_image where deleted=0 and other_type = '"+getName(clazz)+"' and other_id in " + idsStr;
+        List<Image> images = jdbcTemplate.query(sql4photo, new BeanPropertyRowMapper(Image.class));
+        Map<String,List<String>> imageMap = new HashMap<>();
+        images.forEach(image -> {  // 将图片分类到imageMap
+            List list = imageMap.getOrDefault(image.getOtherId(),new ArrayList());
+            list.add(image.getImgUrl());
+            imageMap.put(image.getOtherId(),list);
+        });
+        String id = getName(clazz)+"Id";
+        for (int i = 0; i < ret.size(); i++) {
+            String tId = String.valueOf(getArg(ret.get(i), id));
+            setArg(ret.get(i),"images",imageMap.get(tId));
+        }
+        return ret;
+    }
+
 
 
     /**
@@ -884,7 +998,12 @@ public class ServiceCenter {
             argName = String.valueOf(chars);
             String methodName;
             methodName = "set" + argName;
-            Method method = t.getClass().getMethod(methodName, value.getClass());
+            Method method;
+            if(value instanceof List){ // ArrayList 特殊处理
+                method = t.getClass().getMethod(methodName, List.class);
+            }else{
+                method = t.getClass().getMethod(methodName, value.getClass());
+            }
             method.invoke(t, value);
             return true;
         } catch (Exception e) {
