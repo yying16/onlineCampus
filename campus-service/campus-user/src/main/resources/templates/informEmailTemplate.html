@@ -136,25 +136,12 @@
             </div>
             <div id="content">
                 <div id="content_top">
-                    <strong>尊敬的用户：您好！</strong>
+                    <strong>尊敬的 <span th:text="${username}"></span>：您好！</strong>
                     <strong>
-                        您正在进行<span>[[${operate}]]</span>操作，请点击以下激活链接完成确认(1小时内有效)：
+                        [[${content}]]
                     </strong>
-                    <p class="cTMail-content"
-                       style="font-size: 14px; color: rgb(51, 51, 51); line-height: 24px; margin: 6px 0px 0px; word-wrap: break-word; word-break: break-all;">
-                        <!-- 下面替换成自己的链接 -->
-                        <a id="cTMail-btn" th:href="${link}" title=""
-                           style="font-size: 16px; line-height: 45px; display: block; background-color: rgb(0, 164, 255); color: rgb(255, 255, 255); text-align: center; text-decoration: none; margin-top: 20px; border-radius: 3px;">
-                            点击此处验证邮箱
-                        </a>
-                    </p>
                 </div>
-                <div id="content_bottom">
-                    <small>
-                        注意：此操作可能会修改您的密码、登录或绑定邮箱。如非本人操作，请及时登录并修改密码以保证帐户安全
-                        <br>（工作人员不会向你索取此链接，请勿泄漏！)
-                    </small>
-                </div>
+
             </div>
             <div id="bottom">
                 <div>
@@ -163,15 +150,7 @@
                     </p>
                     <p class="cTMail-content"
                        style="line-height: 24px; margin: 6px 0px 0px; overflow-wrap: break-word; word-break: break-all;">
-                    <span style="color: rgb(51, 51, 51); font-size: 14px;">
-                     <br>
-                     无法正常显示？请复制以下链接至浏览器打开：
-                     <br>
-                     <a href="" title=""
-                        style="color: rgb(0, 164, 255); text-decoration: none; word-break: break-all; overflow-wrap: normal; font-size: 14px;">
-                      <span th:text="${link}">这里是激活账号的链接</span>
-                     </a>
-                    </span>
+
                     </p>
                     <p id="sign">——校园服务平台</p>
                 </div>

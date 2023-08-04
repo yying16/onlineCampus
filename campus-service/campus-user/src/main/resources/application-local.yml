@@ -6,21 +6,32 @@ spring:
   thymeleaf:
     prefix: classpath:/templates/
     suffix: .html
+#  mail:
+#    default-encoding: utf-8
+#    host: smtp.qq.com
+#    username: 2371119023@qq.com
+#    nickname: "校园服务平台"
+#    password: cszkpvqefnledigc
+#    properties:
+#      mail:
+#        smtp:
+#          auth: true
+#          ssl:
+#            enable: true
+#          starttls:
+#            enable: true
+#            required: true
+
   mail:
     default-encoding: utf-8
-    host: smtp.qq.com
-    password: cszkpvqefnledigc
-    properties:
-      mail:
-        smtp:
-          auth: true
-          ssl:
-            enable: true
-          starttls:
-            enable: true
-            required: true
-    username: 2371119023@qq.com
+    host: smtp.163.com
+    password: KVBSWROIXCAAMQHX
+    username: campus_online@163.com
     nickname: "校园服务平台"
+    protocol: smtp
+    port: 25
+
+
 
   servlet:
     multipart:

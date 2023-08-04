@@ -263,7 +263,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
             helper.setFrom(nickname + '<' + sendFrom + '>');
             helper.setTo(email);
-            helper.setSubject("校园服务平台-认证邮件");
+            helper.setSubject("校园服务平台-通知邮件");
             helper.setText(emailContent, true);
             mailSender.send(message);
             return true;
