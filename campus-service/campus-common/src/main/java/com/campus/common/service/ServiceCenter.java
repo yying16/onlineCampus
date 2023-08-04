@@ -12,12 +12,18 @@ import com.campus.common.util.SpringContextUtil;
 import com.campus.common.util.TimeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
 import org.apache.mahout.cf.taste.impl.model.jdbc.MySQLJDBCDataModel;
+import org.apache.mahout.cf.taste.impl.neighborhood.ThresholdUserNeighborhood;
 import org.apache.mahout.cf.taste.impl.recommender.GenericItemBasedRecommender;
+import org.apache.mahout.cf.taste.impl.recommender.GenericUserBasedRecommender;
 import org.apache.mahout.cf.taste.impl.similarity.PearsonCorrelationSimilarity;
 import org.apache.mahout.cf.taste.model.DataModel;
+import org.apache.mahout.cf.taste.neighborhood.UserNeighborhood;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
+import org.apache.mahout.cf.taste.recommender.UserBasedRecommender;
 import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
+import org.apache.mahout.cf.taste.similarity.UserSimilarity;
 import org.springframework.beans.MethodInvocationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -82,6 +88,53 @@ public class ServiceCenter {
     private JdbcTemplate jdbcTemplate;
 
     private ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(); // 线程池
+
+
+    /**
+     * 猜你喜欢（点击搜索框弹出下拉窗口）
+     * <p>
+     * 协同过滤算法获取相关产品（10个）
+     * 数据库获取最近访问的产品（10个）
+     * 结巴分词获取高频词汇(过滤掉无效高频词)
+     */
+    public <T> List<String> guessYouLikes(String uid, Class<T> clazz,String... args) {
+        try {
+            String className = getName(clazz);
+            String tableName = "t_" + className + "_record";
+            String itemIDColumn = className + "_id";
+            List<String> list1 = getNewRecord(tableName, itemIDColumn, uid, 10);
+            DataModel model = new MySQLJDBCDataModel(campusDataSource, tableName, "user_id", itemIDColumn, "score", "visit_time");
+            // 计算用户之间的相似度，这里使用皮尔逊相关系数作为相似度度量
+            UserSimilarity similarity = new PearsonCorrelationSimilarity(model);
+            UserNeighborhood neighborhood = new ThresholdUserNeighborhood(0.3, similarity, model);
+            UserBasedRecommender recommender = new GenericUserBasedRecommender(model, neighborhood, similarity);
+            List<RecommendedItem> recommendations = recommender.recommend(Long.parseLong(uid), 20 - list1.size());
+            List<String> list2 = recommendations.stream().map(r -> String.valueOf(r.getItemID())).collect(Collectors.toList());
+            list1.addAll(list2); // 连接列表
+            List<T> sources = getTuplesByIds(list1, clazz);
+            StringBuffer summarize = new StringBuffer(); // 将有效信息进行拼接
+            for (int i = 0; i < sources.size() ; i++) {
+                for (String arg:args) {
+                    summarize.append(getArg(sources.get(i),arg));
+                }
+            }
+            //结巴分词处理
+            return new ArrayList<>();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+
+    private List<String> getNewRecord(String tableName, String itemIdColumn, String uid, Integer num) {
+        try {
+            String sql = "select " + itemIdColumn + " from " + tableName + " where user_id = '" + uid + "' limit " + num;
+            return jdbcTemplate.queryForList(sql, String.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
 
 
     /**
@@ -167,22 +220,21 @@ public class ServiceCenter {
         idsStr += ")";
         String sql = "select * from " + tableName + " where deleted=0 and " + idColumn + " in " + idsStr;
         List ret = jdbcTemplate.query(sql, new BeanPropertyRowMapper(clazz)); // 元组列表
-        String sql4photo = "select * from t_image where deleted=0 and other_type = '"+getName(clazz)+"' and other_id in " + idsStr;
+        String sql4photo = "select * from t_image where deleted=0 and other_type = '" + getName(clazz) + "' and other_id in " + idsStr;
         List<Image> images = jdbcTemplate.query(sql4photo, new BeanPropertyRowMapper(Image.class));
-        Map<String,List<String>> imageMap = new HashMap<>();
+        Map<String, List<String>> imageMap = new HashMap<>();
         images.forEach(image -> {  // 将图片分类到imageMap
-            List list = imageMap.getOrDefault(image.getOtherId(),new ArrayList());
+            List list = imageMap.getOrDefault(image.getOtherId(), new ArrayList());
             list.add(image.getImgUrl());
-            imageMap.put(image.getOtherId(),list);
+            imageMap.put(image.getOtherId(), list);
         });
-        String id = getName(clazz)+"Id";
+        String id = getName(clazz) + "Id";
         for (int i = 0; i < ret.size(); i++) {
             String tId = String.valueOf(getArg(ret.get(i), id));
-            setArg(ret.get(i),"images",imageMap.get(tId));
+            setArg(ret.get(i), "images", imageMap.get(tId));
         }
         return ret;
     }
-
 
 
     /**
@@ -999,9 +1051,9 @@ public class ServiceCenter {
             String methodName;
             methodName = "set" + argName;
             Method method;
-            if(value instanceof List){ // ArrayList 特殊处理
+            if (value instanceof List) { // ArrayList 特殊处理
                 method = t.getClass().getMethod(methodName, List.class);
-            }else{
+            } else {
                 method = t.getClass().getMethod(methodName, value.getClass());
             }
             method.invoke(t, value);
