@@ -1,10 +1,9 @@
 package com.campus.gateway.filter;
 
 import com.alibaba.fastjson.JSONObject;
-import com.campus.common.service.ServiceCenter;
-import com.campus.common.util.TimeUtil;
 import com.campus.gateway.domain.Behaviour;
 import com.campus.gateway.service.BehaviourService;
+import com.campus.gateway.util.TimeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;

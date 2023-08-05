@@ -27,6 +27,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static com.campus.common.constant.InterfaceRefresh.REFRESH_MAIL;
@@ -163,6 +164,45 @@ public class UserController {
 
 
     /**
+     * 发送邮件
+     */
+    @ApiOperation(value = "发送邮件")
+    @PostMapping("/sendEmail")
+    public R sendEmail(@RequestBody Map<String,String> map) {
+
+        String content = map.get("content");
+        String uid = map.get("uid");
+
+        //根据uid获取用户信息
+        User user = userService.getById(uid);
+        if (user == null) {
+            return R.failed("用户不存在");
+        }
+        String email = user.getEmail();
+        if (StringUtils.isEmpty(email)) {
+            return R.failed("用户未绑定邮箱");
+        }
+
+        String username = user.getUsername();
+
+        //将内容封装到邮件模板中，发送邮件
+        Context context = new Context();
+        context.setVariable("content", content);//设置邮件内容
+        context.setVariable("username", username);//设置接收方用户名
+
+        //将模板引擎内容解析成html字符串
+        String emailContent = templateEngine.process("informEmailTemplate", context);
+
+        boolean b = userService.sendEmail(emailContent, email);
+        if (b) {
+            return R.ok(null, "邮件发送成功");
+        } else {
+            return R.failed(null, "邮件发送失败");
+        }
+    }
+
+
+    /**
      * 激活邮箱
      */
     @ApiOperation(value = "激活邮箱")
@@ -241,4 +281,8 @@ public class UserController {
             return R.failed();
         }
     }
+
+
+
+
 }
