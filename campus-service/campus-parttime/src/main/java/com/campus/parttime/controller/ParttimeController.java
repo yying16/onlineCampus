@@ -7,18 +7,23 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
+import com.campus.message.dto.PromptInformationForm;
 import com.campus.parttime.dao.ApplyDao;
 import com.campus.parttime.domain.Apply;
+import com.campus.parttime.domain.Breaker;
 import com.campus.parttime.domain.Job;
 import com.campus.parttime.domain.Operation;
 import com.campus.parttime.dto.*;
+import com.campus.parttime.feign.MessageClient;
 import com.campus.parttime.vo.JobStatusUpdateForm;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.zookeeper.Op;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import com.campus.user.domain.User;
 
 import java.util.List;
 import java.util.Map;
@@ -33,10 +38,6 @@ import static com.campus.parttime.constant.OperationStatus.*;
  * author kakakaka
  */
 
-/*
- *   updateMySql:用于更新非首页信息到数据库
- * */
-
 @RestController
 @RequestMapping("/parttime")
 @Slf4j
@@ -48,6 +49,9 @@ public class ParttimeController {
 
     @Autowired
     ApplyDao applyDao;
+
+    @Autowired
+    MessageClient messageClient;
 
     /**
      * 发布兼职(已测试通过)
@@ -97,10 +101,10 @@ public class ParttimeController {
     /**
      * 强制更新(也包含了修改状态为已关闭)
      * 若applyNum>0&&passedNum==0,进行强制更新
-     * 删除：与当前job绑定的所有apply记录
      * 修改：applyNum=0;
      * 注意：兼职状态无法修改为除了关闭以外的状态
      * 更新：job数据（update到缓存和数据库）
+     * 更新成功后删除：与当前job绑定的所有apply记录
      * 后端调用message模块的sendPromptInformation方法发送提示信息给申请者
      * 返回：vo对象
      */
@@ -112,18 +116,24 @@ public class ParttimeController {
         Job sqlJob = (Job)serviceCenter.selectMySql(job.getJobId(),Job.class);
         assert sqlJob != null;
         if(sqlJob.getApplyNum()>0 && sqlJob.getPassedNum().equals(0)){
-            //逻辑删除与当前job绑定的所有apply记录
-            applyDao.deleteApplyByJobId(job.getJobId());
+
             //修改applyNum=0
             job.setApplyNum(0);
             //兼职状态无法修改为除了关闭以外的状态
-            if(!Objects.equals(job.getStatus(), CLOSE.code)){
+            if(job.getStatus()!=null && !Objects.equals(job.getStatus(), CLOSE.code)){
                 return R.failed(null,"您没有权限修改兼职状态");
             }
             //更新job数据（update到缓存和数据库）
             if (serviceCenter.update(job)) {
-                //后端调用message模块的sendPromptInformation方法发送提示信息给申请者
 
+                //逻辑删除与当前job绑定的所有apply记录
+                applyDao.deleteApplyByJobId(job.getJobId());
+
+                //后端调用message模块的sendPromptInformation方法发送提示信息给申请者
+                List<String> applicantIds = applyDao.selectByJobId(job.getJobId());
+                for(String applicantId : applicantIds){
+                    messageClient.sendPromptInformation(new PromptInformationForm(applicantId,"兼职信息已修改，请重新申请！"));
+                }
                 return R.ok();
             }
             return R.failed(null,"强制更新兼职信息失败");
@@ -160,6 +170,9 @@ public class ParttimeController {
     public R addJobApply(@RequestHeader("uid") String applicantId, @RequestParam("jobId") String jobId) {
         Job job = (Job) serviceCenter.search(jobId, Job.class);
         // 若当前兼职状态为关闭或者招满，兼职申请提交失败
+        if(applyDao.selectCreditByJobId(applicantId)<0){
+            return R.failed(null,"信用值不足，无法提交申请");
+        }
         if(job.getStatus().equals(CLOSE.code)){
             log.info("兼职已关闭，提交失败");
             return R.failed(null,"兼职已关闭，提交失败");
@@ -185,7 +198,7 @@ public class ParttimeController {
             job.setApplyNum(job.getApplyNum() + 1);
             //将修改后的兼职记录修改到数据库中
             if (serviceCenter.updateMySql(job)) { // 插入数据库
-                log.info("兼职记录修改失败");
+                messageClient.sendPromptInformation(new PromptInformationForm( job.getPublisherId(),"已有用户"+apply.getApplicantId()+"提交申请，请及时查看！"));
                 return R.ok(null,"提交成功");
             }
             return R.failed(null,"提交失败,请重试");
@@ -260,6 +273,7 @@ public class ParttimeController {
             // 雪花算法为该申请记录生成主键Id
             operation.setOperationId(IdWorker.getIdStr(operation));
             if (serviceCenter.insertMySql(operation)) {
+                messageClient.sendPromptInformation(new PromptInformationForm(operation.getApplicantId(),"您已通过兼职申请，请按时完成您的任务！"));
                 return R.ok();
             }
             else return R.failed(null,"兼职执行记录生成异常");
@@ -283,6 +297,7 @@ public class ParttimeController {
             return R.failed(null,"申请已通过，拒绝失败");
         }
         if (serviceCenter.updateMySql(apply)) {// 调用套件
+            messageClient.sendPromptInformation(new PromptInformationForm(apply.getApplicantId(),"很遗憾，您未通过本次兼职申请！"));
             return R.ok();
         }
         return R.failed(null,"数据更新异常，请重试!");
@@ -318,6 +333,8 @@ public class ParttimeController {
                 if(posterId.equals(operationSql.getPublisherId()) && operation.getStatus().equals(CONFIRM.code)) {
                     Job job = (Job)serviceCenter.selectMySql(operation.getJobId(),Job.class);
                     assert job != null;
+                    //订单由发布者确认完成后，执行者信用值+5
+                    applyDao.addCreditByJobId(operation.getJobId());
                     job.setFinishNum(job.getFinishNum() + 1);
                     if (job.getFinishNum().equals(job.getRecruitNum())) {
                         job.setStatus(FINISH.code);
@@ -413,5 +430,29 @@ public class ParttimeController {
             return R.ok();
         }
         return R.failed();
+    }
+
+    @ApiOperation("取消兼职申请")
+    @GetMapping("/cancelJobOperation")
+    public R cancelJobOperation(@RequestParam("userId") String userId,@RequestParam("operationId") String operationId){
+        Operation operation = (Operation) serviceCenter.selectMySql(operationId, Operation.class);
+        operation.setStatus(2);
+        if(userId.equals(operation.getPublisherId())||userId.equals(operation.getApplicantId())){
+            applyDao.subCreditByJobId(userId);
+        }
+        if(!serviceCenter.updateMySql(operation)){
+            return R.failed(null,"取消失败，请重试");
+        }
+        return R.ok();
+    }
+
+    @ApiOperation("违规用户处理")
+    @GetMapping("/addbreaker")
+    public R addBreak(@RequestBody BreakInsertForm form){
+        Breaker breaker = FormTemplate.analyzeTemplate(form,Breaker.class);
+        assert breaker != null;
+        String id = serviceCenter.insert(breaker);
+        if(id!=null) return R.ok(id);
+        else return R.failed(null,"插入失败，请重试");
     }
 }

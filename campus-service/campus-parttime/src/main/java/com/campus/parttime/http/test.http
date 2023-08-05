@@ -97,3 +97,14 @@ Content-Type: application/json
   "applicationId": "1686382859536871426",
   "status": 2
 }
+
+
+###
+POST http://localhost:7006/campusParttime/parttime/forceUpdateJobInfo
+Content-Type: application/json
+
+{
+  "jobId": "1685109681554624513",
+  "salary": 1300.00,
+  "deadline": "2023-07-30"
+}
