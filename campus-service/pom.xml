@@ -21,7 +21,6 @@
         <module>campus-oss</module>
         <module>campus-parttime</module>
         <module>campus-recruit</module>
-        <module>campus-recommend</module>
 
     </modules>
     <dependencies>
