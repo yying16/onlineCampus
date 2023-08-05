@@ -44,7 +44,6 @@ spring:
             - Path=/campusParttime/**
           filters:
             - Token=true
-
   datasource:
     druid:
       url: jdbc:mysql://47.115.219.35:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
@@ -60,24 +59,6 @@ spring:
     port: 6379
     timeout: 10000
     password: olcampus8888
-  kafka:
-    bootstrap-servers: 47.115.219.35:9092
-    producer:
-      retries: 3 # 重新发送次数
-      batch-size: 16384
-      buffer-memory: 33554432
-      acks: 1
-      # 指定消息key和消息体的编解码方式
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-    consumer:
-      group-id: default-group
-      enable-auto-commit: false
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    listener:
-      ack-mode: manual_immediate
 
 mybatis-plus:
   global-config:
@@ -104,3 +85,4 @@ exclude:
     - '/campusUser/user/checkCode/'
     - '/campusUser/user/updatePassword/'
     - '/campusUser/user/checkEmailCode/'
+
