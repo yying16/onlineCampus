@@ -88,10 +88,11 @@ public class WebSocket {
         if(message.equals("ok")){
             log.info("【WebSocket心跳检测】 用户id : {}",onlineUser);
             sendOneMessage(onlineUser,"ok");
+        }else{
+            Message msg = JSONObject.parseObject(message, Message.class);
+            MessageService messageService = (MessageService) SpringContextUtil.getBean("messageServiceImpl");
+            messageService.sendMessage(msg);
         }
-        Message msg = JSONObject.parseObject(message, Message.class);
-        MessageService messageService = (MessageService) SpringContextUtil.getBean("messageServiceImpl");
-        messageService.sendMessage(msg);
     }
 
     /**
