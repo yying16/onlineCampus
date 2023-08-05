@@ -6,13 +6,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.pojo.Image;
-import com.campus.common.pojo.IncrementData;
-import com.campus.common.pojo.ServiceData;
 import com.campus.common.util.SpringContextUtil;
 import com.campus.common.util.TimeUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
 import org.apache.mahout.cf.taste.impl.model.jdbc.MySQLJDBCDataModel;
 import org.apache.mahout.cf.taste.impl.neighborhood.ThresholdUserNeighborhood;
 import org.apache.mahout.cf.taste.impl.recommender.GenericItemBasedRecommender;
@@ -45,6 +41,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
@@ -97,7 +94,7 @@ public class ServiceCenter {
      * 数据库获取最近访问的产品（10个）
      * 结巴分词获取高频词汇(过滤掉无效高频词)
      */
-    public <T> List<String> guessYouLikes(String uid, Class<T> clazz,String... args) {
+    public <T> List<String> guessYouLikes(String uid, Class<T> clazz, String... args) {
         try {
             String className = getName(clazz);
             String tableName = "t_" + className + "_record";
@@ -113,9 +110,9 @@ public class ServiceCenter {
             list1.addAll(list2); // 连接列表
             List<T> sources = getTuplesByIds(list1, clazz);
             StringBuffer summarize = new StringBuffer(); // 将有效信息进行拼接
-            for (int i = 0; i < sources.size() ; i++) {
-                for (String arg:args) {
-                    summarize.append(getArg(sources.get(i),arg));
+            for (int i = 0; i < sources.size(); i++) {
+                for (String arg : args) {
+                    summarize.append(getArg(sources.get(i), arg));
                 }
             }
             //结巴分词处理
@@ -125,6 +122,17 @@ public class ServiceCenter {
             return new ArrayList<>();
         }
     }
+
+    /**
+     * jieba分词处理
+     */
+    private static List<String> jiebaAnalyse(String content) {
+//        JiebaSegmenter segmenter = new JiebaSegmenter();
+//        List<SegToken> tokens = segmenter.process(content, JiebaSegmenter.SegMode.SEARCH);
+//        return tokens.stream().map(token->token.word).collect(Collectors.toList());
+        return null;
+    }
+
 
     private List<String> getNewRecord(String tableName, String itemIdColumn, String uid, Integer num) {
         try {

@@ -2,6 +2,7 @@ package com.campus.trade.service;
 
 import com.campus.trade.domain.Bid;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.campus.trade.dto.AddBidForm;
 
 /**
 * @author xiaolin
@@ -10,4 +11,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface BidService extends IService<Bid> {
 
+    boolean addBid(AddBidForm addBidForm, String uid);
 }
