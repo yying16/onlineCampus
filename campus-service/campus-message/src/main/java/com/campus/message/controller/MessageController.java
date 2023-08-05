@@ -13,6 +13,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,17 @@ public class MessageController {
 
     @Autowired
     MessageServiceImpl messageService;
+
+    @Autowired
+    StringRedisTemplate redisTemplate;
+
+
+    @ApiOperation("心跳检测")
+    @GetMapping("/heartTest")
+    public R heartTest(){
+        return R.ok();
+    }
+
 
     @ApiOperation("发送消息(系统/用户/请求)")
     @PostMapping("/send")
