@@ -24,6 +24,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -45,6 +46,15 @@ public class MessageServiceImpl implements MessageService {
 
     @Autowired
     RelationshipServiceImpl relationshipService;
+
+
+    public boolean setHeartFlag(String onlineUser){
+        redisTemplate.opsForValue().set("heart_"+onlineUser,"true",20, TimeUnit.SECONDS);
+        return true;
+    }
+
+
+
     /**
      * 写入消息（系统消息要特殊判断
      *

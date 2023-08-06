@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.TimeUnit;
 
 import static com.campus.message.constant.MessageType.*;
 
@@ -87,7 +88,10 @@ public class WebSocket {
         log.info("【WebSocket消息】" + onlineUser + "发送消息：" + message);
         if (message.equals("ok")) {
             log.info("【WebSocket心跳检测】 用户id : {}", onlineUser);
+            MessageService messageService = (MessageService) SpringContextUtil.getBean("messageServiceImpl");
+            messageService.setHeartFlag(onlineUser);
             sendOneMessage(onlineUser, "ok");
+
         } else {
             Message msg = JSONObject.parseObject(message, Message.class);
             MessageService messageService = (MessageService) SpringContextUtil.getBean("messageServiceImpl");

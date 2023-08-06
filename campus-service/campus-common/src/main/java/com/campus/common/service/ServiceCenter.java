@@ -88,6 +88,8 @@ public class ServiceCenter {
 
 
     /**
+     * 从用户登录开始设置一个计时器，每五分钟更新一次高频词汇，并将高频词汇写入redis
+     *
      * 猜你喜欢（点击搜索框弹出下拉窗口）
      * <p>
      * 协同过滤算法获取相关产品（10个）
@@ -125,6 +127,13 @@ public class ServiceCenter {
 
     /**
      * jieba分词处理
+     *
+     * 录入字典（从nacos获取数据）
+     * 分词
+     * 过滤词性（保留名词）
+     * 统计高频词
+     *
+     * 返回最高频的10个词
      */
     private static List<String> jiebaAnalyse(String content) {
 //        JiebaSegmenter segmenter = new JiebaSegmenter();
