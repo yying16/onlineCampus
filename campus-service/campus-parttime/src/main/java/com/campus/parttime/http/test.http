@@ -17,15 +17,15 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:7006/campusParttime/parttime/updateJobInfo
+POST http://localhost:9000/campusParttime/parttime/updateJobInfo
+token:t1
 Content-Type: application/json
 
 {
-  "jobId": "1684904371313364993",
+  "jobId": "1685853561371643906",
   "salary": 1950.00,
   "deadline": "2023-07-30",
-  "location": 1,
-  "status": 2
+  "location": 1
 }
 
 ###
@@ -52,12 +52,12 @@ Content-Type: application/json
 }
 
 ### 新增JobApply
-GET http://localhost:9000/campusParttime/parttime/addJobApply?jobId=1685853561371643906
-token:t2
+GET http://localhost:7006/campusParttime/parttime/addJobApply?jobId=1685109681554624513
+uid:t2
 
 ###
 GET http://localhost:9000/campusParttime/parttime/deleteJob?jobId=1685938217110675458
-token:t1
+token:t2
 
 ###
 POST http://localhost:9000/campusParttime/parttime/searchJob
