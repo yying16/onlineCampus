@@ -15,6 +15,6 @@ public interface OperationDao extends BaseMapper<Operation> {
     @Select("select (select count(*) from t_operation where applicant_id=#{applicantId} AND status=3)/count(*) from t_operation where applicant_id=#{applicantId}")
     Double searchPersonalCompletionRate(String applicantId);
 
-    @Select("SELECT v_cnt_operation.date,completed_cnt/v_cnt_operation.all_cnt from v_cnt_operation, v_completed_operation where v_cnt_operation.date = v_completed_operation.date and  v_completed_operation.date between date(#{begin}) and date(#{end})")
+    @Select("SELECT v_cnt_operation.date,completed_cnt/v_cnt_operation.all_cnt rate from v_cnt_operation, v_completed_operation where v_cnt_operation.date = v_completed_operation.date and  v_completed_operation.date between date(#{begin}) and date(#{end})")
     List<MonthlyStatistics> searchPublicCompletionRate(@Param("begin")String begin, @Param("end")String end);
 }

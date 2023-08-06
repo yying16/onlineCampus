@@ -3,6 +3,7 @@ package com.campus.parttime.controller;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.nacos.shaded.com.google.gson.JsonObject;
+import com.baomidou.mybatisplus.core.toolkit.Assert;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.FormTemplate;
@@ -181,8 +182,9 @@ public class ParttimeController {
     @GetMapping("/addJobApply")
     public R addJobApply(@RequestHeader("uid") String applicantId, @RequestParam("jobId") String jobId) {
         Job job = (Job) serviceCenter.search(jobId, Job.class);
+        assert job!=null;
         // 若当前兼职状态为关闭或者招满，兼职申请提交失败
-        if(applyDao.selectCreditByJobId(applicantId)<0){
+        if(applyDao.selectCreditByJobId(applicantId)<=0){
             return R.failed(null,"信用值不足，无法提交申请");
         }
         if(job.getStatus().equals(CLOSE.code)){
@@ -417,8 +419,8 @@ public class ParttimeController {
 
     @ApiOperation("查看兼职申请详情")
     @GetMapping("/getApplyDetail")
-    public R getApplyDetail(@RequestParam("applyId") String applyId) {
-        Object apply = serviceCenter.search(applyId, Apply.class);
+    public R getApplyDetail(@RequestParam("applicationId") String applicationId) {
+        Object apply = serviceCenter.search(applicationId, Apply.class);
         if (apply != null) {
             return R.ok(apply);
         }
@@ -469,7 +471,7 @@ public class ParttimeController {
     }
 
     @ApiOperation("个人数据统计")
-    @GetMapping("/personalStatistics ")
+    @GetMapping("/personalStatistics")
     public R personalStatistics(@RequestParam("userId")String userId){
         Map<String,Object> map = new HashMap<String,Object>();
         // 获取个人执行完成率
