@@ -26,6 +26,6 @@ public interface ApplyDao extends BaseMapper<Apply> {
     @Update("update t_user set credit=t_user.credit-20 where user_id= #{userId}")
     void subCreditByJobId(String userId);
 
-    @Select("select account,userName from t_user where user_id= #{userId}")
-    List<String> selectBreakerInfo(String userId);
+    @Select("select count(*) from t_apply where applicant_id=#{applicantId} AND deleted=0")
+    Integer searchPersonalApplyJobNum(String applicantId);
 }

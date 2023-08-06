@@ -17,15 +17,15 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:9000/campusParttime/parttime/updateJobInfo
-token:t1
+POST http://localhost:7006/campusParttime/parttime/updateJobInfo
 Content-Type: application/json
 
 {
-  "jobId": "1685853561371643906",
+  "jobId": "1684904371313364993",
   "salary": 1950.00,
   "deadline": "2023-07-30",
-  "location": 1
+  "location": 1,
+  "status": 2
 }
 
 ###

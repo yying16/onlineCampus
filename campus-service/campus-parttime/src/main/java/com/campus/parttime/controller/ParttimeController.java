@@ -7,17 +7,22 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
+import com.campus.common.util.TimeUtil;
 import com.campus.message.dto.PromptInformationForm;
 import com.campus.parttime.dao.ApplyDao;
+import com.campus.parttime.dao.JobDao;
+import com.campus.parttime.dao.OperationDao;
 import com.campus.parttime.domain.Apply;
 import com.campus.parttime.domain.Breaker;
 import com.campus.parttime.domain.Job;
 import com.campus.parttime.domain.Operation;
 import com.campus.parttime.dto.*;
 import com.campus.parttime.feign.MessageClient;
+import com.campus.parttime.pojo.MonthlyStatistics;
 import com.campus.parttime.vo.JobStatusUpdateForm;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.Op;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import com.campus.user.domain.User;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,6 +55,12 @@ public class ParttimeController {
 
     @Autowired
     ApplyDao applyDao;
+
+    @Autowired
+    OperationDao operationDao;
+
+    @Autowired
+    JobDao jobDao;
 
     @Autowired
     MessageClient messageClient;
@@ -454,5 +466,41 @@ public class ParttimeController {
         String id = serviceCenter.insert(breaker);
         if(id!=null) return R.ok(id);
         else return R.failed(null,"插入失败，请重试");
+    }
+
+    @ApiOperation("个人数据统计")
+    @GetMapping("/personalStatistics ")
+    public R personalStatistics(@RequestParam("userId")String userId){
+        Map<String,Object> map = new HashMap<String,Object>();
+        // 获取个人执行完成率
+        if(operationDao.searchPersonalCompletionRate(userId)==null){
+            map.put("completionRate",0);
+        }
+        else map.put("completionRate",operationDao.searchPersonalCompletionRate(userId));
+
+        // 获取个人发布兼职总计
+        if(jobDao.searchPersonalPostJobNum(userId)==null){
+            map.put("postJobNum",0);
+        }
+        else map.put("postJobNum",jobDao.searchPersonalPostJobNum(userId));
+
+        // 获取申请兼职总计
+        if(applyDao.searchPersonalApplyJobNum(userId)==null){
+            map.put("applyJobNum",0);
+        }
+        else map.put("applyJobNum",applyDao.searchPersonalApplyJobNum(userId));
+        return R.ok(map);
+    }
+
+    @ApiOperation("管理员数据统计")
+    @GetMapping("/administratorStatistics")
+    public R administratorStatistics(@RequestParam("year")Integer year,@RequestParam("month") Integer month){
+        String begin = String.format("%04d-%02d-01 00:00:00",year,month);
+        String end = String.format("%04d-%02d-%02d 00:00:00",year,month,TimeUtil.getLastDay(year,month));
+        List<MonthlyStatistics> monthlyStatisticsLists = operationDao.searchPublicCompletionRate(begin,end);
+        if(monthlyStatisticsLists!=null){
+            return R.ok(monthlyStatisticsLists);
+        }
+        return R.failed();
     }
 }
