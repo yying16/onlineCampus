@@ -3,14 +3,15 @@ package com.campus.parttime.controller;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.nacos.shaded.com.google.gson.JsonObject;
-import com.baomidou.mybatisplus.core.toolkit.Assert;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
-import com.campus.common.util.TimeUtil;
 import com.campus.message.dto.PromptInformationForm;
 import com.campus.parttime.dao.ApplyDao;
+import com.campus.parttime.dao.JobDao;
+import com.campus.parttime.dao.OperationDao;
+import com.campus.parttime.domain.*;
 import com.campus.parttime.dao.JobDao;
 import com.campus.parttime.dao.OperationDao;
 import com.campus.parttime.domain.Apply;
@@ -19,11 +20,9 @@ import com.campus.parttime.domain.Job;
 import com.campus.parttime.domain.Operation;
 import com.campus.parttime.dto.*;
 import com.campus.parttime.feign.MessageClient;
-import com.campus.parttime.pojo.MonthlyStatistics;
 import com.campus.parttime.vo.JobStatusUpdateForm;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.Op;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import com.campus.user.domain.User;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,12 +54,6 @@ public class ParttimeController {
 
     @Autowired
     ApplyDao applyDao;
-
-    @Autowired
-    OperationDao operationDao;
-
-    @Autowired
-    JobDao jobDao;
 
     @Autowired
     MessageClient messageClient;
@@ -505,4 +497,25 @@ public class ParttimeController {
         }
         return R.failed();
     }
+
+    @ApiOperation("用户点赞操作")
+    @GetMapping("/likeJob")
+    public R likeJob(@RequestHeader("uid")String userId,@RequestParam("jobId") String jobId){
+        Job job = (Job)serviceCenter.selectMySql(jobId,Job.class);
+        assert job!= null;
+        Like like = new Like();
+        like.setUserId(userId);
+        like.setJobId(jobId);
+        String id = serviceCenter.insert(like);
+        return R.ok(null, id);
+    }
+
+    @ApiOperation("用户取消点赞操作")
+    @GetMapping("/cancelLikeJob")
+    public R cancelLikeJob(@RequestHeader("uid")String userId,@RequestParam("jobId") String jobId){
+
+        return R.failed();
+    }
+
+
 }

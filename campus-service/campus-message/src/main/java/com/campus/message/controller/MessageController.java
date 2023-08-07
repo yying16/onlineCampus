@@ -13,6 +13,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,14 +26,33 @@ public class MessageController {
     @Autowired
     MessageServiceImpl messageService;
 
+    @Autowired
+    StringRedisTemplate redisTemplate;
+
+
+    @ApiOperation("心跳检测")
+    @GetMapping("/heartTest/{uid}")
+    public R heartTest(@PathVariable String uid) {
+        return R.ok();
+//        String flag = redisTemplate.opsForValue().get("heart_" + uid);
+//        if (flag == null || flag.length() == 0) {
+//            return R.failed();
+//        }
+//        if (Boolean.parseBoolean(flag)) {
+//            return R.ok();
+//        }
+//        return R.failed();
+    }
+
+
     @ApiOperation("发送消息(系统/用户/请求)")
     @PostMapping("/send")
     public R send(@RequestBody MessageForm form) {
-        Message message = FormTemplate.analyzeTemplate(form,Message.class);
+        Message message = FormTemplate.analyzeTemplate(form, Message.class);
         if (messageService.sendMessage(message)) {
-            return R.ok(null,"发送成功");
+            return R.ok(null, "发送成功");
         } else {
-            return R.failed(null,"发送失败");
+            return R.failed(null, "发送失败");
         }
     }
 
@@ -40,7 +60,7 @@ public class MessageController {
     @GetMapping("/initMessage")
     public R initMessage(@RequestHeader("uid") String uid) {
         JSONObject jsonObject = messageService.initMessage(uid);
-        if(jsonObject!=null){
+        if (jsonObject != null) {
             return R.ok(jsonObject);
         }
         return R.failed();
@@ -50,7 +70,7 @@ public class MessageController {
     @GetMapping("/initUserMessage")
     public R initUserMessage(@RequestHeader("uid") String uid) {
         List<InitUserMessageData> list = messageService.initUserMessage(uid);
-        if(list!=null){
+        if (list != null) {
             return R.ok(list);
         }
         return R.failed();
@@ -88,7 +108,7 @@ public class MessageController {
     @ApiOperation("懒加载用户与好友的聊天记录")
     @GetMapping("/lazyLoadingChatRecords")
     public R lazyLoadingChatRecords(@RequestParam("friendId") String friendId, @RequestHeader("uid") String uid) {
-        if(messageService.lazyLoadingChatRecords(uid,friendId)){
+        if (messageService.lazyLoadingChatRecords(uid, friendId)) {
             JSONObject jsonObject = messageService.getUserChatRecords(uid, friendId);
             if (jsonObject == null) {
                 return R.failed();
@@ -100,8 +120,8 @@ public class MessageController {
 
     @ApiOperation("用户退出登录进行缓存删除")
     @GetMapping("/clearCache")
-    public R clearCache(@RequestHeader("uid") String uid){
-        if(messageService.clearCache(uid)){
+    public R clearCache(@RequestHeader("uid") String uid) {
+        if (messageService.clearCache(uid)) {
             return R.ok();
         }
         return R.failed();
@@ -109,8 +129,8 @@ public class MessageController {
 
     @ApiOperation("清除未读")
     @GetMapping("clearUnRead")
-    public R clearUnRead(@RequestHeader("uid") String uid){
-        if(messageService.clearUnRead(uid)){
+    public R clearUnRead(@RequestHeader("uid") String uid) {
+        if (messageService.clearUnRead(uid)) {
             return R.ok();
         }
         return R.failed();
