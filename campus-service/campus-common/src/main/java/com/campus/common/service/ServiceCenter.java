@@ -415,6 +415,67 @@ public class ServiceCenter {
         return true;
     }
 
+
+    /**
+     * 自减函数(对应字段数据类型必须为Integer)
+     */
+    public <T> boolean decrement(String id, Class<T> clazz, Boolean async, String... args) {
+        //更新redis
+        String h = getName(clazz) + id;
+        String jsonStr = redisTemplate.opsForValue().get(h);
+        if (jsonStr != null) { // 缓存格式匹配且存在缓存
+            T t = JSONObject.parseObject(jsonStr, clazz);
+            for (String arg : args) { // 依次修改变量值
+                setArg(t, arg, ((Integer) getArg(t, arg)) - 1); // 自减
+            }
+            jsonStr = JSONObject.toJSONString(t);
+            redisTemplate.opsForValue().set(h, jsonStr, getCacheTime(), TimeUnit.SECONDS); // 重新写入redis
+
+        }
+        if (async) {
+            asyncDecrementMysql(id, clazz, args);
+        } else {
+            decrementMysql(id, clazz, args);
+        }
+
+        //异步更新数据库
+//        IncrementData<T> data = new IncrementData(id, clazz, args);
+//        ServiceData serviceData = new ServiceData(ServiceData.INCREMENT, data, clazz.getName());
+//        String dataStr = JSONObject.toJSONString(serviceData);
+//        kafkaTemplate.send("service", getName(clazz), dataStr); // 异步更新数据库
+        return true;
+    }
+
+    /**
+     * 异步修改数据库进行自减
+     */
+    @Async
+    <T> boolean asyncDecrementMysql(String id, Class<T> clazz, String... args) {
+        BaseMapper<T> mapper = getMapper(clazz);
+        T t = mapper.selectById(id);
+        for (String arg : args) {
+            setArg(t, arg, ((Integer) getArg(t, arg)) - 1); // 自减
+        }
+        mapper.updateById(t);
+        log.info("异步写入数据成功");
+        return true;
+    }
+
+    /**
+     * 同步自减
+     */
+    private <T> boolean decrementMysql(String id, Class<T> clazz, String... args) {
+        BaseMapper<T> mapper = getMapper(clazz);
+        T t = mapper.selectById(id);
+        for (String arg : args) {
+            setArg(t, arg, ((Integer) getArg(t, arg)) - 1); // 自减
+        }
+        mapper.updateById(t);
+        return true;
+    }
+
+
+
     /**
      * 注册刷新任务
      * <p>

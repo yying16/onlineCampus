@@ -13,10 +13,7 @@ import com.campus.message.dto.PromptInformationForm;
 import com.campus.parttime.dao.ApplyDao;
 import com.campus.parttime.dao.JobDao;
 import com.campus.parttime.dao.OperationDao;
-import com.campus.parttime.domain.Apply;
-import com.campus.parttime.domain.Breaker;
-import com.campus.parttime.domain.Job;
-import com.campus.parttime.domain.Operation;
+import com.campus.parttime.domain.*;
 import com.campus.parttime.dto.*;
 import com.campus.parttime.feign.MessageClient;
 import com.campus.parttime.pojo.MonthlyStatistics;
@@ -505,4 +502,25 @@ public class ParttimeController {
         }
         return R.failed();
     }
+
+    @ApiOperation("用户点赞操作")
+    @GetMapping("/likeJob")
+    public R likeJob(@RequestHeader("uid")String userId,@RequestParam("jobId") String jobId){
+        Job job = (Job)serviceCenter.selectMySql(jobId,Job.class);
+        assert job!= null;
+        Like like = new Like();
+        like.setUserId(userId);
+        like.setJobId(jobId);
+        String id = serviceCenter.insert(like);
+        return R.ok(null, id);
+    }
+
+    @ApiOperation("用户取消点赞操作")
+    @GetMapping("/cancelLikeJob")
+    public R cancelLikeJob(@RequestHeader("uid")String userId,@RequestParam("jobId") String jobId){
+
+        return R.failed();
+    }
+
+
 }
