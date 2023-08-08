@@ -1,14 +1,14 @@
-###
-POST http://localhost:9000/campusParttime/parttime/addJob
+### 1.发布兼职
+POST http://localhost:7006/campusParttime/parttime/addJob
 token: t1
 Content-Type: application/json
 
 {
-  "publisherId": "20251102205",
-  "jobTitle": "找家教兼职",
-  "jobContent": "每周两次，去四周，具体日期与家长商讨，每天晚上7；00-9；00，地点:正佳广场附近100m",
-  "salary": "1000",
-  "deadline": "2023-08-01",
+  "publisherId": "20251102209",
+  "jobTitle": "找家教",
+  "jobContent": "每周三次，去五周，每天晚上7；00-9；00，地点:正佳广场附近300m",
+  "salary": "1700",
+  "deadline": "2023-08-08",
   "location": "1",
   "recruitNum": "2",
   "term": "1",
@@ -16,90 +16,19 @@ Content-Type: application/json
   "workingDays": "8"
 }
 
-###
-POST http://localhost:9000/campusParttime/parttime/updateJobInfo
+### 2.普通更新兼职信息
+POST http://localhost:7006/campusParttime/parttime/updateJobInfo
 token:t1
 Content-Type: application/json
 
 {
   "jobId": "1685853561371643906",
-  "salary": 1950.00,
+  "salary": 7.00,
   "deadline": "2023-07-30",
   "location": 1
 }
 
-###
-POST http://localhost:9000/campusParttime/parttime/updateJobInfo
-token:t1
-Content-Type: application/json
-
-{
-  "jobId": "1685853561371643906",
-  "salary": 1300.00,
-  "deadline": "2023-07-30",
-  "location": 1
-}
-
-###
-POST http://localhost:9000/campusParttime/parttime/forceUpdateJobInfo
-token:t1
-Content-Type: application/json
-
-{
-  "jobId": "1685109681554624513",
-  "salary": 1300.00,
-  "deadline": "2023-07-30"
-}
-
-### 新增JobApply
-GET http://localhost:7006/campusParttime/parttime/addJobApply?jobId=1685109681554624513
-uid:t2
-
-###
-GET http://localhost:9000/campusParttime/parttime/deleteJob?jobId=1685938217110675458
-token:t2
-
-###
-POST http://localhost:9000/campusParttime/parttime/searchJob
-token:t1
-Content-Type: application/json
-
-{
-  "location": "1",
-  "term": "1",
-  "classification": "5"
-}
-
-
-###
-GET http://localhost:9000/campusParttime/parttime/getJobDetail?jobId=1685853561371643906
-token:t1
-
-###
-GET http://localhost:9000/campusParttime/parttime/addVisitNum?jobId=1685853561371643906
-token:t1
-
-###
-GET http://localhost:9000/campusParttime/parttime/updateJobFeedback?operationId=1684859076441444354&feedback=完成的很好
-token:t2
-
-
-###
-GET http://localhost:9000/campusParttime/parttime/passApply?applicationId=1685204458224713730
-token:t1
-
-###
-GET http://localhost:9000/campusParttime/parttime/rejectApply
-token:t2
-Content-Type: application/json
-
-{
-  "applicationId": "1686382859536871426",
-  "status": 2
-}
-
-
-###
+### 3.强制更新兼职信息
 POST http://localhost:7006/campusParttime/parttime/forceUpdateJobInfo
 Content-Type: application/json
 
@@ -108,3 +37,69 @@ Content-Type: application/json
   "salary": 1300.00,
   "deadline": "2023-07-30"
 }
+
+### 4.删除兼职
+GET http://localhost:7006/campusParttime/parttime/deleteJob?jobId=1688378351399641090
+token:t2
+
+### 5.提交兼职申请
+GET http://localhost:7006/campusParttime/parttime/addJobApply?jobId=1685938217110675458
+uid:t2
+
+### 6.删除兼职申请记录
+GET http://localhost:7006/campusParttime/parttime/deleteApply?applicationId=1688545760119025666
+
+### 7.通过兼职申请
+GET http://localhost:7006/campusParttime/parttime/passApply?applicationId=1685204476537044993
+###token:t1
+
+### 8.拒绝兼职申请
+GET http://localhost:7006/campusParttime/parttime/rejectApply
+Content-Type: application/json
+
+{
+  "applicationId": "1686382859536871426",
+  "status": 2
+}
+
+### 9.修改兼职操作状态
+GET http://localhost:7006/campusParttime/parttime/updateOperationStatus
+uid:20251102258
+Content-Type: application/json
+
+{
+"operationId": "1686350019147354114",
+"jobId": "1684904371313364993",
+"status":3
+}
+
+### 10.提交兼职订单反馈
+GET http://localhost:7006/campusParttime/parttime/updateJobFeedback?operationId=1684147132394815490&feedback=工作效率很高
+uid:20251102299
+
+### 11.条件查询兼职
+POST http://localhost:7006/campusParttime/parttime/searchJob
+token:t1
+Content-Type: application/json
+
+{
+  "location": "1",
+  "term": "0",
+  "classification": "0"
+}
+
+### 12.查看兼职详情
+GET http://localhost:7006/campusParttime/parttime/getJobDetail?jobId=1688378351399641090
+uid:t1
+
+### 13.查看兼职申请详情
+GET http://localhost:7006/campusParttime/parttime/getApplyDetail?applicationId=1686382859536871426
+uid:t2
+
+###
+GET http://localhost:7006/campusParttime/parttime/getOperationDetail?operationId=168854812610074624
+
+
+###
+GET http://localhost:9000/campusParttime/parttime/addVisitNum?jobId=1685853561371643906
+token:t1

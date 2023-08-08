@@ -9,6 +9,7 @@ import lombok.Data;
 public class BreakInsertForm {
     String breakerId; // 违规用户Id
     String breakText; // 违规内容
-    String account; // 用户账号
-    String userName; // 用户名
+    String breakerAccount; // 用户账号
+    String breakerName; // 用户名
+    Integer breakNum; // 违规次数
 }

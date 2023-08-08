@@ -14,4 +14,8 @@ public interface JobDao extends BaseMapper<Job> {
 
     @Select("select CONCAT(month(create_time),'-',day(create_time)),COUNT(*) from t_job where create_time between DATE_SUB(now(), interval 30 day) and now() group by CONCAT(month(create_time),'-',day(create_time))")
     Map<String,Integer> searchPostJobInMonth();
+
+
+
+
 }

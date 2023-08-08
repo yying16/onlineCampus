@@ -1,5 +1,7 @@
 package com.campus.parttime.domain;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -17,8 +19,10 @@ import lombok.NoArgsConstructor;
 public class Breaker {
     String breakerId; // 违规用户Id
     String breakText; // 违规内容
-    String account; // 用户账号
-    String userName; // 用户名
+    @TableId(type = IdType.ASSIGN_ID)
+    String breakerAccount; // 用户账号
+    String breakerName; // 用户名
+    Integer breakNum; // 违规次数
 
     @TableLogic(value = "false", delval = "true")
     Boolean deleted;    //逻辑删除

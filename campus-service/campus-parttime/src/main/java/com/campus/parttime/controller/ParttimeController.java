@@ -7,10 +7,9 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
+import com.campus.common.util.TimeUtil;
 import com.campus.message.dto.PromptInformationForm;
-import com.campus.parttime.dao.ApplyDao;
-import com.campus.parttime.dao.JobDao;
-import com.campus.parttime.dao.OperationDao;
+import com.campus.parttime.dao.*;
 import com.campus.parttime.domain.*;
 import com.campus.parttime.dao.JobDao;
 import com.campus.parttime.dao.OperationDao;
@@ -20,6 +19,8 @@ import com.campus.parttime.domain.Job;
 import com.campus.parttime.domain.Operation;
 import com.campus.parttime.dto.*;
 import com.campus.parttime.feign.MessageClient;
+import com.campus.parttime.pojo.FavoritesList;
+import com.campus.parttime.pojo.MonthlyStatistics;
 import com.campus.parttime.vo.JobStatusUpdateForm;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import com.campus.user.domain.User;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,6 +56,21 @@ public class ParttimeController {
 
     @Autowired
     ApplyDao applyDao;
+
+    @Autowired
+    JobDao jobDao;
+
+    @Autowired
+    OperationDao operationDao;
+
+    @Autowired
+    LikeDao likeDao;
+
+    @Autowired
+    FavoritesDao favoritesDao;
+
+    @Autowired
+    RecordDao recordDao;
 
     @Autowired
     MessageClient messageClient;
@@ -147,8 +164,9 @@ public class ParttimeController {
     }
 
     /**
-     * 删除兼职(已测试通过)
+     * 删除兼职(需进一步修改收藏部分)
      * 兼职状态已完成或者已关闭
+     * 逻辑删除与当前job绑定的所有like记录
      */
     @ApiOperation("删除兼职")
     @GetMapping("/deleteJob")
@@ -156,11 +174,22 @@ public class ParttimeController {
         Job job = (Job)serviceCenter.search(jobId,Job.class);
         if(job.getStatus().equals(FINISH.code) || job.getStatus().equals(CLOSE.code)){
             if (serviceCenter.delete(jobId, Job.class)) {// 调用套件
+
+                //处理点赞记录:逻辑删除与当前job绑定的所有like记录
+                likeDao.deleteLikeByJobId(jobId);
+
+                //处理收藏记录:逻辑删除与当前job绑定的所有favorites记录,并用后端调用message模块的sendPromptInformation方法发送提示信息给申请者
+                favoritesDao.deleteFavoritesByJobId(jobId);
+
+                List<String> collectors = favoritesDao.selectCollectorsByJobId(jobId);
+                for(String collector : collectors){
+                    messageClient.sendPromptInformation(new PromptInformationForm(collector,"您曾收藏的兼职已删除"));
+                }
                 return R.ok();
             }
             return R.failed("兼职删除失败");
         }
-        return R.failed("兼职状态设置不为关闭或未完成");
+        return R.failed("当前兼职状态不为关闭或未完成，无法删除");
     }
 
     /**
@@ -256,9 +285,9 @@ public class ParttimeController {
     public R passApply(@RequestParam("applicationId") String applicationId) {
         Apply apply = (Apply) serviceCenter.selectMySql(applicationId, Apply.class);
         //申请前判断当前申请是否删除
-        if(apply.getDeleted()){
-            log.info("兼职记录已删除，无法通过该兼职");
-            return R.failed(null,"兼职记录已删除，无法通过该兼职");
+        if(apply==null){
+            log.info("兼职记录不存在，无法通过该兼职");
+            return R.failed(null,"兼职记录不存在，无法通过该兼职");
         }
         Job job = FormTemplate.analyzeTemplate(serviceCenter.selectMySql(apply.getJobId(), Job.class), Job.class);
         if(job.getStatus().equals(FULL.code)){
@@ -368,7 +397,7 @@ public class ParttimeController {
     public R updateJobStatus(@RequestHeader("uid") String postId, @RequestParam("operationId") String operationId, @RequestParam("feedback") String feedback) {
         Operation operation = FormTemplate.analyzeTemplate(serviceCenter.selectMySql(operationId, Operation.class), Operation.class);
         assert operation != null;
-        if (feedback != null) {
+        if (feedback != "") {
             if (postId.equals(operation.getPublisherId())) {
                 operation.setFeedback_from_publisher_to_applicant(feedback);
             } else operation.setFeedback_from_applicant_to_publisher(feedback);
@@ -399,21 +428,43 @@ public class ParttimeController {
         return R.failed();
     }
 
+    /**
+     * 查看兼职详情
+     */
     @ApiOperation("查看兼职详情")
     @GetMapping("/getJobDetail")
-    public R getJobDetail(@RequestParam("jobId") String jobId) {
-        Object job = serviceCenter.search(jobId, Job.class);
+    public R getJobDetail(@RequestHeader("uid")String userId, @RequestParam("jobId") String jobId) {
+        Job job = (Job)serviceCenter.search(jobId, Job.class);
         if (job != null) {
-            return R.ok(job);
+            if(recordDao.searchRecordIsExist(jobId,userId)!=null){// 访问记录存在
+                recordDao.updateRecoreScore(jobId,userId);// 将对应的记录中的score+1;
+                incrementVisitNum(jobId);
+                return R.ok(job);
+            }
+            else{ // 创建一个新记录
+                Record record = new Record();
+                record.setJob_record_id(IdWorker.getIdStr(record));
+                record.setJob_id(jobId);
+                record.setUser_id(userId);
+                record.setScore(1.0);
+                if(serviceCenter.insertMySql(record)){
+                    incrementVisitNum(jobId);
+                    return R.ok(job);
+                }
+            }
         }
         return R.failed(null,"当前兼职不存在");
     }
 
+    /**
+     * 查看兼职申请详情
+     * 只有申请提交者才能看到兼职申请详情
+     */
     @ApiOperation("查看兼职申请详情")
     @GetMapping("/getApplyDetail")
-    public R getApplyDetail(@RequestParam("applicationId") String applicationId) {
-        Object apply = serviceCenter.search(applicationId, Apply.class);
-        if (apply != null) {
+    public R getApplyDetail(@RequestHeader("uid")String userId, @RequestParam("applicationId") String applicationId) {
+        Apply apply = (Apply) serviceCenter.selectMySql(applicationId, Apply.class);
+        if (apply != null && apply.getApplicantId().equals(userId)) {
             return R.ok(apply);
         }
         return R.failed(null,"申请详情查看异常");
@@ -422,7 +473,7 @@ public class ParttimeController {
     @ApiOperation("查看执行订单详情")
     @GetMapping("/getOperationDetail")
     public R getOperationDetail(@RequestParam("operationId") String operationId) {
-        Object operation = serviceCenter.search(operationId, Operation.class);
+        Operation operation = (Operation) serviceCenter.search(operationId, Operation.class);
         if (operation != null) {
             return R.ok(operation);
         }
@@ -438,6 +489,10 @@ public class ParttimeController {
         return R.failed();
     }
 
+    /**
+     * 查看兼职申请详情
+     * 只有管理员/客服才能取消兼职申请
+     */
     @ApiOperation("取消兼职申请")
     @GetMapping("/cancelJobOperation")
     public R cancelJobOperation(@RequestParam("userId") String userId,@RequestParam("operationId") String operationId){
@@ -452,14 +507,31 @@ public class ParttimeController {
         return R.ok();
     }
 
+    /**
+     * 违规用户处理
+     */
     @ApiOperation("违规用户处理")
     @GetMapping("/addbreaker")
     public R addBreak(@RequestBody BreakInsertForm form){
         Breaker breaker = FormTemplate.analyzeTemplate(form,Breaker.class);
         assert breaker != null;
-        String id = serviceCenter.insert(breaker);
-        if(id!=null) return R.ok(id);
-        else return R.failed(null,"插入失败，请重试");
+        Breaker breakerSql = (Breaker) serviceCenter.selectMySql(breaker.getBreakerAccount(),Breaker.class);
+        if(breakerSql==null){
+            breaker.setBreakerId(IdWorker.getIdStr(breaker));
+            if(serviceCenter.insertMySql(breaker))
+                return R.ok();
+            else return R.failed(null,"更新失败，请重试");
+        }
+        else{
+            breakerSql.setBreakText(breakerSql.getBreakText()+";"+breaker.getBreakText());
+            breakerSql.setBreakNum(breakerSql.getBreakNum()+1);
+            if(serviceCenter.updateMySql(breakerSql)){
+                return R.ok();
+            }
+            else return R.failed(null,"更新失败，请重试");
+        }
+
+
     }
 
     @ApiOperation("个人数据统计")
@@ -488,9 +560,10 @@ public class ParttimeController {
 
     @ApiOperation("管理员数据统计")
     @GetMapping("/administratorStatistics")
+    //统计月度执行完成率
     public R administratorStatistics(@RequestParam("year")Integer year,@RequestParam("month") Integer month){
         String begin = String.format("%04d-%02d-01 00:00:00",year,month);
-        String end = String.format("%04d-%02d-%02d 00:00:00",year,month,TimeUtil.getLastDay(year,month));
+        String end = String.format("%04d-%02d-%02d 00:00:00",year,month, TimeUtil.getLastDay(year,month));
         List<MonthlyStatistics> monthlyStatisticsLists = operationDao.searchPublicCompletionRate(begin,end);
         if(monthlyStatisticsLists!=null){
             return R.ok(monthlyStatisticsLists);
@@ -502,20 +575,108 @@ public class ParttimeController {
     @GetMapping("/likeJob")
     public R likeJob(@RequestHeader("uid")String userId,@RequestParam("jobId") String jobId){
         Job job = (Job)serviceCenter.selectMySql(jobId,Job.class);
-        assert job!= null;
-        Like like = new Like();
-        like.setUserId(userId);
-        like.setJobId(jobId);
-        String id = serviceCenter.insert(like);
-        return R.ok(null, id);
+        if(job==null){
+            return R.failed(null,"当前兼职记录不存在，无法点赞");
+        }
+        String likeId = likeDao.searchLikeIsExist(userId,jobId);
+        if(likeId==null){
+            Like like = new Like();
+            like.setLikeId(IdWorker.getIdStr(like));
+            like.setUserId(userId);
+            like.setJobId(jobId);
+            if(serviceCenter.insertMySql(like)){
+                job.setLikeNum(job.getLikeNum()+1);
+                if(!serviceCenter.updateMySql(job)){
+                    return R.failed(null,"更新兼职信息失败");
+                }
+                return R.ok(null,"点赞成功");
+            }
+        }
+        return R.failed(null,"您已为该兼职点赞了，是否需要取消点赞？");
     }
 
     @ApiOperation("用户取消点赞操作")
     @GetMapping("/cancelLikeJob")
     public R cancelLikeJob(@RequestHeader("uid")String userId,@RequestParam("jobId") String jobId){
-
-        return R.failed();
+        Job job = (Job)serviceCenter.selectMySql(jobId,Job.class);
+        // 判断该用户点赞的兼职记录是否被删除
+        if(job==null){
+            return R.failed(null,"当前兼职记录不存在");
+        }
+        // 兼职未被删除
+        String likeId = likeDao.searchLikeIsExist(userId,jobId); // 查找对应的点赞记录Id
+        // 若该用户点赞过该兼职，则取消点赞
+        if(likeId!=null){
+            Like like = (Like)serviceCenter.selectMySql(likeId,Like.class); // 通过id查找该点赞记录
+            like.setDeleted(true); // 修改delete,删除该点赞记录
+            if(!serviceCenter.updateMySql(like)){ // 存入数据库中
+                return R.failed(null,"点赞信息更新失败");
+            }
+            //修改job记录中的likeNum
+            job.setLikeNum(job.getLikeNum()-1);
+            if(!serviceCenter.updateMySql(job)){ // 存入数据库中
+                return R.failed(null,"更新兼职信息失败");
+            }
+        }
+        return R.failed(null,"取消点赞失败");
     }
 
+    @ApiOperation("用户收藏操作")
+    @GetMapping("/FavoritesJob")
+    public R FavoritesJob(@RequestHeader("uid")String userId,@RequestParam("jobId") String jobId){
+        Job job = (Job)serviceCenter.selectMySql(jobId,Job.class);
+        if(job==null){
+            return R.failed(null,"当前兼职记录不存在，无法收藏");
+        }
+        String favoritesId = favoritesDao.searchFavoritesIsExist(userId,jobId);
+        if(favoritesId==null){ // 若没有存在收藏记录，则新建收藏记录
+            Favorites favorites = new Favorites();
+            favorites.setFavoritesId(IdWorker.getIdStr(favorites));
+            favorites.setUserId(userId);
+            favorites.setJobTitle(job.getJobTitle());
+            favorites.setJobId(jobId);
+            if(serviceCenter.insertMySql(favorites)){ // 将收藏记录存入数据库
+                job.setFavoritesNum(job.getFavoritesNum()+1); // 修改对应兼职记录的收藏人数
+                if(!serviceCenter.updateMySql(job)){ // 将修改后的兼职记录更新到数据库
+                    return R.failed(null,"更新兼职信息失败");
+                }
+                return R.ok(null, "收藏成功");
+            }
 
+        }
+        return R.failed(null,"您已收藏过该兼职了，是否需要取消收藏？");
+    }
+
+    @ApiOperation("用户取消收藏操作")
+    @GetMapping("/cancelFavoritesJob")
+    public R cancelFavoritesJob(@RequestHeader("uid")String userId,@RequestParam("jobId") String jobId){
+        Job job = (Job)serviceCenter.selectMySql(jobId,Job.class);
+        // 判断该用户收藏的兼职记录是否被删除
+        if(job==null){
+            return R.failed(null,"当前兼职记录不存在");
+        }
+        // 兼职未被删除
+        String favoritesId = favoritesDao.searchFavoritesIsExist(userId,jobId); // 查找对应的收藏记录Id
+        // 若该用户收藏过该兼职，则取消收藏
+        if(favoritesId!=null){
+            Favorites favorites = (Favorites) serviceCenter.selectMySql(favoritesId,Favorites.class); // 通过id查找该收藏记录
+            favorites.setDeleted(true); // 修改delete,删除该收藏记录
+            if(!serviceCenter.updateMySql(favorites)){ // 更新到数据库中
+                return R.failed(null,"收藏信息更新失败");
+            }
+            //修改job记录中的favoritesNum
+            job.setFavoritesNum(job.getFavoritesNum()-1);
+            if(!serviceCenter.updateMySql(job)){ // 存入数据库中
+                return R.failed(null,"更新兼职信息失败");
+            }
+        }
+        return R.failed(null,"取消收藏失败");
+    }
+
+    @ApiOperation("查看用户收藏列表")
+    @GetMapping("/searchFavoritesList")
+    public R searchFavoritesList(@RequestParam("userId") String userId) {
+        List<FavoritesList> favoritesList = favoritesDao.SearchFavoritesByUserId(userId);
+        return R.ok(favoritesList);
+    }
 }

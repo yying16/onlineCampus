@@ -14,11 +14,11 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_like")
+@TableName("t_job_like")
 public class Like {
     String likeId; // 点赞编号
     String userId; // 用户编号
-    String jobId; // 兼职编号
+    String jobId; // 兼职编号s
     @TableLogic(value = "false", delval = "true")
     Boolean deleted;    // 逻辑删除
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

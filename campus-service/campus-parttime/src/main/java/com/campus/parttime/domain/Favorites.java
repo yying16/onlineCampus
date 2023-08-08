@@ -14,11 +14,12 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("t_favorites")
+@TableName("t_job_favorites")
 public class Favorites {
     String favoritesId; // 收藏记录编号
     String userId; // 用户编号
     String jobId; // 兼职编号
+    String jobTitle; // 兼职标题
     @TableLogic(value = "false", delval = "true")
     Boolean deleted;    // 逻辑删除
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
