@@ -234,7 +234,7 @@ public class ParttimeController {
             //将修改后的兼职记录修改到数据库中
             if (serviceCenter.updateMySql(job)) { // 插入数据库
                 messageClient.sendPromptInformation(new PromptInformationForm( job.getPublisherId(),"已有用户"+apply.getApplicantId()+"提交申请，请及时查看！"));
-                return R.ok(null,"提交成功");
+                return R.ok(apply.getApplicationId(),"提交成功");
             }
             return R.failed(null,"提交失败,请重试");
         }
