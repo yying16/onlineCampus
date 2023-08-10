@@ -43,7 +43,7 @@ GET http://localhost:7006/campusParttime/parttime/deleteJob?jobId=16883783513996
 token:t2
 
 ### 5.提交兼职申请
-GET http://localhost:7006/campusParttime/parttime/addJobApply?jobId=1685938217110675458
+GET http://localhost:7006/campusParttime/parttime/addJobApply?jobId=1688098914372386817
 uid:t2
 
 ### 6.删除兼职申请记录
