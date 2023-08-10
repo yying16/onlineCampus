@@ -1,6 +1,5 @@
 package com.campus.parttime.domain;
 
-
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
@@ -10,16 +9,21 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * author kakakaka
+ */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("t_apply")
-public class Apply {
+@TableName("t_breaker")
+public class Breaker {
+    String breakerId; // 违规用户Id
+    String breakText; // 违规内容
     @TableId(type = IdType.ASSIGN_ID)
-    String applicationId; // 兼职申请表编号
-    String jobId;   // 兼职职位编号
-    String applicantId;  // 申请用户编号
-    Integer status; // 兼职申请状态（0-已申请，1-已通过，2-已拒绝）
+    String breakerAccount; // 用户账号
+    String breakerName; // 用户名
+    Integer breakNum; // 违规次数
+
     @TableLogic(value = "false", delval = "true")
     Boolean deleted;    //逻辑删除
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

@@ -115,7 +115,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         user.setTelephone(form.getTelephone());
         user.setStatus(false);
         user.setDeleted(false);
-        user.setCredit(0);
+        user.setCredit(60);
         user.setCreateTime(TimeUtil.getCurrentTime());
         user.setUpdateTime(TimeUtil.getCurrentTime());
         userDao.insert(user);

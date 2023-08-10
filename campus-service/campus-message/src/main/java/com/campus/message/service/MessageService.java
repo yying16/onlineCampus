@@ -15,6 +15,10 @@ import java.util.List;
  */
 public interface MessageService {
 
+
+
+    public boolean setHeartFlag(String onlineUser);
+
     /**
      * 写入消息（系统消息要特殊判断
      */

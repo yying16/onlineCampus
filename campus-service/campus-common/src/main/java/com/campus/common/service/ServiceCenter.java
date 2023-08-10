@@ -1,23 +1,14 @@
 package com.campus.common.service;
 
-import cn.hutool.extra.tokenizer.Word;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.pojo.Image;
-import com.campus.common.pojo.IncrementData;
-import com.campus.common.pojo.ServiceData;
 import com.campus.common.util.SpringContextUtil;
 import com.campus.common.util.TimeUtil;
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.seg.common.Term;
-import com.huaban.analysis.jieba.JiebaSegmenter;
-import com.huaban.analysis.jieba.SegToken;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
 import org.apache.mahout.cf.taste.impl.model.jdbc.MySQLJDBCDataModel;
 import org.apache.mahout.cf.taste.impl.neighborhood.ThresholdUserNeighborhood;
 import org.apache.mahout.cf.taste.impl.recommender.GenericItemBasedRecommender;
@@ -97,6 +88,8 @@ public class ServiceCenter {
 
 
     /**
+     * 从用户登录开始设置一个计时器，每五分钟更新一次高频词汇，并将高频词汇写入redis
+     *
      * 猜你喜欢（点击搜索框弹出下拉窗口）
      * <p>
      * 协同过滤算法获取相关产品（10个）
@@ -134,6 +127,13 @@ public class ServiceCenter {
 
     /**
      * jieba分词处理
+     *
+     * 录入字典（从nacos获取数据）
+     * 分词
+     * 过滤词性（保留名词）
+     * 统计高频词
+     *
+     * 返回最高频的10个词
      */
     private static List<String> jiebaAnalyse(String content) {
 //        JiebaSegmenter segmenter = new JiebaSegmenter();
@@ -414,6 +414,67 @@ public class ServiceCenter {
         mapper.updateById(t);
         return true;
     }
+
+
+    /**
+     * 自减函数(对应字段数据类型必须为Integer)
+     */
+    public <T> boolean decrement(String id, Class<T> clazz, Boolean async, String... args) {
+        //更新redis
+        String h = getName(clazz) + id;
+        String jsonStr = redisTemplate.opsForValue().get(h);
+        if (jsonStr != null) { // 缓存格式匹配且存在缓存
+            T t = JSONObject.parseObject(jsonStr, clazz);
+            for (String arg : args) { // 依次修改变量值
+                setArg(t, arg, ((Integer) getArg(t, arg)) - 1); // 自减
+            }
+            jsonStr = JSONObject.toJSONString(t);
+            redisTemplate.opsForValue().set(h, jsonStr, getCacheTime(), TimeUnit.SECONDS); // 重新写入redis
+
+        }
+        if (async) {
+            asyncDecrementMysql(id, clazz, args);
+        } else {
+            decrementMysql(id, clazz, args);
+        }
+
+        //异步更新数据库
+//        IncrementData<T> data = new IncrementData(id, clazz, args);
+//        ServiceData serviceData = new ServiceData(ServiceData.INCREMENT, data, clazz.getName());
+//        String dataStr = JSONObject.toJSONString(serviceData);
+//        kafkaTemplate.send("service", getName(clazz), dataStr); // 异步更新数据库
+        return true;
+    }
+
+    /**
+     * 异步修改数据库进行自减
+     */
+    @Async
+    <T> boolean asyncDecrementMysql(String id, Class<T> clazz, String... args) {
+        BaseMapper<T> mapper = getMapper(clazz);
+        T t = mapper.selectById(id);
+        for (String arg : args) {
+            setArg(t, arg, ((Integer) getArg(t, arg)) - 1); // 自减
+        }
+        mapper.updateById(t);
+        log.info("异步写入数据成功");
+        return true;
+    }
+
+    /**
+     * 同步自减
+     */
+    private <T> boolean decrementMysql(String id, Class<T> clazz, String... args) {
+        BaseMapper<T> mapper = getMapper(clazz);
+        T t = mapper.selectById(id);
+        for (String arg : args) {
+            setArg(t, arg, ((Integer) getArg(t, arg)) - 1); // 自减
+        }
+        mapper.updateById(t);
+        return true;
+    }
+
+
 
     /**
      * 注册刷新任务

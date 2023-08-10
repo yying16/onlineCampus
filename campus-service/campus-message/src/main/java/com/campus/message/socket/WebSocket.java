@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.TimeUnit;
 
 import static com.campus.message.constant.MessageType.*;
 
@@ -85,14 +86,17 @@ public class WebSocket {
     @OnMessage
     public void onMessage(String message, @PathParam("onlineUser") String onlineUser) {
         log.info("【WebSocket消息】" + onlineUser + "发送消息：" + message);
-        if(message.equals("ok")){
-            log.info("【WebSocket心跳检测】 用户id : {}",onlineUser);
-        }else{
+        if (message.equals("ok")) {
+            log.info("【WebSocket心跳检测】 用户id : {}", onlineUser);
+            MessageService messageService = (MessageService) SpringContextUtil.getBean("messageServiceImpl");
+            messageService.setHeartFlag(onlineUser);
+            sendOneMessage(onlineUser, "ok");
+
+        } else {
             Message msg = JSONObject.parseObject(message, Message.class);
             MessageService messageService = (MessageService) SpringContextUtil.getBean("messageServiceImpl");
             messageService.sendMessage(msg);
         }
-
     }
 
     /**
@@ -120,71 +124,78 @@ public class WebSocket {
      * @param message  消息
      */
     public void sendOneMessage(String toUserId, String message) {
-        Message msg = JSONObject.parseObject(message, Message.class);
         Session session = SESSION_POOL.get(toUserId);
-        if (session != null && session.isOpen()) { // 用户在线
-            log.info(msg.getReceiver() + " 在线");
-            try {
-                synchronized (session) {
-                    session.getAsyncRemote().sendText(message); // 消息转发
-                    String sender = msg.getSender();
-                    String receiver = msg.getReceiver();
-                    log.info("【WebSocket消息】单点消息：" + message);
-                    if (MessageType.of(msg.getType()) == USER) { //用户消息
-                        log.info("消息类型为用户消息");
-                        //写入对方的消息缓存
-                        JSONObject friend = JSONObject.parseObject(String.valueOf(redisTemplate.opsForHash().get("message" + receiver, sender))); // 好友信息
-                        if (friend == null) {
-                            friend = new JSONObject();
-                            friend.put("dialog", new JSONArray());
-                        }
-                        JSONArray dialog = JSONArray.parseArray(String.valueOf(friend.get("dialog"))); // 聊天内容
-                        dialog.add(0, JSONObject.toJSON(msg)); // 在最底部添加聊天内容
-                        friend.put("dialog", dialog);
-                        redisTemplate.opsForHash().put("message" + receiver, sender, friend.toJSONString()); // 更新redis
-                    } else if (MessageType.of(msg.getType()) == REQUEST) { // 请求消息
-                        log.info("消息类型为请求消息");
-                        //更新对方的请求消息缓存
-                        String d = redisTemplate.opsForHash().get("message" + receiver, "request") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get("message" + receiver, "request"));
-                        JSONArray dialog = JSONArray.parseArray(d); // 聊天内容
-                        dialog.add(0, JSONObject.toJSON(msg)); // 添加请求内容
-                        redisTemplate.opsForHash().put("message" + receiver, "request", dialog.toJSONString()); // 更新redis
-                    } else if (MessageType.of(msg.getType()) == SYSTEM) { // 系统消息
-                        log.info("消息类型为系统消息");
-                        //更新对方的请求消息缓存
-                        String s = redisTemplate.opsForHash().get("message" + receiver, "system") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get("message" + receiver, "system"));
-                        JSONArray systemMessage = JSONArray.parseArray(s); // 聊天内容
-                        systemMessage.add(0, JSONObject.toJSON(msg)); // 添加请求内容
-                        redisTemplate.opsForHash().put("message" + receiver, "system", systemMessage.toJSONString()); // 更新redis
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+        if (message.equals("ok")) {
+            synchronized (session) {
+                session.getAsyncRemote().sendText(message); // 消息转发
             }
-        } else { // 用户不在线
-            log.info(msg.getReceiver() + " 不在线");
-            if (MessageType.of(msg.getType()) == USER) { // 用户消息
-                log.info("消息类型为用户消息");
-                if (redisTemplate.opsForHash().hasKey("autoReply", msg.getReceiver())) { // 有自动回复（离线）
-                    log.info("对方设置了自动回复");
-                    String replyContent = String.valueOf(redisTemplate.opsForHash().get("autoReply", msg.getReceiver()));
-                    Message reply = new Message(); // 设置自动回复消息
-                    reply.setSender(msg.getReceiver());
-                    reply.setReceiver(msg.getSender());
-                    reply.setContent(replyContent);
-                    reply.setMessageId(IdWorker.getIdStr(reply));
-                    reply.setType(MessageType.AUTOMATIC.code);
-                    reply.setDeleted(false);
-                    reply.setIsPhoto(false);
-                    reply.setStatus(MessageStatus.READ.code);
-                    reply.setCreateTime(TimeUtil.getCurrentTime());
-                    reply.setUpdateTime(TimeUtil.getCurrentTime());
-                    String replyStr = JSONObject.toJSONString(reply);
-                    messageDao.insert(reply);
-                    sendOneMessage(msg.getSender(), replyStr); // 自动回复
+        } else {
+            Message msg = JSONObject.parseObject(message, Message.class);
+            if (session != null && session.isOpen()) { // 用户在线
+                log.info(msg.getReceiver() + " 在线");
+                try {
+                    synchronized (session) {
+                        session.getAsyncRemote().sendText(message); // 消息转发
+                        String sender = msg.getSender();
+                        String receiver = msg.getReceiver();
+                        log.info("【WebSocket消息】单点消息：" + message);
+                        if (MessageType.of(msg.getType()) == USER) { //用户消息
+                            log.info("消息类型为用户消息");
+                            //写入对方的消息缓存
+                            JSONObject friend = JSONObject.parseObject(String.valueOf(redisTemplate.opsForHash().get("message" + receiver, sender))); // 好友信息
+                            if (friend == null) {
+                                friend = new JSONObject();
+                                friend.put("dialog", new JSONArray());
+                            }
+                            JSONArray dialog = JSONArray.parseArray(String.valueOf(friend.get("dialog"))); // 聊天内容
+                            dialog.add(0, JSONObject.toJSON(msg)); // 在最底部添加聊天内容
+                            friend.put("dialog", dialog);
+                            redisTemplate.opsForHash().put("message" + receiver, sender, friend.toJSONString()); // 更新redis
+                        } else if (MessageType.of(msg.getType()) == REQUEST) { // 请求消息
+                            log.info("消息类型为请求消息");
+                            //更新对方的请求消息缓存
+                            String d = redisTemplate.opsForHash().get("message" + receiver, "request") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get("message" + receiver, "request"));
+                            JSONArray dialog = JSONArray.parseArray(d); // 聊天内容
+                            dialog.add(0, JSONObject.toJSON(msg)); // 添加请求内容
+                            redisTemplate.opsForHash().put("message" + receiver, "request", dialog.toJSONString()); // 更新redis
+                        } else if (MessageType.of(msg.getType()) == SYSTEM) { // 系统消息
+                            log.info("消息类型为系统消息");
+                            //更新对方的请求消息缓存
+                            String s = redisTemplate.opsForHash().get("message" + receiver, "system") == null ? "[]" : String.valueOf(redisTemplate.opsForHash().get("message" + receiver, "system"));
+                            JSONArray systemMessage = JSONArray.parseArray(s); // 聊天内容
+                            systemMessage.add(0, JSONObject.toJSON(msg)); // 添加请求内容
+                            redisTemplate.opsForHash().put("message" + receiver, "system", systemMessage.toJSONString()); // 更新redis
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else { // 用户不在线
+                log.info(msg.getReceiver() + " 不在线");
+                if (MessageType.of(msg.getType()) == USER) { // 用户消息
+                    log.info("消息类型为用户消息");
+                    if (redisTemplate.opsForHash().hasKey("autoReply", msg.getReceiver())) { // 有自动回复（离线）
+                        log.info("对方设置了自动回复");
+                        String replyContent = String.valueOf(redisTemplate.opsForHash().get("autoReply", msg.getReceiver()));
+                        Message reply = new Message(); // 设置自动回复消息
+                        reply.setSender(msg.getReceiver());
+                        reply.setReceiver(msg.getSender());
+                        reply.setContent(replyContent);
+                        reply.setMessageId(IdWorker.getIdStr(reply));
+                        reply.setType(MessageType.AUTOMATIC.code);
+                        reply.setDeleted(false);
+                        reply.setIsPhoto(false);
+                        reply.setStatus(MessageStatus.READ.code);
+                        reply.setCreateTime(TimeUtil.getCurrentTime());
+                        reply.setUpdateTime(TimeUtil.getCurrentTime());
+                        String replyStr = JSONObject.toJSONString(reply);
+                        messageDao.insert(reply);
+                        sendOneMessage(msg.getSender(), replyStr); // 自动回复
+                    }
                 }
             }
         }
+
     }
 
     /**
