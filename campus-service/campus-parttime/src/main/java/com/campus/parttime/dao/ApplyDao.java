@@ -28,4 +28,7 @@ public interface ApplyDao extends BaseMapper<Apply> {
 
     @Select("select count(*) from t_apply where applicant_id=#{applicantId} AND deleted=0")
     Integer searchPersonalApplyJobNum(String applicantId);
+
+    @Select("select * from t_apply where applicant_id=#{applicantId} and deleted=0")
+    List<Apply> searchApplyListByApplicantId(String applicantId);
 }

@@ -36,8 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.campus.parttime.constant.ApplyStatus.APPLIED;
-import static com.campus.parttime.constant.ApplyStatus.PASSED;
+import static com.campus.parttime.constant.ApplyStatus.*;
 import static com.campus.parttime.constant.JobStatus.*;
 import static com.campus.parttime.constant.OperationStatus.*;
 
@@ -89,6 +88,16 @@ public class ParttimeController {
             return R.ok(id);
         }
         return R.failed();
+    }
+
+    @ApiOperation("发布者查看发布的兼职列表")
+    @GetMapping("/searchJobListToPublisher")
+    public R searchJobListToPublisher(@RequestHeader("uid")String publisherId) {
+        List<Job> applyList = jobDao.searchJobList(publisherId);
+        if(applyList!=null){
+            return R.ok(applyList,"查找成功");
+        }
+        return R.ok(null,"无申请记录");
     }
 
     /**
@@ -162,6 +171,8 @@ public class ParttimeController {
         }
         return R.failed();
     }
+
+
 
     /**
      * 删除兼职(需进一步修改收藏部分)
@@ -269,9 +280,19 @@ public class ParttimeController {
         return R.failed();
     }
 
-    @ApiOperation("查看兼职申请列表")
-    @GetMapping("/searchApplyList")
-    public R searchApplyList(@RequestHeader("uid")String userId, @RequestParam("jobId") String jobId) {
+    @ApiOperation("兼职者查看兼职申请列表")
+    @GetMapping("/searchApplyListToApplicant")
+    public R searchApplyListToApplicant(@RequestHeader("uid")String applicantId) {
+        List<Apply> applyList = applyDao.searchApplyListByApplicantId(applicantId);
+        if(applyList!=null){
+            return R.ok(applyList,"查找成功");
+        }
+        return R.ok(null,"无申请记录");
+    }
+
+    @ApiOperation("发布者查看兼职申请列表")
+    @GetMapping("/searchApplyListToPublisher")
+    public R searchApplyListToPublisher(@RequestHeader("uid")String userId, @RequestParam("jobId") String jobId) {
         Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
         if(userId.equals(job.getPublisherId())){// 发布者查看当前兼职申请列表
             List<Apply> applyList = jobDao.SearchApplyListByJobId(jobId);
@@ -335,13 +356,12 @@ public class ParttimeController {
      */
     @ApiOperation("拒绝兼职申请")
     @GetMapping("/rejectApply")
-    public R rejectApply(@RequestBody ApplyStatusUpdateForm form) {
-        Apply apply = FormTemplate.analyzeTemplate(form, Apply.class);
-        assert apply != null;
-        Apply applySql = (Apply) serviceCenter.selectMySql(apply.getApplicationId(),Apply.class);
-        if(applySql.getStatus().equals(PASSED.code)){
+    public R rejectApply(@RequestParam("applicationId") String applicationId) {
+        Apply apply = (Apply) serviceCenter.selectMySql(applicationId,Apply.class);
+        if(apply.getStatus().equals(PASSED.code)){
             return R.failed(null,"申请已通过，拒绝失败");
         }
+        apply.setStatus(REFUSED.code);
         if (serviceCenter.updateMySql(apply)) {// 调用套件
             messageClient.sendPromptInformation(new PromptInformationForm(apply.getApplicantId(),"很遗憾，您未通过本次兼职申请！"));
             return R.ok();

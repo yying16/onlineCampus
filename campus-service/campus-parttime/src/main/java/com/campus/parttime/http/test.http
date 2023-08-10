@@ -4,7 +4,7 @@ token: t1
 Content-Type: application/json
 
 {
-  "publisherId": "20251102209",
+  "publisherId": "20251102210",
   "jobTitle": "找家教",
   "jobContent": "每周三次，去五周，每天晚上7；00-9；00，地点:正佳广场附近300m",
   "salary": "1700",
@@ -101,11 +101,3 @@ GET http://localhost:7006/campusParttime/parttime/searchApplyList?jobId=16849043
 uid:20251102258
 
 
-
-###
-GET http://localhost:7006/campusParttime/parttime/getOperationDetail?operationId=168854812610074624
-
-
-###
-GET http://localhost:9000/campusParttime/parttime/addVisitNum?jobId=1685853561371643906
-token:t1

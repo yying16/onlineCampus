@@ -21,6 +21,8 @@ public interface JobDao extends BaseMapper<Job> {
     @Select("select * from t_apply where job_id=#{job_Id} and deleted=0")
     List<Apply> SearchApplyListByJobId(String jobId);
 
+    @Select("select * from t_job where publisher_id=#{publisherId} and deleted=0")
+    List<Job> searchJobList(String publisherId);
 
 
 }
