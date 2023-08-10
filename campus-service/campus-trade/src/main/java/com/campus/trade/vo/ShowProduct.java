@@ -64,11 +64,6 @@ public class ShowProduct {
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
     private String updateTime;
 
-    /**
-     * 逻辑删除
-     */
-    private Integer deleted;
-
 
     //用户名
     private String userName;
@@ -86,7 +81,7 @@ public class ShowProduct {
 
 
     //商品图片列表
-    private List<String> imageUrls;
+    private List<String> images;
 
 
 

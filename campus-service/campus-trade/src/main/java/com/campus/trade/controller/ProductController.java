@@ -4,8 +4,10 @@ import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
+import com.campus.trade.domain.Image;
 import com.campus.trade.domain.Product;
 import com.campus.trade.dto.AddProductForm;
+import com.campus.trade.service.ImageService;
 import com.campus.trade.service.ProductService;
 import com.campus.trade.vo.ShowProduct;
 import io.swagger.annotations.Api;
@@ -16,6 +18,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +33,8 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
-
+    @Autowired
+    private ImageService imageService;
 
     @Autowired
     private ServiceCenter serviceCenter;
@@ -122,6 +126,19 @@ public class ProductController {
         searchProductForm.put("limit",offset+" "+size);
         searchProductForm.put("userId",userId);
         List<Product> products =  serviceCenter.search(searchProductForm,Product.class);
+
+        //根据商品id查询商品图片
+        for (Product product : products){
+            String productId = product.getProductId();
+            QueryWrapper<Image> imageQueryWrapper = new QueryWrapper<>();
+            imageQueryWrapper.eq("other_id",productId);
+            List<Image> images = imageService.list(imageQueryWrapper);
+            List<String> imageUrls = new ArrayList<>();
+            for (Image image : images) {
+                imageUrls.add(image.getImgUrl());
+            }
+            product.setImages(imageUrls);
+        }
 
         return R.ok(products,"查询商品列表成功");
     }

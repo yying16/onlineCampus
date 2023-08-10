@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
@@ -69,6 +70,12 @@ public class Product implements Serializable {
      */
     @TableLogic(value = "false", delval = "true")
     private Boolean deleted;
+
+    /**
+     * 图片列表（上传图片后返回的url）
+     */
+    @TableField(exist = false)
+    private List<String> images; // 图片列表
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
