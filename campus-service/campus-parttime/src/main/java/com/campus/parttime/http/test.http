@@ -96,6 +96,12 @@ uid:t1
 GET http://localhost:7006/campusParttime/parttime/getApplyDetail?applicationId=1686382859536871426
 uid:t2
 
+### 14.查看兼职申请列表
+GET http://localhost:7006/campusParttime/parttime/searchApplyList?jobId=1684904371313364993
+uid:20251102258
+
+
+
 ###
 GET http://localhost:7006/campusParttime/parttime/getOperationDetail?operationId=168854812610074624
 

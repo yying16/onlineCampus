@@ -2,13 +2,14 @@ package com.campus.user.controller;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.service.ServiceCenter;
+import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
+import com.campus.user.dao.BreakerDao;
+import com.campus.user.domain.Breaker;
 import com.campus.user.domain.User;
-import com.campus.user.dto.CheckCodeForm;
-import com.campus.user.dto.CheckEmailCodeForm;
-import com.campus.user.dto.UpdatePasswordForm;
-import com.campus.user.dto.UpdateUserForm;
+import com.campus.user.dto.*;
 import com.campus.user.feign.MessageClient;
 import com.campus.user.pojo.PromptInformationForm;
 import com.campus.user.service.impl.UserServiceImpl;
@@ -283,10 +284,30 @@ public class UserController {
         }
     }
 
-
-
-
-
-
-
+    /**
+     * 违规用户处理
+     * 需要考虑违规表的breakNum是否要删除，因为user表中也有breakNum;
+     * 还需要添加（breaker表的模块字段：哪个模块的举报，以及举报类型;方法：搜索某一用户的所有违规详情;数据统计：违规次数最多的用户排名）
+     */
+    @ApiOperation("违规用户处理")
+    @GetMapping("/addbreaker")
+    public R addBreak(@RequestParam("breakerId")String breakerId, @RequestParam("breakText")String breakText){
+        User user = (User)serviceCenter.selectMySql(breakerId,User.class);
+        if(user==null){
+            return R.failed(null,"该用户不存在");
+        }
+        Breaker breaker = new Breaker();
+        breaker.setBreakId(IdWorker.getIdStr(breaker));
+        breaker.setBreakerId(breakerId);
+        breaker.setBreakerAccount(user.getAccount());
+        breaker.setBreakerName(user.getUsername());
+        breaker.setBreakText(breakText);
+        if(serviceCenter.insertMySql(breaker)) {
+            user.setBreakNum(user.getBreakNum()+1);
+            if(!serviceCenter.updateMySql(user)){
+                return R.failed(null,"用户记录更新失败");
+            }
+            return R.ok();
+        }else return R.failed(null,"更新失败，请重试");
+    }
 }

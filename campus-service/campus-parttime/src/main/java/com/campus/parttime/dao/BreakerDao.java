@@ -8,8 +8,8 @@ import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
-@Mapper
-public interface BreakerDao extends BaseMapper<Breaker> {
-    @Select("select account,userName from t_user where user_id= #{userId}")
-    List<String> selectBreakerInfo(String userId);
-}
+//@Mapper
+//public interface BreakerDao extends BaseMapper<Breaker> {
+//    @Select("select account,userName from t_user where user_id= #{userId}")
+//    List<String> selectBreakerInfo(String userId);
+//}

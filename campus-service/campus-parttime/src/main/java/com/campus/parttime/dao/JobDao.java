@@ -1,10 +1,13 @@
 package com.campus.parttime.dao;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.campus.parttime.domain.Apply;
 import com.campus.parttime.domain.Job;
+import com.campus.parttime.pojo.FavoritesList;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.List;
 import java.util.Map;
 
 @Mapper
@@ -15,6 +18,8 @@ public interface JobDao extends BaseMapper<Job> {
     @Select("select CONCAT(month(create_time),'-',day(create_time)),COUNT(*) from t_job where create_time between DATE_SUB(now(), interval 30 day) and now() group by CONCAT(month(create_time),'-',day(create_time))")
     Map<String,Integer> searchPostJobInMonth();
 
+    @Select("select * from t_apply where job_id=#{job_Id} and deleted=0")
+    List<Apply> SearchApplyListByJobId(String jobId);
 
 
 
