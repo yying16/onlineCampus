@@ -69,6 +69,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
 
         //封装数据
         for (Product product : search) {
+            String productId = product.getProductId();
+            QueryWrapper<Image> imageQueryWrapper = new QueryWrapper<>();
+            imageQueryWrapper.eq("other_id",productId);
+            List<Image> images = imageService.list(imageQueryWrapper);
+            List<String> imageUrls = new ArrayList<>();
+            for (Image image : images) {
+                imageUrls.add(image.getImgUrl());
+            }
+            product.setImages(imageUrls);
 
             ShowProduct showProduct = getShowProduct(product);
 

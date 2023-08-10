@@ -71,6 +71,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
             Map<String, Object> data = (Map<String, Object>) user.getData();
             String nickName = (String) data.get("username");
             String avatar = (String) data.get("userImage");
+
+            //调用user服务获取用户头像
+            String userAvatar = (String) data.get("userImage");
+
             showOrder.setSellerAvatar(avatar);
             showOrder.setSellerNickName(nickName);
             showOrder.setCreateTime(order.getCreateTime());
@@ -111,8 +115,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
             showOrder.setTotalPrice(order.getTotalPrice());
             //商品信息
             String productId = order.getProductId();
-            Object search = serviceCenter.search(productId, Product.class);
-            Product product = new Gson().fromJson(search.toString(), Product.class);
+            Product product = (Product) serviceCenter.selectMySql(productId, Product.class);
+//            Product product = new Gson().fromJson(search.toString(), Product.class);
             showOrder.setProduct(product);
             //买家信息
             R user = userClient.getUserById(order.getUserId());

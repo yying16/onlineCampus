@@ -110,6 +110,23 @@ public class ProductController {
         }
         BeanUtils.copyProperties(addProductForm,product);
         boolean update = serviceCenter.update(product);
+
+        //修改商品信息后，修改图片信息
+        //根据商品id查询图片信息
+        QueryWrapper<Image> wrapper = new QueryWrapper<>();
+        wrapper.eq("other_id",id);
+        //先删除原来的图片信息
+        imageService.remove(wrapper);
+        //再添加新的图片信息
+        List<String> images = addProductForm.getImages();
+        for (String image : images) {
+            Image image1 = new Image();
+            image1.setOtherId(id);
+            image1.setImgUrl(image);
+            image1.setOtherType("product");
+            imageService.save(image1);
+        }
+
         if(update){
             return R.ok(null,"修改商品信息成功");
         }else{

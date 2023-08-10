@@ -43,10 +43,7 @@ public class ShowCategory implements Serializable {
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
     private String updateTime;
 
-    /**
-     * 逻辑删除
-     */
-    private Integer deleted;
+
 
     private List<ShowCategory> children;
 
