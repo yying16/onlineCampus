@@ -11,6 +11,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.intellij.lang.annotations.Pattern;
 
+import java.math.BigDecimal;
+
 @Data
 @TableName("t_user")
 @AllArgsConstructor
@@ -32,6 +34,9 @@ public class User {
     String address;     //地址
 
     String consignee;   //收货人
+
+    BigDecimal balance; //余额
+
     @TableLogic(value = "false", delval = "true")
     Boolean deleted;        //逻辑删除
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")

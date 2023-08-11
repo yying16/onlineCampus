@@ -142,4 +142,11 @@ public class OrderController {
         }
     }
 
+    //支付订单
+    @PostMapping("/payOrder/{orderId}")
+    @ApiOperation("支付订单")
+    public R payOrder(@ApiParam("订单id") @PathVariable("orderId") String orderId) {
+       return orderService.payOrder(orderId);
+    }
+
 }

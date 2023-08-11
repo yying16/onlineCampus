@@ -1,5 +1,6 @@
 package com.campus.trade.service;
 
+import com.campus.common.util.R;
 import com.campus.trade.domain.Order;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.campus.trade.vo.ConfirmOrderForm;
@@ -22,4 +23,6 @@ public interface OrderService extends IService<Order> {
     List<ShowOrder> getOrderListByUid(Map<String, Object> searchOrderForm,String uid);
 
     List<ShowOrder> getOrderListBySellerId(Map<String, Object> searchOrderForm,String sellerId);
+
+    R payOrder(String orderId);
 }

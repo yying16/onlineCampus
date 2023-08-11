@@ -28,6 +28,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -61,7 +62,7 @@ public class UserController {
     @ApiOperation(value = "获取用户信息")
     @GetMapping("/getDetail")
     public R getDetail(@RequestHeader("uid") String uid) {
-        String userStr = String.valueOf(redisTemplate.opsForValue().get("user"+uid));
+        String userStr = String.valueOf(redisTemplate.opsForValue().get("user" + uid));
         User user = JSONObject.parseObject(userStr, User.class);
         if (user == null) {
             return R.failed("令牌无效");
@@ -78,7 +79,7 @@ public class UserController {
         wrapper.eq("user_id", userId);
         User user = userService.getOne(wrapper);
         if (user != null) {
-            return R.ok(user);
+            return R.ok(user, "查询成功");
         } else {
             return R.failed("用户不存在");
         }
@@ -105,7 +106,7 @@ public class UserController {
      */
     @ApiOperation(value = "修改密码")
     @PostMapping("/updatePassword")
-    public R updatePassword( @ApiParam("对象：包括password") @RequestBody UpdatePasswordForm form) {
+    public R updatePassword(@ApiParam("对象：包括password") @RequestBody UpdatePasswordForm form) {
         boolean b = userService.updatePassword(form);
         if (b) {
             return R.ok();
@@ -139,7 +140,7 @@ public class UserController {
         String uid = request.getHeader("uid");
 
         //生成邮件链接
-        link = baseUrl + "/user/verifyEmail?email=" + email + "&userId=" +uid;
+        link = baseUrl + "/user/verifyEmail?email=" + email + "&userId=" + uid;
 
         //创建邮件上下文
         Context context = new Context();
@@ -169,7 +170,7 @@ public class UserController {
      */
     @ApiOperation(value = "发送邮件")
     @PostMapping("/sendEmail")
-    public R sendEmail(@RequestBody Map<String,String> map) {
+    public R sendEmail(@RequestBody Map<String, String> map) {
 
         String content = map.get("content");
         String uid = map.get("uid");
@@ -251,7 +252,7 @@ public class UserController {
         if (user != null) {
             return R.ok(user);
         } else {
-            return R.failed(null,"用户不存在");
+            return R.failed(null, "用户不存在");
         }
     }
 
@@ -260,7 +261,7 @@ public class UserController {
      */
     @ApiOperation(value = "查看用户验证码是否正确")
     @PostMapping("/checkPhoneCode")
-    public R checkCode( @RequestBody CheckCodeForm form) {
+    public R checkCode(@RequestBody CheckCodeForm form) {
         boolean b = userService.checkCode(form);
         if (b) {
             return R.ok();
@@ -274,7 +275,7 @@ public class UserController {
      */
     @ApiOperation(value = "查看用户邮箱验证码是否正确")
     @PostMapping("/checkEmailCode")
-    public R checkEmailCode( @RequestBody CheckEmailCodeForm form) {
+    public R checkEmailCode(@RequestBody CheckEmailCodeForm form) {
         boolean b = userService.checkEmailCode(form);
         if (b) {
             return R.ok();
@@ -284,9 +285,33 @@ public class UserController {
     }
 
 
+    /**
+     * 查询用户余额
+     */
+    @ApiOperation(value = "查询用户余额")
+    @GetMapping("/getBalance/{userId}")
+    public BigDecimal getBalance(@ApiParam("用户id") @PathVariable("userId")  String userId) {
+        User user = userService.getById(userId);
+        if (user != null) {
+            BigDecimal balance = user.getBalance();
+            return balance;
+        } else {
+            return null;
+        }
+    }
 
+    /**
+     * 修改用户余额
+     */
+    @ApiOperation(value = "修改用户余额")
+    @PutMapping("/updateBalance/{userId}/{balance}")
+    public R updateBalance(@ApiParam("用户id") @PathVariable("userId")  String userId, @PathVariable("balance") BigDecimal balance){
+        return userService.updateBalance(userId, balance);
 
-
-
+    }
 
 }
+
+
+
+

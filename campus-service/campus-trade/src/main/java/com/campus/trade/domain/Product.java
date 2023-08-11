@@ -54,6 +54,11 @@ public class Product implements Serializable {
     private Integer isPublished;
 
     /**
+     * 是否卖出
+     */
+    private Integer status; // 0:未卖出 1:已卖出
+
+    /**
      * 创建时间
      */
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
