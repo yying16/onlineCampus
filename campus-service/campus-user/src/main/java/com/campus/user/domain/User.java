@@ -29,7 +29,8 @@ public class User {
     String email;       //邮箱
     String autoReply;   //自动回复内容
     Boolean status;     //身份（true为管理员，false为普通用户）
-    Integer credit;     // 信用
+    Integer credit;     //信用
+    Integer breakNum;   //违规次数
 
     String address;     //地址
 

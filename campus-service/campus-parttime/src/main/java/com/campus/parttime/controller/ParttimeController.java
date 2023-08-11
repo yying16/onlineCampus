@@ -234,7 +234,7 @@ public class ParttimeController {
             //将修改后的兼职记录修改到数据库中
             if (serviceCenter.updateMySql(job)) { // 插入数据库
                 messageClient.sendPromptInformation(new PromptInformationForm( job.getPublisherId(),"已有用户"+apply.getApplicantId()+"提交申请，请及时查看！"));
-                return R.ok(null,"提交成功");
+                return R.ok(apply.getApplicationId(),"提交成功");
             }
             return R.failed(null,"提交失败,请重试");
         }
@@ -267,6 +267,17 @@ public class ParttimeController {
             }
         }
         return R.failed();
+    }
+
+    @ApiOperation("查看兼职申请列表")
+    @GetMapping("/searchApplyList")
+    public R searchApplyList(@RequestHeader("uid")String userId, @RequestParam("jobId") String jobId) {
+        Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
+        if(userId.equals(job.getPublisherId())){// 发布者查看当前兼职申请列表
+            List<Apply> applyList = jobDao.SearchApplyListByJobId(jobId);
+            return R.ok(applyList);
+        }
+        return R.failed(null,"查看失败");
     }
 
     /**
@@ -505,33 +516,6 @@ public class ParttimeController {
             return R.failed(null,"取消失败，请重试");
         }
         return R.ok();
-    }
-
-    /**
-     * 违规用户处理
-     */
-    @ApiOperation("违规用户处理")
-    @GetMapping("/addbreaker")
-    public R addBreak(@RequestBody BreakInsertForm form){
-        Breaker breaker = FormTemplate.analyzeTemplate(form,Breaker.class);
-        assert breaker != null;
-        Breaker breakerSql = (Breaker) serviceCenter.selectMySql(breaker.getBreakerAccount(),Breaker.class);
-        if(breakerSql==null){
-            breaker.setBreakerId(IdWorker.getIdStr(breaker));
-            if(serviceCenter.insertMySql(breaker))
-                return R.ok();
-            else return R.failed(null,"更新失败，请重试");
-        }
-        else{
-            breakerSql.setBreakText(breakerSql.getBreakText()+";"+breaker.getBreakText());
-            breakerSql.setBreakNum(breakerSql.getBreakNum()+1);
-            if(serviceCenter.updateMySql(breakerSql)){
-                return R.ok();
-            }
-            else return R.failed(null,"更新失败，请重试");
-        }
-
-
     }
 
     @ApiOperation("个人数据统计")
