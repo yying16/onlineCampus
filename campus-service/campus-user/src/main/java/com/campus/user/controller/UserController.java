@@ -322,8 +322,11 @@ public class UserController {
      */
     @ApiOperation(value = "修改用户余额")
     @PutMapping("/updateBalance/{userId}/{balance}")
-    public R updateBalance(@ApiParam("用户id") @PathVariable("userId")  String userId, @PathVariable("balance") BigDecimal balance){
+    public R updateBalance(@ApiParam("用户id") @PathVariable("userId")  String userId, @PathVariable("balance") BigDecimal balance) {
         return userService.updateBalance(userId, balance);
+
+    }
+
     /**
      * 举报状态修改：
      * 举报状态（0-审核中，1-确认，2-驳回）
@@ -346,7 +349,6 @@ public class UserController {
         return R.ok(null,"举报状态修改成功");
     }
 
-    }
     /**
      * 违规用户处理
      * 需要考虑违规表的breakNum是否要删除，因为user表中也有breakNum;
