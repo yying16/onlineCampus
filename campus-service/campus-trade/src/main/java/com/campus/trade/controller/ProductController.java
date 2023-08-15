@@ -4,8 +4,10 @@ import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
+import com.campus.trade.domain.Image;
 import com.campus.trade.domain.Product;
 import com.campus.trade.dto.AddProductForm;
+import com.campus.trade.service.ImageService;
 import com.campus.trade.service.ProductService;
 import com.campus.trade.vo.ShowProduct;
 import io.swagger.annotations.Api;
@@ -16,6 +18,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +33,8 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
-
+    @Autowired
+    private ImageService imageService;
 
     @Autowired
     private ServiceCenter serviceCenter;
@@ -106,6 +110,23 @@ public class ProductController {
         }
         BeanUtils.copyProperties(addProductForm,product);
         boolean update = serviceCenter.update(product);
+
+        //修改商品信息后，修改图片信息
+        //根据商品id查询图片信息
+        QueryWrapper<Image> wrapper = new QueryWrapper<>();
+        wrapper.eq("other_id",id);
+        //先删除原来的图片信息
+        imageService.remove(wrapper);
+        //再添加新的图片信息
+        List<String> images = addProductForm.getImages();
+        for (String image : images) {
+            Image image1 = new Image();
+            image1.setOtherId(id);
+            image1.setImgUrl(image);
+            image1.setOtherType("product");
+            imageService.save(image1);
+        }
+
         if(update){
             return R.ok(null,"修改商品信息成功");
         }else{
@@ -122,6 +143,19 @@ public class ProductController {
         searchProductForm.put("limit",offset+" "+size);
         searchProductForm.put("userId",userId);
         List<Product> products =  serviceCenter.search(searchProductForm,Product.class);
+
+        //根据商品id查询商品图片
+        for (Product product : products){
+            String productId = product.getProductId();
+            QueryWrapper<Image> imageQueryWrapper = new QueryWrapper<>();
+            imageQueryWrapper.eq("other_id",productId);
+            List<Image> images = imageService.list(imageQueryWrapper);
+            List<String> imageUrls = new ArrayList<>();
+            for (Image image : images) {
+                imageUrls.add(image.getImgUrl());
+            }
+            product.setImages(imageUrls);
+        }
 
         return R.ok(products,"查询商品列表成功");
     }

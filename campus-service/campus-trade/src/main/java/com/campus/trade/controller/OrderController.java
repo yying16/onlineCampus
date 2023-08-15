@@ -52,11 +52,11 @@ public class OrderController {
         //查询商品信息
 //        Product product = productService.getById(productId);
 //        Product product = (Product) serviceCenter.search(productId, Product.class);
-        Object search = serviceCenter.search(productId, Product.class);
+        Product search = (Product) serviceCenter.search(productId, Product.class);
         if (search == null) {
             return R.failed(null, "商品不存在");
         }
-        Product product = new Gson().fromJson(search.toString(), Product.class);
+//        Product product = new Gson().fromJson(search.toString(), Product.class);
 
 
         R user = userClient.getUserById(uid);
@@ -69,7 +69,7 @@ public class OrderController {
         String consignee = (String) data.get("consignee");
 
         ConfirmOrderForm confirmOrderForm = new ConfirmOrderForm();
-        confirmOrderForm.setProduct(product);
+        confirmOrderForm.setProduct(search);
         confirmOrderForm.setAddress(address);
         confirmOrderForm.setTelephone(telephone);
         confirmOrderForm.setConsignee(consignee);
@@ -93,11 +93,10 @@ public class OrderController {
     @ApiOperation("修改订单状态")
     public R updateOrderStatus(@PathVariable("orderId") String orderId,@PathVariable("status") Integer status) {
 
-        Object search = serviceCenter.search(orderId, Order.class);
-        if (search == null) {
+        Order order = (Order) serviceCenter.search(orderId, Order.class);
+        if (order == null) {
             return R.failed(null, "订单不存在");
         }
-        Order order = new Gson().fromJson(search.toString(), Order.class);
         order.setStatus(status);
 
         boolean flag = serviceCenter.update(order);
@@ -141,6 +140,13 @@ public class OrderController {
         } else {
             return R.failed(null, "订单删除失败");
         }
+    }
+
+    //支付订单
+    @PostMapping("/payOrder/{orderId}")
+    @ApiOperation("支付订单")
+    public R payOrder(@ApiParam("订单id") @PathVariable("orderId") String orderId) {
+       return orderService.payOrder(orderId);
     }
 
 }

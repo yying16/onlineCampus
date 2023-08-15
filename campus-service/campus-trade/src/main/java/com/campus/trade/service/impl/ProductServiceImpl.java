@@ -69,6 +69,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
 
         //封装数据
         for (Product product : search) {
+            String productId = product.getProductId();
+            QueryWrapper<Image> imageQueryWrapper = new QueryWrapper<>();
+            imageQueryWrapper.eq("other_id",productId);
+            List<Image> images = imageService.list(imageQueryWrapper);
+            List<String> imageUrls = new ArrayList<>();
+            for (Image image : images) {
+                imageUrls.add(image.getImgUrl());
+            }
+            product.setImages(imageUrls);
 
             ShowProduct showProduct = getShowProduct(product);
 
@@ -87,10 +96,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
         String userId = product.getUserId();
         R userById = userClient.getUserById(userId);
         Map<String, Object> data = (Map<String, Object>) userById.getData();
-        showProduct.setUserName((String) data.get("userName"));
+        showProduct.setUserName((String) data.get("username"));
 
         //调用user服务获取用户头像
-        String userAvatar = (String) data.get("userAvatar");
+        String userAvatar = (String) data.get("userImage");
         showProduct.setUserAvatar(userAvatar);
 
         //分类名
@@ -101,15 +110,15 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
         showProduct.setSubCategoryName(parentCategory.getName());
 
         //根据商品id查询商品图片
-        String productId = product.getProductId();
-        QueryWrapper<Image> imageQueryWrapper = new QueryWrapper<>();
-        imageQueryWrapper.eq("other_id",productId);
-        List<Image> images = imageService.list(imageQueryWrapper);
-        List<String> imageUrls = new ArrayList<>();
-        for (Image image : images) {
-            imageUrls.add(image.getImgUrl());
-        }
-        showProduct.setImageUrls(imageUrls);
+//        String productId = product.getProductId();
+//        QueryWrapper<Image> imageQueryWrapper = new QueryWrapper<>();
+//        imageQueryWrapper.eq("other_id",productId);
+//        List<Image> images = imageService.list(imageQueryWrapper);
+//        List<String> imageUrls = new ArrayList<>();
+//        for (Image image : images) {
+//            imageUrls.add(image.getImgUrl());
+//        }
+//        showProduct.setImageUrls(imageUrls);
 
         return showProduct;
     }
@@ -118,12 +127,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
 
     @Override
     public ShowProduct getByTheId(String id) {
-        Object search = serviceCenter.search(id, Product.class);
+        Product search = (Product) serviceCenter.selectMySql(id, Product.class);
         if (search == null) {
             return null;
         }
-        Product product = new Gson().fromJson(search.toString(), Product.class);
-        ShowProduct showProduct = getShowProduct(product);
+//        Product product = new Gson().fromJson(search.toString(), Product.class);
+        ShowProduct showProduct = getShowProduct(search);
 
         return showProduct;
     }
