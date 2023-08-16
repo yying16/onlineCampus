@@ -4,9 +4,12 @@ import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
+import com.campus.trade.domain.Category;
 import com.campus.trade.domain.Image;
 import com.campus.trade.domain.Product;
 import com.campus.trade.dto.AddProductForm;
+import com.campus.trade.dto.SearchProductForm;
+import com.campus.trade.service.CategoryService;
 import com.campus.trade.service.ImageService;
 import com.campus.trade.service.ProductService;
 import com.campus.trade.vo.ShowProduct;
@@ -19,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,19 +43,37 @@ public class ProductController {
     @Autowired
     private ServiceCenter serviceCenter;
 
+    @Autowired
+    private CategoryService categoryService;
 
     //查看商品列表（条件懒加载）
-    @ApiOperation(value = "查看商品列表（条件懒加载）")
-    @PostMapping("/list/{page}/{size}")
-    public R listProduct(@ApiParam("页码") @PathVariable("page") long page,@ApiParam("一页展示的数据条数") @PathVariable("size") long size,@ApiParam("查询条件") @RequestBody Map<String, Object> searchProductForm){
+    @ApiOperation(value = "带查询条件的查看商品列表（条件懒加载）")
+    @PostMapping("/listByQuery/{offset}")
+    public R listProduct(@ApiParam("已展示的数据条数") @PathVariable("offset") Integer offset,@ApiParam("查询条件") @RequestBody SearchProductForm searchProductForm){
 
         // 根据页码和每页数据量计算偏移量
-        long offset = (page - 1) * size;
-        searchProductForm.put("limit",offset+" "+size);
-        List<ShowProduct> products =  productService.listProduct(searchProductForm);
+//        long offset = (page - 1) * size;
+//        searchProductForm.put("limit",offset+" "+size);
+        String name = searchProductForm.getSearchcontent();
+
+        Map<String, Object> searchProductMap= new HashMap<>();
+        searchProductMap.put("description",name);
+        searchProductMap.put("limit",offset+" "+10);
+        List<ShowProduct> products =  productService.listProduct(searchProductMap);
 
         return R.ok(products,"查询商品列表成功");
     }
+
+    //查看商品列表（条件懒加载）
+    @ApiOperation(value = "首页查看商品列表（懒加载）")
+    @PostMapping("/list/{offset}")
+    public R listProduct(@ApiParam("已展示的数据条数") @PathVariable("offset") Integer offset){
+
+        List<ShowProduct> products =  productService.IndexlistProduct(offset);
+
+        return R.ok(products,"查询商品列表成功");
+    }
+
 
 
     //卖家发布商品

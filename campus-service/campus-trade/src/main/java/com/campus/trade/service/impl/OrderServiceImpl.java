@@ -110,6 +110,24 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
         return showOrders;
     }
 
+    @Override
+    public List<ShowOrder> getOrderListByMyUid(Integer offset,List<String> productIdList, String uid) {
+        QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", uid);
+        queryWrapper.in("product_id", productIdList);
+        queryWrapper.last("LIMIT " + offset + ", 10");
+        List<Order> orders = this.list(queryWrapper);
+        if (orders == null) {
+            return null;
+        }
+
+
+        //封装数据
+        List<ShowOrder> showOrders = getShowOderList(orders);
+
+        return showOrders;
+    }
+
     //封装数据
     public List<ShowOrder> getShowOderList(List<Order> orders) {
         List<ShowOrder> showOrders = new ArrayList<>();
@@ -219,6 +237,22 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
         } else {
             return R.failed(null, "订单支付失败");
         }
+    }
+
+    @Override
+    public List<ShowOrder> getOrderListByTheSellerId(Integer offset,List<String> productIdList, String sellerId) {
+
+        QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("seller_id", sellerId);
+        queryWrapper.in("product_id", productIdList);
+        queryWrapper.last("LIMIT " + offset + ", 10");
+        List<Order> orders = this.list(queryWrapper);
+        if (orders == null) {
+            return null;
+        }
+        //封装数据
+        List<ShowOrder> showOrders = getShowOderList(orders);
+        return showOrders;
     }
 
 

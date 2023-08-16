@@ -6,6 +6,7 @@ import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
 import com.campus.trade.domain.Order;
 import com.campus.trade.domain.Product;
+import com.campus.trade.dto.SearchOrderForm;
 import com.campus.trade.vo.ConfirmOrderForm;
 import com.campus.trade.feign.UserClient;
 import com.campus.trade.service.OrderService;
@@ -20,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -109,24 +112,73 @@ public class OrderController {
     }
 
     //根据用户id查询订单
-    @PostMapping("/getOrder/{page}/{size}/{uid}")
+    @PostMapping("/getOrder/{offset}")
     @ApiOperation("根据用户id查询订单")
-    public R getOrder(@ApiParam("页码") @PathVariable("page") long page,@ApiParam("一页展示的数据条数") @PathVariable("size") long size,@RequestBody Map<String, Object> searchOrderForm,@PathVariable("uid") String uid) {
+    public R getOrder(@ApiParam("已展示的数据条数") @PathVariable("offset") Integer offset,@RequestBody SearchOrderForm searchOrderForm,@RequestHeader("uid") String uid) {
         // 根据页码和每页数据量计算偏移量
-        long offset = (page - 1) * size;
-        searchOrderForm.put("limit",offset+" "+size);
-        List<ShowOrder> showOrderList =  orderService.getOrderListByUid(searchOrderForm,uid);
+//        long offset = (page - 1) * size;
+//        searchOrderForm.put("limit",offset+" "+size);
+        String searchcontent = searchOrderForm.getSearchcontent();//商品描述
+        //根据商品描述查询商品id
+        QueryWrapper<Product> queryWrapper = new QueryWrapper<>();
+        queryWrapper.like("description",searchcontent);
+        List<Product> productList = productService.list(queryWrapper);
+        if (productList.size() == 0) {
+            return R.failed(null, "查找不到任何订单");
+        }
+
+
+        List<String> productIdList = new ArrayList<>();
+
+        for (Product product : productList) {
+            productIdList.add(product.getProductId());
+        }
+
+
+
+//        Map<String, Object>  searchOrderMap = new HashMap<>();
+//
+//        searchOrderMap.put("limit",offset+" "+10);
+//
+//        List<ShowOrder> showOrderList =  orderService.getOrderListByUid(searchOrderMap,uid);
+
+        List<ShowOrder> showOrderList =  orderService.getOrderListByMyUid(offset,productIdList,uid);
+        if (showOrderList.size()==0){
+            return R.failed(null,"查找不到任何相关订单");
+        }
         return R.ok(showOrderList, "查询成功");
     }
 
     //根据卖家id查询订单
-    @PostMapping("/getOrderBySellerId/{page}/{size}/{sellerId}")
+    @PostMapping("/getOrderBySellerId/{offset}")
     @ApiOperation("根据卖家id查询订单")
-    public R getOrderBySellerId(@ApiParam("页码") @PathVariable("page") long page,@ApiParam("一页展示的数据条数") @PathVariable("size") long size,@RequestBody Map<String, Object> searchOrderForm,@PathVariable("sellerId") String sellerId) {
+    public R getOrderBySellerId(@ApiParam("已展示的数据条数") @PathVariable("offset") Integer offset, @RequestBody SearchOrderForm searchOrderForm, @RequestHeader("uid") String sellerId) {
         // 根据页码和每页数据量计算偏移量
-        long offset = (page - 1) * size;
-        searchOrderForm.put("limit",offset+" "+size);
-        List<ShowOrder> showOrderList =  orderService.getOrderListBySellerId(searchOrderForm,sellerId);
+//        long offset = (page - 1) * size;
+//        searchOrderForm.put("limit",offset+" "+size);
+//        searchOrderForm.put("limit",offset+" "+10);
+
+        String searchcontent = searchOrderForm.getSearchcontent();//商品描述
+        //根据商品描述查询商品id
+        QueryWrapper<Product> queryWrapper = new QueryWrapper<>();
+        queryWrapper.like("description",searchcontent);
+        List<Product> productList = productService.list(queryWrapper);
+        if (productList.size() == 0) {
+            return R.failed(null, "查找不到任何相关订单");
+        }
+
+
+        List<String> productIdList = new ArrayList<>();
+
+        for (Product product : productList) {
+            productIdList.add(product.getProductId());
+        }
+
+        List<ShowOrder> showOrderList =  orderService.getOrderListByTheSellerId(offset,productIdList,sellerId);
+//        List<ShowOrder> showOrderList =  orderService.getOrderListBySellerId(searchOrderForm,sellerId);
+        if (showOrderList.size()==0){
+            return R.failed(null,"查找不到任何相关订单");
+        }
         return R.ok(showOrderList, "查询成功");
     }
 
