@@ -601,8 +601,10 @@ public class ParttimeController {
             if(!serviceCenter.updateMySql(job)){ // 存入数据库中
                 return R.failed(null,"更新兼职信息失败");
             }
+            return R.ok(null,"取消点赞成功");
+        }else{
+            return R.failed(null,"取消点赞失败");
         }
-        return R.failed(null,"取消点赞失败");
     }
 
     @ApiOperation("用户收藏操作")

@@ -1,22 +1,17 @@
 package com.campus.trade.controller;
 
-import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
-import com.campus.trade.domain.Category;
 import com.campus.trade.domain.Image;
 import com.campus.trade.domain.Product;
 import com.campus.trade.dto.AddProductForm;
 import com.campus.trade.dto.SearchProductForm;
-import com.campus.trade.service.CategoryService;
-import com.campus.trade.service.ImageService;
-import com.campus.trade.service.ProductService;
+import com.campus.trade.service.*;
 import com.campus.trade.vo.ShowProduct;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
-import io.swagger.models.auth.In;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -45,6 +40,13 @@ public class ProductController {
 
     @Autowired
     private CategoryService categoryService;
+
+
+    @Autowired
+    private ProductFavoritesService productFavoritesService;
+
+    @Autowired
+    private ProductLikeService productLikeService;
 
     //查看商品列表（条件懒加载）
     @ApiOperation(value = "带查询条件的查看商品列表（条件懒加载）")
@@ -104,6 +106,12 @@ public class ProductController {
         boolean delete = serviceCenter.delete(id, Product.class);
 
         if(delete){
+            //处理点赞记录:逻辑删除与当前job绑定的所有like记录
+            productLikeService.deleteLikeByProductId(id);
+
+            //处理收藏记录:逻辑删除与当前job绑定的所有favorites记录,并用后端调用message模块的sendPromptInformation方法发送提示信息给申请者
+            productFavoritesService.deleteFavoritesByProductId(id);
+
             return R.ok(null,"删除商品成功");
         }else{
             return R.failed(null,"删除商品失败");

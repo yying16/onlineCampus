@@ -53,6 +53,11 @@ public class Product implements Serializable {
      */
     private Integer isPublished;
 
+    private Integer visitNum; //访问次数
+    private Integer likeNum; // 点赞人数
+    private Integer favoritesNum; // 收藏人数
+
+
     /**
      * 是否卖出
      */
