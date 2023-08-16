@@ -36,8 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.campus.parttime.constant.ApplyStatus.APPLIED;
-import static com.campus.parttime.constant.ApplyStatus.PASSED;
+import static com.campus.parttime.constant.ApplyStatus.*;
 import static com.campus.parttime.constant.JobStatus.*;
 import static com.campus.parttime.constant.OperationStatus.*;
 
