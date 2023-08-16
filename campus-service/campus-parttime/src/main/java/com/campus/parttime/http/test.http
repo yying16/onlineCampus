@@ -4,7 +4,7 @@ token: t1
 Content-Type: application/json
 
 {
-  "publisherId": "20251102209",
+  "publisherId": "20251102210",
   "jobTitle": "找家教",
   "jobContent": "每周三次，去五周，每天晚上7；00-9；00，地点:正佳广场附近300m",
   "salary": "1700",
@@ -50,17 +50,11 @@ uid:t2
 GET http://localhost:7006/campusParttime/parttime/deleteApply?applicationId=1688545760119025666
 
 ### 7.通过兼职申请
-GET http://localhost:7006/campusParttime/parttime/passApply?applicationId=1685204476537044993
+POST http://localhost:7006/campusParttime/parttime/passApply?applicationId=1685204481977057282
 ###token:t1
 
 ### 8.拒绝兼职申请
-GET http://localhost:7006/campusParttime/parttime/rejectApply
-Content-Type: application/json
-
-{
-  "applicationId": "1686382859536871426",
-  "status": 2
-}
+POST http://localhost:7006/campusParttime/parttime/rejectApply?applicationId=1685857430080196609
 
 ### 9.修改兼职操作状态
 GET http://localhost:7006/campusParttime/parttime/updateOperationStatus
@@ -99,11 +93,6 @@ uid:t2
 ### 14.查看兼职申请列表
 GET http://localhost:7006/campusParttime/parttime/searchApplyList?jobId=1684904371313364993
 uid:20251102258
-
-
-
-###
-GET http://localhost:7006/campusParttime/parttime/getOperationDetail?operationId=168854812610074624
 
 
 ###

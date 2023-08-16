@@ -57,6 +57,9 @@ public class UserController {
     @Autowired
     MessageClient messageClient;
 
+    @Autowired
+    BreakerDao breakerDao;
+
     @Value("${email.baseurl}")
     private String baseUrl;
 
