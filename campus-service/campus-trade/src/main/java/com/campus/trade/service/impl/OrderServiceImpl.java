@@ -6,16 +6,19 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
 import com.campus.trade.dao.OrderDao;
+import com.campus.trade.dao.ProductDao;
 import com.campus.trade.domain.Order;
 import com.campus.trade.domain.Product;
 import com.campus.trade.feign.UserClient;
 import com.campus.trade.service.OrderService;
+import com.campus.trade.service.ProductService;
 import com.campus.trade.vo.ConfirmOrderForm;
 import com.campus.trade.vo.ShowOrder;
 import com.campus.utils.OrderNoUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.OrderUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -23,13 +26,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
-* @author xiaolin
-* @description 针对表【t_order】的数据库操作Service实现
-* @createDate 2023-07-09 11:38:21
-*/
+ * @author xiaolin
+ * @description 针对表【t_order】的数据库操作Service实现
+ * @createDate 2023-07-09 11:38:21
+ */
 @Service
 public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
-    implements OrderService{
+        implements OrderService {
 
 
     @Autowired
@@ -39,6 +42,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
     private ServiceCenter serviceCenter;
 
 
+    @Autowired
+    private ProductDao productDao;
 
     //查询订单信息
     @Override
@@ -58,7 +63,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
         String insert = serviceCenter.insert(order);
 
 //        boolean save = this.save(order);
-        if(insert!=null){
+        if (insert != null) {
             ShowOrder showOrder = new ShowOrder();
             showOrder.setOrderNo(orderNo);
             showOrder.setTotalPrice(totalPrice);
@@ -85,16 +90,34 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
 
     //买入的订单
     @Override
-    public List<ShowOrder> getOrderListByUid(Map<String, Object> searchOrderForm,String uid) {
+    public List<ShowOrder> getOrderListByUid(Map<String, Object> searchOrderForm, String uid) {
 
 //        QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
 //        queryWrapper.eq("user_id",uid);
 //        List<Order> orders = this.list(queryWrapper);
 
-        searchOrderForm.put("userId",uid);
+        searchOrderForm.put("userId", uid);
         List<Order> orders = serviceCenter.search(searchOrderForm, Order.class);
 
-        if(orders==null){
+        if (orders == null) {
+            return null;
+        }
+
+
+        //封装数据
+        List<ShowOrder> showOrders = getShowOderList(orders);
+
+        return showOrders;
+    }
+
+    @Override
+    public List<ShowOrder> getOrderListByMyUid(Integer offset,List<String> productIdList, String uid) {
+        QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", uid);
+        queryWrapper.in("product_id", productIdList);
+        queryWrapper.last("LIMIT " + offset + ", 10");
+        List<Order> orders = this.list(queryWrapper);
+        if (orders == null) {
             return null;
         }
 
@@ -106,10 +129,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
     }
 
     //封装数据
-    public List<ShowOrder> getShowOderList(List<Order> orders){
+    public List<ShowOrder> getShowOderList(List<Order> orders) {
         List<ShowOrder> showOrders = new ArrayList<>();
         //封装数据
-        for (Order order:orders){
+        for (Order order : orders) {
             ShowOrder showOrder = new ShowOrder();
             showOrder.setOrderNo(order.getOrderNo());
             showOrder.setTotalPrice(order.getTotalPrice());
@@ -148,17 +171,85 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
 
     //卖出的订单
     @Override
-    public List<ShowOrder> getOrderListBySellerId(Map<String, Object> searchOrderForm,String sellerId) {
+    public List<ShowOrder> getOrderListBySellerId(Map<String, Object> searchOrderForm, String sellerId) {
 
-        searchOrderForm.put("sellerId",sellerId);
+        searchOrderForm.put("sellerId", sellerId);
         List<Order> orders = serviceCenter.search(searchOrderForm, Order.class);
 //        QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
 //        queryWrapper.eq("seller_id",sellerId);
 //        List<Order> orders = this.list(queryWrapper);
-        if(orders==null){
+        if (orders == null) {
             return null;
         }
 
+        //封装数据
+        List<ShowOrder> showOrders = getShowOderList(orders);
+        return showOrders;
+    }
+
+
+    //支付订单
+    @Transactional
+    @Override
+    public R payOrder(String orderId) {
+        Order order = (Order) serviceCenter.search(orderId, Order.class);
+        if (order == null) {
+            return R.failed(null, "订单不存在");
+        }
+        //判断商品是否已经被购买
+        String productId = order.getProductId();
+        Product product = (Product) serviceCenter.selectMySql(productId, Product.class);
+        if (product == null) {
+            return R.failed(null, "商品不存在或已经下架");
+        }
+        if (product.getStatus() == 1) {
+            return R.failed(null, "商品已经被购买");
+        }
+
+        //判断订单是否已经支付
+        if (order.getStatus() == 1) {
+            return R.failed(null, "订单已经支付");
+        }
+
+        //判断用户余额是否充足
+        //调用user服务获取用户余额
+        BigDecimal userBalance = userClient.getBalance(order.getUserId());
+//        BigDecimal userBalance = new BigDecimal(balance);
+        if (userBalance.compareTo(order.getTotalPrice()) == -1) {
+            return R.failed(null, "用户余额不足");
+        }
+
+        BigDecimal updateBalance = userBalance.subtract(order.getTotalPrice());
+        //调用user服务扣除用户余额
+        R r = userClient.updateBalance(order.getUserId(), updateBalance);
+        if (r.getCode() != 0) {
+            return R.failed(null, "扣除用户余额失败");
+        }
+
+        //调用product服务修改商品状态
+        product.setStatus(1);
+        boolean update = serviceCenter.update(product);
+        //修改订单状态
+        order.setStatus(1);
+        boolean flag = serviceCenter.update(order);
+        if (flag) {
+            return R.ok(null, "订单支付成功");
+        } else {
+            return R.failed(null, "订单支付失败");
+        }
+    }
+
+    @Override
+    public List<ShowOrder> getOrderListByTheSellerId(Integer offset,List<String> productIdList, String sellerId) {
+
+        QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("seller_id", sellerId);
+        queryWrapper.in("product_id", productIdList);
+        queryWrapper.last("LIMIT " + offset + ", 10");
+        List<Order> orders = this.list(queryWrapper);
+        if (orders == null) {
+            return null;
+        }
         //封装数据
         List<ShowOrder> showOrders = getShowOderList(orders);
         return showOrders;

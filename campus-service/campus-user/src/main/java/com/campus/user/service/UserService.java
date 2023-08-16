@@ -1,9 +1,11 @@
 package com.campus.user.service;
 
+import com.campus.common.util.R;
 import com.campus.user.domain.User;
 import com.campus.user.dto.*;
 import com.campus.user.vo.LoginMessage;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface UserService{
@@ -57,4 +59,6 @@ public interface UserService{
     boolean checkCode(CheckCodeForm form);
 
     boolean checkEmailCode(CheckEmailCodeForm form);
+
+    R updateBalance(String userId, BigDecimal balance);
 }

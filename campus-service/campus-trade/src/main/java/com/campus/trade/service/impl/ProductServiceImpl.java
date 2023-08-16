@@ -95,6 +95,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
         //调用user服务获取用户信息
         String userId = product.getUserId();
         R userById = userClient.getUserById(userId);
+        System.out.println("userId:========"+userId);
+        System.out.println("userById:========"+userById);
         Map<String, Object> data = (Map<String, Object>) userById.getData();
         showProduct.setUserName((String) data.get("username"));
 
@@ -135,6 +137,31 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
         ShowProduct showProduct = getShowProduct(search);
 
         return showProduct;
+    }
+
+    @Override
+    public List<ShowProduct> IndexlistProduct(Integer offset) {
+        List<Product> search = serviceCenter.loadData(offset, Product.class);
+
+        List<ShowProduct> showProducts = new ArrayList<>();
+
+        //封装数据
+        for (Product product : search) {
+            String productId = product.getProductId();
+            QueryWrapper<Image> imageQueryWrapper = new QueryWrapper<>();
+            imageQueryWrapper.eq("other_id",productId);
+            List<Image> images = imageService.list(imageQueryWrapper);
+            List<String> imageUrls = new ArrayList<>();
+            for (Image image : images) {
+                imageUrls.add(image.getImgUrl());
+            }
+            product.setImages(imageUrls);
+
+            ShowProduct showProduct = getShowProduct(product);
+
+            showProducts.add(showProduct);
+        }
+        return showProducts;
     }
 }
 
