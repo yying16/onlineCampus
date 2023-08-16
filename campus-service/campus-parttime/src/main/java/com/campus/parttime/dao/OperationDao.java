@@ -6,6 +6,7 @@ import com.campus.parttime.pojo.MonthlyStatistics;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 import java.util.Map;
@@ -17,4 +18,7 @@ public interface OperationDao extends BaseMapper<Operation> {
 
     @Select("SELECT v_cnt_operation.date,completed_cnt/v_cnt_operation.all_cnt rate from v_cnt_operation, v_completed_operation where v_cnt_operation.date = v_completed_operation.date and  v_completed_operation.date between date(#{begin}) and date(#{end})")
     List<MonthlyStatistics> searchPublicCompletionRate(@Param("begin")String begin, @Param("end")String end);
+
+    @Update("update t_user set credit=t_user.credit-20 where user_id= #{userId}")
+    void subCreditByJobId(String userId);
 }

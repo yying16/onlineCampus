@@ -1,5 +1,7 @@
 package com.campus.parttime.domain;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -16,6 +18,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @TableName("t_job_like")
 public class Like {
+    @TableId(type = IdType.ASSIGN_ID)
     String likeId; // 点赞编号
     String userId; // 用户编号
     String jobId; // 兼职编号s
