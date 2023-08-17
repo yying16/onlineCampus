@@ -92,7 +92,7 @@ public class OrderController {
 
 
     //修改订单状态
-    @PostMapping("/updateOrderStatus/{orderId}/{status}")
+    @PutMapping("/updateOrderStatus/{orderId}/{status}")
     @ApiOperation("修改订单状态")
     public R updateOrderStatus(@PathVariable("orderId") String orderId,@PathVariable("status") Integer status) {
 
@@ -118,7 +118,7 @@ public class OrderController {
         // 根据页码和每页数据量计算偏移量
 //        long offset = (page - 1) * size;
 //        searchOrderForm.put("limit",offset+" "+size);
-        String searchcontent = searchOrderForm.getSearchcontent();//商品描述
+        String searchcontent = searchOrderForm.getSearchContent();//商品描述
         //根据商品描述查询商品id
         QueryWrapper<Product> queryWrapper = new QueryWrapper<>();
         queryWrapper.like("description",searchcontent);
@@ -158,7 +158,7 @@ public class OrderController {
 //        searchOrderForm.put("limit",offset+" "+size);
 //        searchOrderForm.put("limit",offset+" "+10);
 
-        String searchcontent = searchOrderForm.getSearchcontent();//商品描述
+        String searchcontent = searchOrderForm.getSearchContent();//商品描述
         //根据商品描述查询商品id
         QueryWrapper<Product> queryWrapper = new QueryWrapper<>();
         queryWrapper.like("description",searchcontent);
@@ -199,6 +199,49 @@ public class OrderController {
     @ApiOperation("支付订单")
     public R payOrder(@ApiParam("订单id") @PathVariable("orderId") String orderId) {
        return orderService.payOrder(orderId);
+    }
+
+    //根据订单id查看订单信息
+    @GetMapping("{orderId}")
+    @ApiOperation("根据订单id查看订单信息")
+    public R getOrderByOrderId(@ApiParam("订单id") @PathVariable("orderId") String orderId){
+        Order order = (Order) serviceCenter.search(orderId, Order.class);
+        if (order == null) {
+            return R.failed(null, "订单不存在");
+        }
+
+        ShowOrder showOrder = new ShowOrder();
+        showOrder.setOrderNo(order.getOrderNo());
+        showOrder.setTotalPrice(order.getTotalPrice());
+        showOrder.setOrderId(order.getOrderId());
+        //商品信息
+        String productId = order.getProductId();
+        Product product = (Product) serviceCenter.selectMySql(productId, Product.class);
+//            Product product = new Gson().fromJson(search.toString(), Product.class);
+        showOrder.setProduct(product);
+        //买家信息
+        R user = userClient.getUserById(order.getUserId());
+        Map<String, Object> data = (Map<String, Object>) user.getData();
+        //收货地址
+        String address = (String) data.get("address");
+        //手机号
+        String telephone = (String) data.get("telephone");
+        //收货人
+        String consignee = (String) data.get("consignee");
+
+        showOrder.setAddress(address);
+        showOrder.setTelephone(telephone);
+        showOrder.setConsignee(consignee);
+
+        //卖家信息
+        R seller = userClient.getUserById(order.getSellerId());
+        Map<String, Object> sellerData = (Map<String, Object>) seller.getData();
+        String sellerNickName = (String) sellerData.get("username");
+        String sellerAvatar = (String) sellerData.get("userImage");
+        showOrder.setSellerAvatar(sellerAvatar);
+        showOrder.setSellerNickName(sellerNickName);
+        showOrder.setCreateTime(order.getCreateTime());
+        return R.ok(showOrder,"查询订单信息成功！");
     }
 
 }

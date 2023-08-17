@@ -41,6 +41,10 @@ public class ShowOrder implements Serializable {
     String orderNo;
 
 
+    //订单id
+    String orderId;
+
+
     //卖家昵称
     String sellerNickName;
 

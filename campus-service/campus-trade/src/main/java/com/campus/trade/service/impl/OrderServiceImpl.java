@@ -136,6 +136,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
             ShowOrder showOrder = new ShowOrder();
             showOrder.setOrderNo(order.getOrderNo());
             showOrder.setTotalPrice(order.getTotalPrice());
+            showOrder.setOrderId(order.getOrderId());
             //商品信息
             String productId = order.getProductId();
             Product product = (Product) serviceCenter.selectMySql(productId, Product.class);

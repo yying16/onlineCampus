@@ -13,5 +13,5 @@ import javax.validation.constraints.NotNull;
 public class SearchOrderForm {
     @NotNull(message = "查询内容不能为空")
     @NotBlank(message = "查询内容不能为空")
-    String searchcontent;//现在是商品名
+    String searchContent;//现在是商品名
 }

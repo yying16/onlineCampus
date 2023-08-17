@@ -7,13 +7,14 @@ import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
 import com.campus.user.dao.BreakerDao;
-import com.campus.user.domain.Breaker;
-import com.campus.user.domain.Report;
-import com.campus.user.domain.User;
+import com.campus.user.domain.*;
 import com.campus.user.dto.*;
 import com.campus.user.feign.MessageClient;
 import com.campus.user.pojo.PromptInformationForm;
+import com.campus.user.service.CardSMService;
+import com.campus.user.service.CardService;
 import com.campus.user.service.impl.UserServiceImpl;
+import com.campus.user.vo.RechargeRecord;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -31,6 +32,8 @@ import org.thymeleaf.context.Context;
 
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -60,6 +63,13 @@ public class UserController {
 
     @Value("${email.baseurl}")
     private String baseUrl;
+
+
+    @Autowired
+    private CardService cardService;
+
+    @Autowired
+    private CardSMService cardSMService;
 
     @ApiOperation(value = "获取用户信息")
     @GetMapping("/getDetail")
@@ -91,14 +101,46 @@ public class UserController {
     //更新用户信息
     @ApiOperation(value = "更新用户信息")
     @PostMapping("/updateUser")
-    public R updateUser(@ApiParam("用户对象") @RequestBody UpdateUserForm updateUserForm) {
+    public R updateUser(@ApiParam("用户对象") @RequestBody UpdateUserForm updateUserForm,@RequestHeader("uid") String uid) {
         User user = new User();
         BeanUtils.copyProperties(updateUserForm, user);
+        user.setUserId(uid);
         boolean b = userService.updateById(user);
         if (b) {
-            return R.ok();
+            return R.ok(null, "更新成功");
         } else {
-            return R.failed();
+            return R.failed(null, "更新失败");
+        }
+    }
+
+
+    //修改用户头像
+    @ApiOperation(value = "修改用户头像")
+    @PostMapping("/updateAvatar")
+    public R updateAvatar(@RequestParam("avatar") String avatar,@RequestHeader("uid") String uid) {
+        User user = new User();
+        user.setUserId(uid);
+        user.setUserImage(avatar);
+        boolean b = userService.updateById(user);
+        if (b) {
+            return R.ok(null, "更新成功");
+        } else {
+            return R.failed(null, "更新失败");
+        }
+    }
+
+    //修改用户地址
+    @ApiOperation(value = "修改用户地址")
+    @PostMapping("/updateAddress")
+    public R updateAddress(@RequestParam("address") String address,@RequestHeader("uid") String uid) {
+        User user = new User();
+        user.setUserId(uid);
+        user.setAddress(address);
+        boolean b = userService.updateById(user);
+        if (b) {
+            return R.ok(null, "更新成功");
+        } else {
+            return R.failed(null, "更新失败");
         }
     }
 
@@ -301,6 +343,44 @@ public class UserController {
             return null;
         }
     }
+
+
+    /**
+     * 查看用户充值记录
+     */
+    @ApiOperation(value = "查看用户充值记录")
+    @GetMapping("/getRechargeRecord")
+    public R getRechargeRecord(@RequestHeader("uid")  String userId) {
+        //根据用户id查询卡密使用记录
+        QueryWrapper<Card> wrapper = new QueryWrapper<>();
+        wrapper.eq("uid", userId);
+        List<Card> list = cardService.list(wrapper);
+        List<RechargeRecord> rechargeRecordList = new ArrayList<>();
+        //遍历卡密，获取卡密对应的充值记录
+        for (Card c: list){
+            String cardsmid = c.getCardsmid();
+            QueryWrapper<CardSM> wrapper1 = new QueryWrapper<>();
+            wrapper1.eq("id", cardsmid);
+            CardSM cardSM = cardSMService.getOne(wrapper1);
+            if (cardSM == null) {
+                return R.failed(null, "卡密不存在");
+            }
+            if(cardSM.getName().equals("充值卡")){
+                RechargeRecord rechargeRecord = new RechargeRecord();
+                rechargeRecord.setId(c.getId());
+                rechargeRecord.setUserId(c.getUid());
+                rechargeRecord.setMoney(cardSM.getMoney());
+                rechargeRecord.setCreateTime(c.getTime());
+                rechargeRecordList.add(rechargeRecord);
+            }
+        }
+        return R.ok(rechargeRecordList, "查询成功");
+
+    }
+
+
+
+
     /**
      * 举报用户操作
      */

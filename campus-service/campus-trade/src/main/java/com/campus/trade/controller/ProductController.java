@@ -56,7 +56,7 @@ public class ProductController {
         // 根据页码和每页数据量计算偏移量
 //        long offset = (page - 1) * size;
 //        searchProductForm.put("limit",offset+" "+size);
-        String name = searchProductForm.getSearchcontent();
+        String name = searchProductForm.getSearchContent();
 
         Map<String, Object> searchProductMap= new HashMap<>();
         searchProductMap.put("description",name);
@@ -68,10 +68,14 @@ public class ProductController {
 
     //查看商品列表（条件懒加载）
     @ApiOperation(value = "首页查看商品列表（懒加载）")
-    @PostMapping("/list/{offset}")
+    @GetMapping("/list/{offset}")
     public R listProduct(@ApiParam("已展示的数据条数") @PathVariable("offset") Integer offset){
 
         List<ShowProduct> products =  productService.IndexlistProduct(offset);
+
+        if (products==null){
+            return R.ok(null,"当前没有任何商品");
+        }
 
         return R.ok(products,"查询商品列表成功");
     }
@@ -124,7 +128,9 @@ public class ProductController {
     public R getProduct(@PathVariable("id") String id){
 
         ShowProduct showProduct = productService.getByTheId(id);
-
+        if (showProduct == null){
+            return R.failed(null,"商品不存在");
+        }
         return R.ok(showProduct,"查询商品详细信息成功");
 
     }
@@ -165,14 +171,23 @@ public class ProductController {
     }
 
     //根据用户id查看发布的商品列表
-    @PostMapping("/listByUserId/{page}/{size}/{userId}")
+    @PostMapping("/listByUserId/{offset}")
     @ApiOperation(value = "根据用户id查看发布的商品列表")
-    public R listProductByUserId(@ApiParam("页码") @PathVariable("page") long page,@ApiParam("一页展示的数据条数") @PathVariable("size") long size,@RequestBody Map<String, Object> searchProductForm,@PathVariable("userId") String userId){
+    public R listProductByUserId(@ApiParam("已展示的数据条数") @PathVariable("offset") Integer offset,@RequestBody SearchProductForm searchProductForm,@RequestHeader("uid") String userId){
         // 根据页码和每页数据量计算偏移量
-        long offset = (page - 1) * size;
-        searchProductForm.put("limit",offset+" "+size);
-        searchProductForm.put("userId",userId);
-        List<Product> products =  serviceCenter.search(searchProductForm,Product.class);
+//        long offset = (page - 1) * size;
+//        searchProductForm.put("limit",offset+" "+size);
+//        searchProductForm.put("userId",userId);
+
+
+        String name = searchProductForm.getSearchContent();
+
+        Map<String, Object> searchProductMap= new HashMap<>();
+        searchProductMap.put("description",name);
+        searchProductMap.put("limit",offset+" "+10);
+        searchProductMap.put("userId",userId);
+
+        List<Product> products =  serviceCenter.search(searchProductMap,Product.class);
 
         //根据商品id查询商品图片
         for (Product product : products){

@@ -141,7 +141,12 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
 
     @Override
     public List<ShowProduct> IndexlistProduct(Integer offset) {
+
         List<Product> search = serviceCenter.loadData(offset, Product.class);
+
+        if (search==null){
+            return null;
+        }
 
         List<ShowProduct> showProducts = new ArrayList<>();
 

@@ -38,6 +38,13 @@ public class User {
 
     BigDecimal balance; //余额
 
+    Integer gender;     //性别
+
+    Integer grade;      //年级
+
+    Integer campus;   //校区
+
+
     @TableLogic(value = "false", delval = "true")
     Boolean deleted;        //逻辑删除
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
