@@ -197,7 +197,7 @@ token:t2
 
 ###根据分类id查询分类信息
 ###请求路径：http://localhost:9000/campusTrade/category/{{categoryId}}
-GET http://localhost:9000/campusTrade/category/{{categoryId}}
+GET http://localhost:9000/campusTrade/category/1
 token:t1
 
 ###查看所有分类信息
@@ -212,9 +212,9 @@ token:t1
 Content-Type: multipart/form-data; boundary=boundary123
 
 --boundary123
-Content-Disposition: form-data; name="file"; filename="file.txt"
+Content-Disposition: form-data; name="file"; filename="test.xlsx"
 
-@{path/to/file.txt}
+@{src/main/resources/test.xlsx}
 --boundary123--
 
 
@@ -222,17 +222,60 @@ Content-Disposition: form-data; name="file"; filename="file.txt"
 ###请求路径：http://localhost:9000/campusTrade/category/addSubject
 POST http://localhost:9000/campusTrade/category/addSubject
 token:t1
+Content-Type: application/json
+
+{
+  "name": "书籍",
+  "parentId": "0"
+}
 
 ###删除二级分类
 ###请求路径：http://localhost:9000/campusTrade/category/deleteSubject/{{subjectId}}
-DELETE http://localhost:9000/campusTrade/category/deleteSubject/{{subjectId}}
+DELETE http://localhost:9000/campusTrade/category/deleteSubject/1681889301613424641
 token:t1
 
 ###删除一级分类及其二级分类
 ###请求路径：http://localhost:9000/campusTrade/category/deleteCategory/{{categoryId}}
-DELETE http://localhost:9000/campusTrade/category/deleteAllSubject/{{subjectId}}
+DELETE http://localhost:9000/campusTrade/category/deleteAllSubject/1692142911149346818
 token:t1
 
 ###修改一级分类或二级分类
-PUT http://localhost:7004/campusTrade/category/updateSubject
+PUT http://localhost:9000/campusTrade/category/updateSubject
+token:t1
+Content-Type: application/json
+
+{
+  "name": "测试修改分类名称",
+  "categoryId": "1681890434251681794"
+}
+
+
+###用户点赞商品
+###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/likeProduct/{{productId}}
+GET http://localhost:9000/campusTrade/favoritesAndLike/likeJob/02d233738a74b6f601d7b5674b32da78
+token:t1
+
+###用户取消点赞商品
+###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/cancelLikeProduct/{{productId}}
+GET http://localhost:9000/campusTrade/favoritesAndLike/cancelLikeJob/02d233738a74b6f601d7b5674b32da78
+token:t1
+
+###用户收藏商品
+###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/favoritesProduct/{{productId}}
+GET http://localhost:9000/campusTrade/favoritesAndLike/FavoritesJob/02d233738a74b6f601d7b5674b32da78
+token:t1
+
+###用户取消收藏商品
+###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/cancelFavoritesProduct/{{productId}}
+GET http://localhost:9000/campusTrade/favoritesAndLike/cancelFavoritesJob/02d233738a74b6f601d7b5674b32da78
+token:t1
+
+###用户查看收藏列表
+###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/searchFavoritesList
+GET http://localhost:9000/campusTrade/favoritesAndLike/searchFavoritesList
+token:t1
+
+###新增商品访问量
+###请求路径：http://localhost:7004/campusTrade/favoritesAndLike/addVisitNum/{{productId}}
+GET http://localhost:9000/campusTrade/favoritesAndLike/addVisitNum/02d233738a74b6f601d7b5674b32da78
 token:t1

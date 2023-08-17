@@ -158,9 +158,12 @@ public class FavoritesAndLikeController {
 
     @ApiOperation("查看用户收藏列表")
     @GetMapping("/searchFavoritesList")
-    public R searchFavoritesList(@RequestParam("userId") String userId) {
+    public R searchFavoritesList(@RequestHeader("uid") String userId) {
         List<FavoritesList> favoritesList = productFavoritesService.SearchFavoritesByUserId(userId);
-        return R.ok(favoritesList);
+        if (favoritesList == null || favoritesList.size() == 0) {
+            return R.failed(null, "您还没有收藏任何商品");
+        }
+        return R.ok(favoritesList, "查询成功");
     }
 
 

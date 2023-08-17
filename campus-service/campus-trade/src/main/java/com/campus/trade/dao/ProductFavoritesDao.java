@@ -22,8 +22,7 @@ public interface ProductFavoritesDao extends BaseMapper<ProductFavorites> {
     @Select("select favorites_id from t_product_favorites where user_id=#{userId} and product_id=#{productId} and deleted=false")
     String searchFavoritesIsExist(String userId, String productId);
 
-    @Select("select favorites_id, user_id, product_id ,deleted, product_name from t_product_favorites where user_id= #{userId}")
-    List<FavoritesList> SearchFavoritesByUserId(String userId);
+
 
     @Update("update t_product_favorites set deleted=1 where product_id = #{productId}")
     void deleteFavoritesByProductId(String productId);
