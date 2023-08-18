@@ -19,22 +19,18 @@ import com.campus.parttime.domain.Job;
 import com.campus.parttime.domain.Operation;
 import com.campus.parttime.dto.*;
 import com.campus.parttime.feign.MessageClient;
+import com.campus.parttime.feign.UserClient;
 import com.campus.parttime.pojo.FavoritesList;
 import com.campus.parttime.pojo.MonthlyStatistics;
-import com.campus.parttime.vo.JobStatusUpdateForm;
+import com.campus.parttime.vo.ShowJob;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.zookeeper.Op;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import com.campus.user.domain.User;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static com.campus.parttime.constant.ApplyStatus.*;
 import static com.campus.parttime.constant.JobStatus.*;
@@ -73,6 +69,9 @@ public class ParttimeController {
 
     @Autowired
     MessageClient messageClient;
+
+    @Autowired
+    UserClient userClient;
 
     /**
      * 发布兼职(已测试通过)
@@ -462,18 +461,20 @@ public class ParttimeController {
 
     /**
      * 查看兼职详情
+     *
      */
     @ApiOperation("查看兼职详情")
     @GetMapping("/getJobDetail")
     public R getJobDetail(@RequestHeader("uid")String userId, @RequestParam("jobId") String jobId) {
         Job job = (Job)serviceCenter.search(jobId, Job.class);
-        if (job != null) {
+        ShowJob showJob = FormTemplate.analyzeTemplate(job,ShowJob.class);
+        if (showJob != null) {
+            // 更新兼职浏览记录表数据
             if(recordDao.searchRecordIsExist(jobId,userId)!=null){// 访问记录存在
                 recordDao.updateRecoreScore(jobId,userId);// 将对应的记录中的score+1;
                 incrementVisitNum(jobId);
-                return R.ok(job);
             }
-            else{ // 创建一个新记录
+            else{ // 该用户浏览记录不存在：创建一个新浏览记录
                 Record record = new Record();
                 record.setJob_record_id(IdWorker.getIdStr(record));
                 record.setJob_id(jobId);
@@ -481,9 +482,10 @@ public class ParttimeController {
                 record.setScore(1.0);
                 if(serviceCenter.insertMySql(record)){
                     incrementVisitNum(jobId);
-                    return R.ok(job);
-                }
+                }else return R.failed(null,"数据更新失败");
             }
+            R user = userClient.getUserById(showJob.getPublisherId());
+            return R.ok(user);
         }
         return R.failed(null,"当前兼职不存在");
     }
