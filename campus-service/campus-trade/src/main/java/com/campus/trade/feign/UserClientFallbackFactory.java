@@ -7,6 +7,7 @@ import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 /**
  * @auther xiaolin
@@ -37,6 +38,11 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
             @Override
             public R updateBalance(String userId, BigDecimal balance) {
                 return R.failed();
+            }
+
+            @Override
+            public R addDetailsChange(Map<String, Object> map) {
+                 return R.failed();
             }
         };
     }

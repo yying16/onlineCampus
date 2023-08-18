@@ -8,15 +8,18 @@ import com.campus.user.dao.CardDao;
 import com.campus.user.dao.UserDao;
 import com.campus.user.domain.Card;
 import com.campus.user.domain.CardSM;
+import com.campus.user.domain.DetailsChange;
 import com.campus.user.domain.User;
 import com.campus.user.dto.AddCardForm;
 import com.campus.user.dto.QueryCardForm;
 import com.campus.user.service.CardSMService;
 import com.campus.user.service.CardService;
+import com.campus.user.service.DetailsChangeService;
 import com.campus.user.service.UserService;
 import com.campus.user.util.CardNumberGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -40,6 +43,10 @@ public class CardServiceImpl extends ServiceImpl<CardDao, Card>
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    DetailsChangeService detailsChangeService;
+
 
     @Autowired
     UserDao userDao;
@@ -67,6 +74,7 @@ public class CardServiceImpl extends ServiceImpl<CardDao, Card>
         return true;
     }
 
+    @Transactional
     @Override
     public void listCard(Page<Card> cardPage, QueryCardForm card) {
         QueryWrapper<Card> wrapper = new QueryWrapper<>();
@@ -88,8 +96,10 @@ public class CardServiceImpl extends ServiceImpl<CardDao, Card>
     }
 
     @Override
-    public R useCard(String cardId, String uid) {
-        Card card = baseMapper.selectById(cardId);
+    public R useCard(String cardKey, String uid) {
+        QueryWrapper<Card> wrapper = new QueryWrapper<>();
+        wrapper.eq("card_key", cardKey);
+        Card card = baseMapper.selectOne(wrapper);
         if (card == null) {
             return R.failed(null, "卡密不存在");
         }
@@ -144,6 +154,20 @@ public class CardServiceImpl extends ServiceImpl<CardDao, Card>
             balance = balance.add(money);
             //修改用户余额
             userService.updateBalance(uid, balance);
+
+            //产生零钱明细记录
+
+            DetailsChange detailsChange = new DetailsChange();
+            detailsChange.setUid(uid);
+            detailsChange.setMoney(money);
+            detailsChange.setType(0);
+            detailsChange.setRemark("卡密充值");
+            detailsChange.setBalance(balance);
+            detailsChange.setAvatar("https://gitee.com/lin-xugeng/image2/raw/master/img/202308181630253.jpeg");
+            boolean save = detailsChangeService.save(detailsChange);
+
+
+
         }
         String virtualGoods = cardSM.getVirtualGoods();
         if (StringUtils.hasLength(virtualGoods)) {

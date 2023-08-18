@@ -106,10 +106,10 @@ public class CardController {
 
     //使用卡密
     @ApiOperation(value = "使用卡密", notes = "使用卡密")
-    @PostMapping("/useCard/{cardId}")
-    public R useCard(@PathVariable("cardId") String cardId,@RequestHeader("uid") String uid) {
+    @PostMapping("/useCard/{cardKey}")
+    public R useCard(@PathVariable("cardKey") String cardKey,@RequestHeader("uid") String uid) {
         log.info("使用卡密");
-       return cardService.useCard(cardId,uid);
+       return cardService.useCard(cardKey,uid);
 
     }
 

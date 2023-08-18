@@ -25,7 +25,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/category")
-@Api("分类管理")
+@Api(tags= "分类管理")
 public class CategoryController {
 
     @Autowired

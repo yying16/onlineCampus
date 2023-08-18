@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -220,6 +221,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
             return R.failed(null, "用户余额不足");
         }
 
+
+
+
         BigDecimal updateBalance = userBalance.subtract(order.getTotalPrice());
         //调用user服务扣除用户余额
         R r = userClient.updateBalance(order.getUserId(), updateBalance);
@@ -234,6 +238,22 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
         order.setStatus(1);
         boolean flag = serviceCenter.update(order);
         if (flag) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("uid", order.getUserId());
+            map.put("type",1);
+            map.put("money",order.getTotalPrice());
+            //调用user服务获取用户信息
+            R user = userClient.getUserById(order.getUserId());
+            Map<String, Object> data = (Map<String, Object>) user.getData();
+            String avatar = (String) data.get("userImage");
+            String username = (String) data.get("username");
+            map.put("mark","购买商品-"+username);
+            map.put("avatar",avatar);
+            map.put("balance",updateBalance);
+
+            //调用user服务添加零钱明细记录
+            R  r1 = userClient.addDetailsChange(map);
+
             return R.ok(null, "订单支付成功");
         } else {
             return R.failed(null, "订单支付失败");

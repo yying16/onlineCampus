@@ -374,9 +374,13 @@ public class UserController {
                 rechargeRecordList.add(rechargeRecord);
             }
         }
+        if (rechargeRecordList.size() == 0) {
+            return R.failed(null, "暂无充值记录");
+        }
         return R.ok(rechargeRecordList, "查询成功");
 
     }
+
 
 
 

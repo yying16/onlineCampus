@@ -18,5 +18,5 @@ public interface CardService extends IService<Card> {
 
     void listCard(Page<Card> cardPage, QueryCardForm card);
 
-    R useCard(String cardId, String uid);
+    R useCard(String cardKey, String uid);
 }

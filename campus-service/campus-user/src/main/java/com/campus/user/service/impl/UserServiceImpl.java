@@ -367,6 +367,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             user.setBalance(balance);
             int i = userDao.updateById(user);
             if (i > 0) {
+
                 return R.ok(null, "修改成功");
             } else {
                 return R.failed(null, "修改失败");
