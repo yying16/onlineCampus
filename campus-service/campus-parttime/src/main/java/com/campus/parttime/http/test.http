@@ -91,13 +91,23 @@ GET http://localhost:7006/campusParttime/parttime/getApplyDetail?applicationId=1
 uid:t2
 
 ### 14.发布者查看兼职申请列表
-GET http://localhost:7006/campusParttime/parttime/searchApplyListToPublisher?jobId=1684904371313364993
-uid:20251102258
-
-### 15.兼职者查看兼职申请列表
-GET http://localhost:7006/campusParttime/parttime/searchApplyListToApplicant?jobId=1684904371313364993
+GET http://localhost:7006/campusParttime/parttime/searchApplyListToPublisher?jobId=1684841016020135937
 uid:t2
 
+### 15.查看已申请列表
+GET http://localhost:7006/campusParttime/parttime/searchMyAppliedList
+uid:t2
+
+### 16.查看用户信息
+GET http://localhost:7006/campusParttime/parttime/getUserInfo?userId=2
+
+### 17.查看已发布列表
+GET http://localhost:7006/campusParttime/parttime/searchMyPublishedList
+uid:20251102258
+
+### 18.查看进行中列表
+GET http://localhost:7006/campusParttime/parttime/searchMyActiveList
+uid:t2
 
 
 
