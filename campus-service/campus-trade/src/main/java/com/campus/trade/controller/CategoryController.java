@@ -5,6 +5,7 @@ import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
 import com.campus.trade.domain.Category;
 import com.campus.trade.dto.AddCategoryForm;
+import com.campus.trade.dto.UpdateCategoryForm;
 import com.campus.trade.service.CategoryService;
 import com.campus.trade.vo.ShowCategory;
 import io.swagger.annotations.Api;
@@ -24,7 +25,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/category")
-@Api("分类管理")
+@Api(tags= "分类管理")
 public class CategoryController {
 
     @Autowired
@@ -117,8 +118,17 @@ public class CategoryController {
     //根据id修改分类
     @PutMapping("/updateSubject")
     @ApiOperation("根据id修改分类")
-    public R updateSubject(@RequestBody Category subject){
-        boolean b = serviceCenter.update(subject);
+    public R updateSubject(@RequestBody UpdateCategoryForm subject){
+        String categoryId = subject.getCategoryId();
+        QueryWrapper<Category> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("category_id",categoryId);
+        Category one = categoryService.getOne(queryWrapper);
+        if (one==null){
+            return R.failed(null,"分类不存在");
+        }
+        one.setName(subject.getName());
+
+        boolean b = serviceCenter.update(one);
 //        boolean b = categoryService.updateById(subject);
         if (b){
             return R.ok(null,"修改分类成功");

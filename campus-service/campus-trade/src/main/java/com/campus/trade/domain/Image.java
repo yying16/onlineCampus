@@ -34,6 +34,11 @@ public class Image implements Serializable {
     /**
      *
      */
+    private String otherType;
+
+    /**
+     *
+     */
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
     private String createTime;
 

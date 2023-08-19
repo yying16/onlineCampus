@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.AES;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.campus.common.util.MD5;
+import com.campus.common.util.R;
 import com.campus.common.util.TimeUtil;
 import com.campus.user.dao.UserDao;
 import com.campus.user.domain.User;
@@ -36,6 +37,7 @@ import javax.crypto.NoSuchPaddingException;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -356,6 +358,23 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             return true;
         }
         return false;
+    }
+
+    @Override
+    public R updateBalance(String userId, BigDecimal balance) {
+        User user = userDao.selectById(userId);
+        if (user != null) {
+            user.setBalance(balance);
+            int i = userDao.updateById(user);
+            if (i > 0) {
+
+                return R.ok(null, "修改成功");
+            } else {
+                return R.failed(null, "修改失败");
+            }
+        } else {
+            return R.failed(null, "用户不存在");
+        }
     }
 
 

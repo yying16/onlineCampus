@@ -1,10 +1,12 @@
 package com.campus.trade.dto;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * @auther xiaolin
@@ -49,6 +51,14 @@ public class AddProductForm {
     @NotNull(message = "分类不能为空")
     @NotBlank(message = "分类不能为空")
     private String categoryId;
+
+
+    /**
+     * 商品图片列表（上传图片后返回的url）
+     */
+    @NotNull(message = "图片列表不能为空")
+    @NotBlank(message = "图片列表不能为空")
+    List<String> images; // 图片列表
 
     /**
      * 是否发布

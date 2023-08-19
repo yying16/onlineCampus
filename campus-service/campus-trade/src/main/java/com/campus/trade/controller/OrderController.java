@@ -6,6 +6,7 @@ import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
 import com.campus.trade.domain.Order;
 import com.campus.trade.domain.Product;
+import com.campus.trade.dto.SearchOrderForm;
 import com.campus.trade.vo.ConfirmOrderForm;
 import com.campus.trade.feign.UserClient;
 import com.campus.trade.service.OrderService;
@@ -20,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,11 +55,11 @@ public class OrderController {
         //查询商品信息
 //        Product product = productService.getById(productId);
 //        Product product = (Product) serviceCenter.search(productId, Product.class);
-        Object search = serviceCenter.search(productId, Product.class);
+        Product search = (Product) serviceCenter.search(productId, Product.class);
         if (search == null) {
             return R.failed(null, "商品不存在");
         }
-        Product product = new Gson().fromJson(search.toString(), Product.class);
+//        Product product = new Gson().fromJson(search.toString(), Product.class);
 
 
         R user = userClient.getUserById(uid);
@@ -69,7 +72,7 @@ public class OrderController {
         String consignee = (String) data.get("consignee");
 
         ConfirmOrderForm confirmOrderForm = new ConfirmOrderForm();
-        confirmOrderForm.setProduct(product);
+        confirmOrderForm.setProduct(search);
         confirmOrderForm.setAddress(address);
         confirmOrderForm.setTelephone(telephone);
         confirmOrderForm.setConsignee(consignee);
@@ -89,15 +92,14 @@ public class OrderController {
 
 
     //修改订单状态
-    @PostMapping("/updateOrderStatus/{orderId}/{status}")
+    @PutMapping("/updateOrderStatus/{orderId}/{status}")
     @ApiOperation("修改订单状态")
     public R updateOrderStatus(@PathVariable("orderId") String orderId,@PathVariable("status") Integer status) {
 
-        Object search = serviceCenter.search(orderId, Order.class);
-        if (search == null) {
+        Order order = (Order) serviceCenter.search(orderId, Order.class);
+        if (order == null) {
             return R.failed(null, "订单不存在");
         }
-        Order order = new Gson().fromJson(search.toString(), Order.class);
         order.setStatus(status);
 
         boolean flag = serviceCenter.update(order);
@@ -110,24 +112,73 @@ public class OrderController {
     }
 
     //根据用户id查询订单
-    @PostMapping("/getOrder/{page}/{size}/{uid}")
+    @PostMapping("/getOrder/{offset}")
     @ApiOperation("根据用户id查询订单")
-    public R getOrder(@ApiParam("页码") @PathVariable("page") long page,@ApiParam("一页展示的数据条数") @PathVariable("size") long size,@RequestBody Map<String, Object> searchOrderForm,@PathVariable("uid") String uid) {
+    public R getOrder(@ApiParam("已展示的数据条数") @PathVariable("offset") Integer offset,@RequestBody SearchOrderForm searchOrderForm,@RequestHeader("uid") String uid) {
         // 根据页码和每页数据量计算偏移量
-        long offset = (page - 1) * size;
-        searchOrderForm.put("limit",offset+" "+size);
-        List<ShowOrder> showOrderList =  orderService.getOrderListByUid(searchOrderForm,uid);
+//        long offset = (page - 1) * size;
+//        searchOrderForm.put("limit",offset+" "+size);
+        String searchcontent = searchOrderForm.getSearchContent();//商品描述
+        //根据商品描述查询商品id
+        QueryWrapper<Product> queryWrapper = new QueryWrapper<>();
+        queryWrapper.like("description",searchcontent);
+        List<Product> productList = productService.list(queryWrapper);
+        if (productList.size() == 0) {
+            return R.failed(null, "查找不到任何订单");
+        }
+
+
+        List<String> productIdList = new ArrayList<>();
+
+        for (Product product : productList) {
+            productIdList.add(product.getProductId());
+        }
+
+
+
+//        Map<String, Object>  searchOrderMap = new HashMap<>();
+//
+//        searchOrderMap.put("limit",offset+" "+10);
+//
+//        List<ShowOrder> showOrderList =  orderService.getOrderListByUid(searchOrderMap,uid);
+
+        List<ShowOrder> showOrderList =  orderService.getOrderListByMyUid(offset,productIdList,uid);
+        if (showOrderList.size()==0){
+            return R.failed(null,"查找不到任何相关订单");
+        }
         return R.ok(showOrderList, "查询成功");
     }
 
     //根据卖家id查询订单
-    @PostMapping("/getOrderBySellerId/{page}/{size}/{sellerId}")
+    @PostMapping("/getOrderBySellerId/{offset}")
     @ApiOperation("根据卖家id查询订单")
-    public R getOrderBySellerId(@ApiParam("页码") @PathVariable("page") long page,@ApiParam("一页展示的数据条数") @PathVariable("size") long size,@RequestBody Map<String, Object> searchOrderForm,@PathVariable("sellerId") String sellerId) {
+    public R getOrderBySellerId(@ApiParam("已展示的数据条数") @PathVariable("offset") Integer offset, @RequestBody SearchOrderForm searchOrderForm, @RequestHeader("uid") String sellerId) {
         // 根据页码和每页数据量计算偏移量
-        long offset = (page - 1) * size;
-        searchOrderForm.put("limit",offset+" "+size);
-        List<ShowOrder> showOrderList =  orderService.getOrderListBySellerId(searchOrderForm,sellerId);
+//        long offset = (page - 1) * size;
+//        searchOrderForm.put("limit",offset+" "+size);
+//        searchOrderForm.put("limit",offset+" "+10);
+
+        String searchcontent = searchOrderForm.getSearchContent();//商品描述
+        //根据商品描述查询商品id
+        QueryWrapper<Product> queryWrapper = new QueryWrapper<>();
+        queryWrapper.like("description",searchcontent);
+        List<Product> productList = productService.list(queryWrapper);
+        if (productList.size() == 0) {
+            return R.failed(null, "查找不到任何相关订单");
+        }
+
+
+        List<String> productIdList = new ArrayList<>();
+
+        for (Product product : productList) {
+            productIdList.add(product.getProductId());
+        }
+
+        List<ShowOrder> showOrderList =  orderService.getOrderListByTheSellerId(offset,productIdList,sellerId);
+//        List<ShowOrder> showOrderList =  orderService.getOrderListBySellerId(searchOrderForm,sellerId);
+        if (showOrderList.size()==0){
+            return R.failed(null,"查找不到任何相关订单");
+        }
         return R.ok(showOrderList, "查询成功");
     }
 
@@ -141,6 +192,56 @@ public class OrderController {
         } else {
             return R.failed(null, "订单删除失败");
         }
+    }
+
+    //支付订单
+    @PostMapping("/payOrder/{orderId}")
+    @ApiOperation("支付订单")
+    public R payOrder(@ApiParam("订单id") @PathVariable("orderId") String orderId) {
+       return orderService.payOrder(orderId);
+    }
+
+    //根据订单id查看订单信息
+    @GetMapping("{orderId}")
+    @ApiOperation("根据订单id查看订单信息")
+    public R getOrderByOrderId(@ApiParam("订单id") @PathVariable("orderId") String orderId){
+        Order order = (Order) serviceCenter.search(orderId, Order.class);
+        if (order == null) {
+            return R.failed(null, "订单不存在");
+        }
+
+        ShowOrder showOrder = new ShowOrder();
+        showOrder.setOrderNo(order.getOrderNo());
+        showOrder.setTotalPrice(order.getTotalPrice());
+        showOrder.setOrderId(order.getOrderId());
+        //商品信息
+        String productId = order.getProductId();
+        Product product = (Product) serviceCenter.selectMySql(productId, Product.class);
+//            Product product = new Gson().fromJson(search.toString(), Product.class);
+        showOrder.setProduct(product);
+        //买家信息
+        R user = userClient.getUserById(order.getUserId());
+        Map<String, Object> data = (Map<String, Object>) user.getData();
+        //收货地址
+        String address = (String) data.get("address");
+        //手机号
+        String telephone = (String) data.get("telephone");
+        //收货人
+        String consignee = (String) data.get("consignee");
+
+        showOrder.setAddress(address);
+        showOrder.setTelephone(telephone);
+        showOrder.setConsignee(consignee);
+
+        //卖家信息
+        R seller = userClient.getUserById(order.getSellerId());
+        Map<String, Object> sellerData = (Map<String, Object>) seller.getData();
+        String sellerNickName = (String) sellerData.get("username");
+        String sellerAvatar = (String) sellerData.get("userImage");
+        showOrder.setSellerAvatar(sellerAvatar);
+        showOrder.setSellerNickName(sellerNickName);
+        showOrder.setCreateTime(order.getCreateTime());
+        return R.ok(showOrder,"查询订单信息成功！");
     }
 
 }

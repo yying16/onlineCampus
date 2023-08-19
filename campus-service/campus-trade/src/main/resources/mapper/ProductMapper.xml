@@ -12,6 +12,10 @@
             <result property="userId" column="user_id" jdbcType="VARCHAR"/>
             <result property="categoryId" column="category_id" jdbcType="VARCHAR"/>
             <result property="isPublished" column="is_published" jdbcType="TINYINT"/>
+            <result property="visitNum" column="visit_num" jdbcType="INTEGER"/>
+            <result property="likeNum" column="like_num" jdbcType="INTEGER"/>
+            <result property="favoritesNum" column="favorites_num" jdbcType="INTEGER"/>
+            <result property="status" column="status" jdbcType="TINYINT"/>
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
             <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
             <result property="deleted" column="deleted" jdbcType="TINYINT"/>

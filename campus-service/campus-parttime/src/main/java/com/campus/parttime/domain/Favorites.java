@@ -1,5 +1,7 @@
 package com.campus.parttime.domain;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -16,6 +18,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @TableName("t_job_favorites")
 public class Favorites {
+    @TableId(type = IdType.ASSIGN_ID)
     String favoritesId; // 收藏记录编号
     String userId; // 用户编号
     String jobId; // 兼职编号

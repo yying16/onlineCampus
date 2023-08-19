@@ -7,13 +7,14 @@ import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
 import com.campus.user.dao.BreakerDao;
-import com.campus.user.domain.Breaker;
-import com.campus.user.domain.Report;
-import com.campus.user.domain.User;
+import com.campus.user.domain.*;
 import com.campus.user.dto.*;
 import com.campus.user.feign.MessageClient;
 import com.campus.user.pojo.PromptInformationForm;
+import com.campus.user.service.CardSMService;
+import com.campus.user.service.CardService;
 import com.campus.user.service.impl.UserServiceImpl;
+import com.campus.user.vo.RechargeRecord;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -25,10 +26,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -56,16 +61,20 @@ public class UserController {
     @Autowired
     MessageClient messageClient;
 
-    @Autowired
-    BreakerDao breakerDao;
-
     @Value("${email.baseurl}")
     private String baseUrl;
+
+
+    @Autowired
+    private CardService cardService;
+
+    @Autowired
+    private CardSMService cardSMService;
 
     @ApiOperation(value = "获取用户信息")
     @GetMapping("/getDetail")
     public R getDetail(@RequestHeader("uid") String uid) {
-        String userStr = String.valueOf(redisTemplate.opsForValue().get("user"+uid));
+        String userStr = String.valueOf(redisTemplate.opsForValue().get("user" + uid));
         User user = JSONObject.parseObject(userStr, User.class);
         if (user == null) {
             return R.failed("令牌无效");
@@ -82,7 +91,7 @@ public class UserController {
         wrapper.eq("user_id", userId);
         User user = userService.getOne(wrapper);
         if (user != null) {
-            return R.ok(user);
+            return R.ok(user, "查询成功");
         } else {
             return R.failed("用户不存在");
         }
@@ -92,14 +101,46 @@ public class UserController {
     //更新用户信息
     @ApiOperation(value = "更新用户信息")
     @PostMapping("/updateUser")
-    public R updateUser(@ApiParam("用户对象") @RequestBody UpdateUserForm updateUserForm) {
+    public R updateUser(@ApiParam("用户对象") @RequestBody UpdateUserForm updateUserForm,@RequestHeader("uid") String uid) {
         User user = new User();
         BeanUtils.copyProperties(updateUserForm, user);
+        user.setUserId(uid);
         boolean b = userService.updateById(user);
         if (b) {
-            return R.ok();
+            return R.ok(null, "更新成功");
         } else {
-            return R.failed();
+            return R.failed(null, "更新失败");
+        }
+    }
+
+
+    //修改用户头像
+    @ApiOperation(value = "修改用户头像")
+    @PostMapping("/updateAvatar")
+    public R updateAvatar(@RequestParam("avatar") String avatar,@RequestHeader("uid") String uid) {
+        User user = new User();
+        user.setUserId(uid);
+        user.setUserImage(avatar);
+        boolean b = userService.updateById(user);
+        if (b) {
+            return R.ok(null, "更新成功");
+        } else {
+            return R.failed(null, "更新失败");
+        }
+    }
+
+    //修改用户地址
+    @ApiOperation(value = "修改用户地址")
+    @PostMapping("/updateAddress")
+    public R updateAddress(@RequestParam("address") String address,@RequestHeader("uid") String uid) {
+        User user = new User();
+        user.setUserId(uid);
+        user.setAddress(address);
+        boolean b = userService.updateById(user);
+        if (b) {
+            return R.ok(null, "更新成功");
+        } else {
+            return R.failed(null, "更新失败");
         }
     }
 
@@ -109,7 +150,7 @@ public class UserController {
      */
     @ApiOperation(value = "修改密码")
     @PostMapping("/updatePassword")
-    public R updatePassword( @ApiParam("对象：包括password") @RequestBody UpdatePasswordForm form) {
+    public R updatePassword(@ApiParam("对象：包括password") @RequestBody UpdatePasswordForm form) {
         boolean b = userService.updatePassword(form);
         if (b) {
             return R.ok();
@@ -143,7 +184,7 @@ public class UserController {
         String uid = request.getHeader("uid");
 
         //生成邮件链接
-        link = baseUrl + "/user/verifyEmail?email=" + email + "&userId=" +uid;
+        link = baseUrl + "/user/verifyEmail?email=" + email + "&userId=" + uid;
 
         //创建邮件上下文
         Context context = new Context();
@@ -173,7 +214,7 @@ public class UserController {
      */
     @ApiOperation(value = "发送邮件")
     @PostMapping("/sendEmail")
-    public R sendEmail(@RequestBody Map<String,String> map) {
+    public R sendEmail(@RequestBody Map<String, String> map) {
 
         String content = map.get("content");
         String uid = map.get("uid");
@@ -255,7 +296,7 @@ public class UserController {
         if (user != null) {
             return R.ok(user);
         } else {
-            return R.failed(null,"用户不存在");
+            return R.failed(null, "用户不存在");
         }
     }
 
@@ -264,7 +305,7 @@ public class UserController {
      */
     @ApiOperation(value = "查看用户验证码是否正确")
     @PostMapping("/checkPhoneCode")
-    public R checkCode( @RequestBody CheckCodeForm form) {
+    public R checkCode(@RequestBody CheckCodeForm form) {
         boolean b = userService.checkCode(form);
         if (b) {
             return R.ok();
@@ -278,7 +319,7 @@ public class UserController {
      */
     @ApiOperation(value = "查看用户邮箱验证码是否正确")
     @PostMapping("/checkEmailCode")
-    public R checkEmailCode( @RequestBody CheckEmailCodeForm form) {
+    public R checkEmailCode(@RequestBody CheckEmailCodeForm form) {
         boolean b = userService.checkEmailCode(form);
         if (b) {
             return R.ok();
@@ -286,6 +327,63 @@ public class UserController {
             return R.failed();
         }
     }
+
+
+    /**
+     * 查询用户余额
+     */
+    @ApiOperation(value = "查询用户余额")
+    @GetMapping("/getBalance/{userId}")
+    public BigDecimal getBalance(@ApiParam("用户id") @PathVariable("userId")  String userId) {
+        User user = userService.getById(userId);
+        if (user != null) {
+            BigDecimal balance = user.getBalance();
+            return balance;
+        } else {
+            return null;
+        }
+    }
+
+
+    /**
+     * 查看用户充值记录
+     */
+    @ApiOperation(value = "查看用户充值记录")
+    @GetMapping("/getRechargeRecord")
+    public R getRechargeRecord(@RequestHeader("uid")  String userId) {
+        //根据用户id查询卡密使用记录
+        QueryWrapper<Card> wrapper = new QueryWrapper<>();
+        wrapper.eq("uid", userId);
+        List<Card> list = cardService.list(wrapper);
+        List<RechargeRecord> rechargeRecordList = new ArrayList<>();
+        //遍历卡密，获取卡密对应的充值记录
+        for (Card c: list){
+            String cardsmid = c.getCardsmid();
+            QueryWrapper<CardSM> wrapper1 = new QueryWrapper<>();
+            wrapper1.eq("id", cardsmid);
+            CardSM cardSM = cardSMService.getOne(wrapper1);
+            if (cardSM == null) {
+                return R.failed(null, "卡密不存在");
+            }
+            if(cardSM.getName().equals("充值卡")){
+                RechargeRecord rechargeRecord = new RechargeRecord();
+                rechargeRecord.setId(c.getId());
+                rechargeRecord.setUserId(c.getUid());
+                rechargeRecord.setMoney(cardSM.getMoney());
+                rechargeRecord.setCreateTime(c.getTime());
+                rechargeRecordList.add(rechargeRecord);
+            }
+        }
+        if (rechargeRecordList.size() == 0) {
+            return R.failed(null, "暂无充值记录");
+        }
+        return R.ok(rechargeRecordList, "查询成功");
+
+    }
+
+
+
+
 
     /**
      * 举报用户操作
@@ -301,6 +399,16 @@ public class UserController {
             return R.failed(null,"举报失败，请重试");
         }
         return R.ok(null,"举报信息提交成功");
+    }
+
+    /**
+     * 修改用户余额
+     */
+    @ApiOperation(value = "修改用户余额")
+    @PutMapping("/updateBalance/{userId}/{balance}")
+    public R updateBalance(@ApiParam("用户id") @PathVariable("userId")  String userId, @PathVariable("balance") BigDecimal balance) {
+        return userService.updateBalance(userId, balance);
+
     }
 
     /**
@@ -356,6 +464,9 @@ public class UserController {
      * 违规用户列表（管理员查看：违规次数最多的用户排名）
      * 还需要添加（方法：点击某一用户的所有违规详情;数据统计：违规次数最多的用户排名）
      */
+
+
+
 
     /**
      * 查看某一用户的违规详情

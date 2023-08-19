@@ -172,8 +172,6 @@ public class ParttimeController {
         return R.failed();
     }
 
-
-
     /**
      * 删除兼职(需进一步修改收藏部分)
      * 兼职状态已完成或者已关闭
@@ -312,7 +310,7 @@ public class ParttimeController {
      * 若更新成功，新增执行订单operation记录，初始化operation的初始化信息，并插入数据库中
      */
     @ApiOperation("通过兼职申请")
-    @GetMapping("/passApply")
+    @PostMapping("/passApply")
     @Transactional
     public R passApply(@RequestParam("applicationId") String applicationId) {
         Apply apply = (Apply) serviceCenter.selectMySql(applicationId, Apply.class);
@@ -324,6 +322,9 @@ public class ParttimeController {
         Job job = FormTemplate.analyzeTemplate(serviceCenter.selectMySql(apply.getJobId(), Job.class), Job.class);
         if(job.getStatus().equals(FULL.code)){
             return R.failed(null,"当前兼职已招满，无法通过该兼职");
+        }
+        if(job.getStatus().equals(FINISH.code)){
+            return R.failed(null,"当前兼职已完成，无法通过该兼职");
         }
         apply.setStatus(PASSED.code);
         job.setPassedNum(job.getPassedNum() + 1);
@@ -355,7 +356,7 @@ public class ParttimeController {
      * 直接更新数据库
      */
     @ApiOperation("拒绝兼职申请")
-    @GetMapping("/rejectApply")
+    @PostMapping("/rejectApply")
     public R rejectApply(@RequestParam("applicationId") String applicationId) {
         Apply apply = (Apply) serviceCenter.selectMySql(applicationId,Apply.class);
         if(apply.getStatus().equals(PASSED.code)){
@@ -521,16 +522,16 @@ public class ParttimeController {
     }
 
     /**
-     * 查看兼职申请详情
+     * 取消兼职执行订单
      * 只有管理员/客服才能取消兼职申请
      */
-    @ApiOperation("取消兼职申请")
+    @ApiOperation("取消兼职执行订单")
     @GetMapping("/cancelJobOperation")
     public R cancelJobOperation(@RequestParam("userId") String userId,@RequestParam("operationId") String operationId){
         Operation operation = (Operation) serviceCenter.selectMySql(operationId, Operation.class);
         operation.setStatus(2);
         if(userId.equals(operation.getPublisherId())||userId.equals(operation.getApplicantId())){
-            applyDao.subCreditByJobId(userId);
+            operationDao.subCreditByJobId(userId);
         }
         if(!serviceCenter.updateMySql(operation)){
             return R.failed(null,"取消失败，请重试");

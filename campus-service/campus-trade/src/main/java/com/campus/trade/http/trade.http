@@ -1,0 +1,281 @@
+###//首页查看商品列表（懒加载）
+#请求路径：http://localhost:9000/campusTrade/product/listByQuery/{offset}  offset为前端已经展示的数量，第一次为0，每次请求会获得10条数据
+GET http://localhost:9000/campusTrade/product/list/0
+token: t1
+
+
+
+###//查看商品列表（条件懒加载）
+#请求路径：http://localhost:9000/campusTrade/product/listByQuery/{offset}
+##searchContent 为搜索内容，与商品的描述进行匹配，可以为空，为空时返回所有商品
+POST http://localhost:9000/campusTrade/product/listByQuery/0
+token: t1
+Content-Type: application/json
+
+{
+  "searchContent": "手机"
+}
+
+
+###卖家发布商品
+###请求路径：http://localhost:9000/campusTrade/product/addProduct
+POST http://localhost:9000/campusTrade/product/addProduct
+token: t1
+Content-Type: application/json
+
+
+{
+  "categoryId": "1681889179483680769",
+  "description": "这是测试商品描述，手机，电脑，笔记本",
+  "images": [
+    "http://localhost:9000/campusTrade/images/1.jpg"
+  ],
+  "isPublished": 1,
+  "name": "测试商品2",
+  "price": 99999,
+  "userId": "t1"
+}
+
+###根据商品id删除商品
+###请求路径：http://localhost:9000/campusTrade/product/{id}
+DELETE http://localhost:9000/campusTrade/product/1691817569780076546
+token: t1
+
+
+###根据商品id查看商品详情
+###请求路径：http://localhost:9000/campusTrade/product/{id}
+GET http://localhost:9000/campusTrade/product/1689501046821552130
+token: t1
+
+
+
+###根据商品id修改商品信息
+###请求路径：http://localhost:9000/campusTrade/product/{id}
+PUT http://localhost:9000/campusTrade/product/1689501046821552130
+token: t1
+Content-Type: application/json
+
+{
+  "categoryId": "1",
+  "description": "这是测试商品的商品描述：修改成功！！！",
+  "images": [
+    "https://edu20230513.oss-cn-guangzhou.aliyuncs.com/2023/07/25/338d98830092451bbd00ee2af233289111.png"
+  ],
+  "isPublished": 1,
+  "name": "测试商品被修改了！！！！",
+  "price": 99999,
+  "userId": "1"
+}
+
+
+###根据用户id查看发布的商品列表
+###请求路径：http://localhost:9000/campusTrade/product/listByUserId/{offset}
+POST http://localhost:9000/campusTrade/product/listByUserId/0
+token: t1
+Content-Type: application/json
+
+{
+  "searchContent": "手机"
+}
+
+
+
+###查询下单前确认信息（用户和商品信息）
+###请求路径：http://localhost:9000/campusTrade/order/confirm/{productId}
+GET http://localhost:9000/campusTrade/order/confirm/1679428131023458306
+token: t1
+
+
+###展示生成的订单信息
+###请求路径： http://localhost:9000/campusTrade/order/createOrder
+POST http://localhost:9000/campusTrade/order/createOrder
+token: t1
+Content-Type: application/json
+
+{
+  "product": {
+    "productId": "1679428131023458306",
+    "name": "联想笔记本电脑",
+    "description": "全新笔记本电脑",
+    "price": 6000.00,
+    "userId": "1",
+    "categoryId": "1",
+    "status": 0,
+    "isPublished": 1,
+    "visitNum": 0,
+    "likeNum": 0,
+    "favoritesNum": 0,
+    "createTime": "2023-07-13 17:50:43",
+    "updateTime": "2023-07-13 17:50:43",
+    "deleted": false,
+    "images": null
+  },
+  "address": "广东财经大学22栋601",
+  "telephone": "15219374123",
+  "consignee": "小林"
+}
+
+
+###修改订单状态
+###请求路径：http://localhost:9000/campusTrade/order/updateOrderStatus/{orderId}/{status}
+PUT http://localhost:9000/campusTrade/order/updateOrderStatus/1692015246836817922/2
+token: t1
+
+###根据用户id查询订单
+###请求路径：http://localhost:7004/campusTrade/order/getOrder/{offset}
+POST http://localhost:9000/campusTrade/order/getOrder/0
+token: t1
+Content-Type: application/json
+
+{
+  "searchContent": "手机"
+}
+
+
+###根据卖家id查询订单
+###请求路径：http://localhost:9000/campusTrade/order/getOrderBySellerId/{offset}
+POST http://localhost:9000/campusTrade/order/getOrderBySellerId/0
+token:t1
+Content-Type: application/json
+
+{
+  "searchContent": ""
+}
+
+###根据订单id删除订单
+###请求路径：http://localhost:9000/campusTrade/order/{orderId}
+DELETE http://localhost:9000/campusTrade/order/0089eab1c387f58facac266a6189cd42
+token:t1
+
+###支付订单
+###请求路径：http://localhost:9000/campusTrade/order/payOrder/{orderId}
+POST http://localhost:9000/campusTrade/order/payOrder/02d233738a74b6f601d7b5674b32da78
+token:t1
+
+###根据订单id查询订单详情
+###请求路径：http://localhost:9000/campusTrade/order/{orderId}
+GET http://localhost:9000/campusTrade/order/02d233738a74b6f601d7b5674b32da78
+token:t1
+
+
+
+###添加出价
+###请求路径：http://localhost:9000/campusTrade/bid/addBid
+POST http://localhost:9000/campusTrade/bid/addBid
+token:t2
+Content-Type: application/json
+
+{
+  "price": 100,
+  "productId": "1679428131023458306"
+}
+
+
+###删除出价
+###请求路径：http://localhost:9000/campusTrade/bid/{{bidId}}
+DELETE http://localhost:9000/campusTrade/bid/1692090801481424897
+token:t2
+
+
+
+###查看出价列表
+###请求路径：http://localhost:9000/campusTrade/bid/list/{{productId}}
+GET http://localhost:9000/campusTrade/bid/list/1679428131023458306
+token:t1
+
+###查看用户的出价列表
+###请求路径：http://localhost:9000/campusTrade/bid/listByUser
+GET http://localhost:9000/campusTrade/bid/listByUser
+token:t1
+
+###修改出价
+###请求路径：http://localhost:9000/campusTrade/bid/{{bidId}}/{{price}}
+PUT http://localhost:9000/campusTrade/bid/1692090801481424897/9999
+token:t2
+
+
+
+###根据分类id查询分类信息
+###请求路径：http://localhost:9000/campusTrade/category/{{categoryId}}
+GET http://localhost:9000/campusTrade/category/1
+token:t1
+
+###查看所有分类信息
+###请求路径：http://localhost:9000/campusTrade/category/list
+GET http://localhost:9000/campusTrade/category/list
+token:t1
+
+###批量导入分类信息
+###请求路径：http://localhost:9000/campusTrade/category/addCategory
+POST http://localhost:9000/campusTrade/category/addCategory
+token:t1
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="file"; filename="test.xlsx"
+
+@{src/main/resources/test.xlsx}
+--boundary123--
+
+
+###添加一级分类或二级分类
+###请求路径：http://localhost:9000/campusTrade/category/addSubject
+POST http://localhost:9000/campusTrade/category/addSubject
+token:t1
+Content-Type: application/json
+
+{
+  "name": "书籍",
+  "parentId": "0"
+}
+
+###删除二级分类
+###请求路径：http://localhost:9000/campusTrade/category/deleteSubject/{{subjectId}}
+DELETE http://localhost:9000/campusTrade/category/deleteSubject/1681889301613424641
+token:t1
+
+###删除一级分类及其二级分类
+###请求路径：http://localhost:9000/campusTrade/category/deleteCategory/{{categoryId}}
+DELETE http://localhost:9000/campusTrade/category/deleteAllSubject/1692142911149346818
+token:t1
+
+###修改一级分类或二级分类
+PUT http://localhost:9000/campusTrade/category/updateSubject
+token:t1
+Content-Type: application/json
+
+{
+  "name": "测试修改分类名称",
+  "categoryId": "1681890434251681794"
+}
+
+
+###用户点赞商品
+###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/likeProduct/{{productId}}
+GET http://localhost:9000/campusTrade/favoritesAndLike/likeJob/02d233738a74b6f601d7b5674b32da78
+token:t1
+
+###用户取消点赞商品
+###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/cancelLikeProduct/{{productId}}
+GET http://localhost:9000/campusTrade/favoritesAndLike/cancelLikeJob/02d233738a74b6f601d7b5674b32da78
+token:t1
+
+###用户收藏商品
+###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/favoritesProduct/{{productId}}
+GET http://localhost:9000/campusTrade/favoritesAndLike/FavoritesJob/02d233738a74b6f601d7b5674b32da78
+token:t1
+
+###用户取消收藏商品
+###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/cancelFavoritesProduct/{{productId}}
+GET http://localhost:9000/campusTrade/favoritesAndLike/cancelFavoritesJob/02d233738a74b6f601d7b5674b32da78
+token:t1
+
+###用户查看收藏列表
+###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/searchFavoritesList
+GET http://localhost:9000/campusTrade/favoritesAndLike/searchFavoritesList
+token:t1
+
+###新增商品访问量
+###请求路径：http://localhost:7004/campusTrade/favoritesAndLike/addVisitNum/{{productId}}
+GET http://localhost:9000/campusTrade/favoritesAndLike/addVisitNum/02d233738a74b6f601d7b5674b32da78
+token:t1
