@@ -194,6 +194,10 @@ public class ParttimeController {
     @ApiOperation("提交兼职申请")
     @GetMapping("/addJobApply")
     public R addJobApply(@RequestHeader("uid") String applicantId, @RequestParam("jobId") String jobId) {
+        Apply applySql =  applyDao.isJobApplyExist(jobId,applicantId);
+        if(applySql!=null) {
+            return R.failed(null, "请勿重复提交兼职申请");
+        }
         Job job = (Job) serviceCenter.search(jobId, Job.class);
         assert job!=null;
         // 若当前兼职状态为关闭或者招满，兼职申请提交失败
@@ -726,7 +730,7 @@ public class ParttimeController {
     @GetMapping("/searchApplyListToPublisher")
     public R searchApplyListToPublisher(@RequestHeader("uid")String userId, @RequestParam("jobId") String jobId) {
         Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
-        if(userId.equals(job.getPublisherId())){// 发布者查看当前兼职申请列表
+        if(userId.equals(job.getPublisherId())){// 发布者查看当前兼职申请列表 008rsa下
             List<Apply> applyList = jobDao.SearchApplyListByJobId(jobId);
             if(applyList.size()==0){
                 return R.failed(null,"当前未有用户提交申请");

@@ -30,4 +30,9 @@ public interface ApplyDao extends BaseMapper<Apply> {
 
     @Select("select * from t_apply where applicant_id=#{applicantId} and deleted=0")
     List<Apply> searchApplyListByApplicantId(String applicantId);
+
+    @Select("select * from t_apply where job_id=#{jobId} and applicant_id=#{applicantId} and deleted=0")
+    Apply isJobApplyExist(String jobId, String applicantId);
+
+
 }
