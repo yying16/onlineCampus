@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @SpringBootApplication(scanBasePackages = {"com.campus.common","com.campus.parttime"})
 @EnableDiscoveryClient
 @EnableTransactionManagement
+@EnableFeignClients
 @EnableAsync
 public class CampusParttimeApplication {
     @Autowired

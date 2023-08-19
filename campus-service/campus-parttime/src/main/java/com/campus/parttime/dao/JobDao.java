@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.campus.parttime.domain.Apply;
 import com.campus.parttime.domain.Job;
 import com.campus.parttime.pojo.FavoritesList;
+import com.campus.user.domain.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
@@ -24,5 +25,6 @@ public interface JobDao extends BaseMapper<Job> {
     @Select("select * from t_job where publisher_id=#{publisherId} and deleted=0")
     List<Job> searchJobList(String publisherId);
 
-
+    @Select("select * from t_user where user_id=#{publisherId} and deleted=0")
+    User searchJobDetail(String publisherId);
 }

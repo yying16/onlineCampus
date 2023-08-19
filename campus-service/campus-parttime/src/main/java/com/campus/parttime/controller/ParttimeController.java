@@ -19,17 +19,19 @@ import com.campus.parttime.domain.Job;
 import com.campus.parttime.domain.Operation;
 import com.campus.parttime.dto.*;
 import com.campus.parttime.feign.MessageClient;
-import com.campus.parttime.feign.UserClient;
 import com.campus.parttime.pojo.FavoritesList;
 import com.campus.parttime.pojo.MonthlyStatistics;
 import com.campus.parttime.vo.ShowJob;
+import com.campus.user.domain.User;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
 import java.util.*;
 
 import static com.campus.parttime.constant.ApplyStatus.*;
@@ -69,9 +71,6 @@ public class ParttimeController {
 
     @Autowired
     MessageClient messageClient;
-
-    @Autowired
-    UserClient userClient;
 
     /**
      * 发布兼职(已测试通过)
@@ -484,8 +483,11 @@ public class ParttimeController {
                     incrementVisitNum(jobId);
                 }else return R.failed(null,"数据更新失败");
             }
-            R user = userClient.getUserById(showJob.getPublisherId());
-            return R.ok(user);
+            User user = jobDao.searchJobDetail(showJob.getPublisherId());
+            showJob.setUserImage(user.getUserImage());
+            showJob.setUsername(user.getUsername());
+            showJob.setCredit(user.getCredit());
+            return R.ok(showJob);
         }
         return R.failed(null,"当前兼职不存在");
     }

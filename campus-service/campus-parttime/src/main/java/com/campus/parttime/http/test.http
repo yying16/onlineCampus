@@ -4,7 +4,7 @@ token: t1
 Content-Type: application/json
 
 {
-  "publisherId": "20251102210",
+  "publisherId": "20251102219",
   "jobTitle": "找家教",
   "jobContent": "每周三次，去五周，每天晚上7；00-9；00，地点:正佳广场附近300m",
   "salary": "1700",
