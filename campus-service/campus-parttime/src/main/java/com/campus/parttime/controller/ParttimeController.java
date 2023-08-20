@@ -418,11 +418,22 @@ public class ParttimeController {
     @ApiOperation("兼职首页懒加载")
     @GetMapping("/lazyLoading")
     public R lazyLoading(@RequestParam("num") Integer num) {
-        List<Job> jobs = serviceCenter.loadData(num, Job.class);
-        if (jobs != null) {
-            return R.ok(jobs);
+        List<Job> jobLists = serviceCenter.loadData(num, Job.class);
+        if(jobLists.size()==0){
+            return R.failed(null,"兼职数据为空");
         }
-        return R.failed();
+        List<JobLoadList> jobLoadLists = new ArrayList<>();
+        for(Job job : jobLists){
+            JobLoadList jobLoadList = FormTemplate.analyzeTemplate(job,JobLoadList.class);
+            User user =jobDao.searchUserInfo(job.getPublisherId());
+            if(jobLoadList==null || user==null){
+                return R.failed(null,"兼职数据获取异常");
+            }
+            jobLoadList.setUsername(user.getUsername());
+            jobLoadList.setUserImage(user.getUserImage());
+            jobLoadLists.add(jobLoadList);
+        }
+        return R.ok(jobLoadLists);
     }
 
     /**
@@ -597,7 +608,7 @@ public class ParttimeController {
                 if (!serviceCenter.updateMySql(job)) {
                     return R.failed(null, "更新兼职信息失败");
                 }
-                return R.ok(null, "点赞成功");
+                return R.ok(job.getLikeNum(), "点赞成功");
             }
         }
         return R.failed(null, "您已为该兼职点赞了，是否需要取消点赞？");
@@ -615,18 +626,17 @@ public class ParttimeController {
         String likeId = likeDao.searchLikeIsExist(userId, jobId); // 查找对应的点赞记录Id
         // 若该用户点赞过该兼职，则取消点赞
         if (likeId != null) {
-            Like like = (Like) serviceCenter.selectMySql(likeId, Like.class); // 通过id查找该点赞记录
-            like.setDeleted(true); // 修改delete,删除该点赞记录
-            if (!serviceCenter.updateMySql(like)) { // 存入数据库中
-                return R.failed(null, "点赞信息更新失败");
+            if (!serviceCenter.deleteMySql(Like.class, likeId)) { // 删除点赞记录
+                return R.failed(null, "取消点赞失败");
             }
             //修改job记录中的likeNum
             job.setLikeNum(job.getLikeNum() - 1);
             if (!serviceCenter.updateMySql(job)) { // 存入数据库中
                 return R.failed(null, "更新兼职信息失败");
             }
+            return R.ok(job.getLikeNum(),"取消点赞成功");
         }
-        return R.failed(null, "取消点赞失败");
+        return R.failed(null, "您已取消点赞了");
     }
 
     @ApiOperation("用户收藏操作")
@@ -648,7 +658,7 @@ public class ParttimeController {
                 if (!serviceCenter.updateMySql(job)) { // 将修改后的兼职记录更新到数据库
                     return R.failed(null, "更新兼职信息失败");
                 }
-                return R.ok(null, "收藏成功");
+                return R.ok(job.getFavoritesNum(), "收藏成功");
             }
 
         }
@@ -667,18 +677,17 @@ public class ParttimeController {
         String favoritesId = favoritesDao.searchFavoritesIsExist(userId, jobId); // 查找对应的收藏记录Id
         // 若该用户收藏过该兼职，则取消收藏
         if (favoritesId != null) {
-            Favorites favorites = (Favorites) serviceCenter.selectMySql(favoritesId, Favorites.class); // 通过id查找该收藏记录
-            favorites.setDeleted(true); // 修改delete,删除该收藏记录
-            if (!serviceCenter.updateMySql(favorites)) { // 更新到数据库中
-                return R.failed(null, "收藏信息更新失败");
+            if (!serviceCenter.deleteMySql(Favorites.class, favoritesId)) { // 删除收藏记录
+                return R.failed(null, "取消收藏失败");
             }
             //修改job记录中的favoritesNum
             job.setFavoritesNum(job.getFavoritesNum() - 1);
             if (!serviceCenter.updateMySql(job)) { // 存入数据库中
                 return R.failed(null, "更新兼职信息失败");
             }
+            return R.ok(job.getFavoritesNum(),"取消收藏成功");
         }
-        return R.failed(null, "取消收藏失败");
+        return R.failed(null, "您已取消收藏了");
     }
 
     @ApiOperation("查看用户收藏列表")
