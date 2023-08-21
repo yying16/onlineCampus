@@ -35,6 +35,13 @@ public class ShowJob {
     Integer passedNum; // 已通过人数
     Integer finishNum; // 已完成人数
 
+    @TableLogic(value = "false", delval = "true")
+    Integer likeStatus;
+    @TableLogic(value = "false", delval = "true")
+    Integer favoritesStatus;
+    @TableLogic(value = "false", delval = "true")
+    Integer applyStatus;
+
     Integer visitNum; //访问次数
     Integer likeNum; // 点赞人数
     Integer favoritesNum; // 收藏人数

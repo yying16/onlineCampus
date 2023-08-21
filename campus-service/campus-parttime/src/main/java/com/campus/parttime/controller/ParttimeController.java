@@ -460,6 +460,22 @@ public class ParttimeController {
                 } else return R.failed(null, "数据更新失败");
             }
             User user = jobDao.searchUserInfo(showJob.getPublisherId());
+            if(user==null){
+                return R.failed(null,"数据获取失败");
+            }
+            // 判断用户点赞状态
+            String likeId = likeDao.searchLikeIsExist(userId,jobId);
+            if(likeId==null) showJob.setLikeStatus(0);
+            else showJob.setLikeStatus(1);
+            // 判断用户收藏状态
+            String favoriteId = favoritesDao.searchFavoritesIsExist(userId, jobId);
+            if(favoriteId==null) showJob.setFavoritesStatus(0);
+            else showJob.setFavoritesStatus(1);
+            // 判断用户是否对兼职进行申请
+            if(applyDao.searchApplyIsExist(userId, jobId)!=null){
+                showJob.setApplyStatus(1);
+            }else showJob.setApplyStatus(0);
+            // 设置发布者信息
             showJob.setUserImage(user.getUserImage());
             showJob.setUsername(user.getUsername());
             showJob.setCredit(user.getCredit());
