@@ -9,6 +9,7 @@ import java.math.BigDecimal;
  */
 @Data
 public class JobLoadList {
+    String jobId; // 兼职编号
     String jobTitle; // 兼职标题
     Integer status; // 兼职职位状态(0-开启，1-关闭，2-招满，3-完成)
     Integer location; // 兼职所在校区(0-佛山校区，1-广州校区)
