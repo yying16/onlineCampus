@@ -60,6 +60,7 @@ public class MessageController {
     @GetMapping("/initMessage")
     public R initMessage(@RequestHeader("uid") String uid) {
         JSONObject jsonObject = messageService.initMessage(uid);
+        messageService.clickMyMessage(uid); // 添加会话缓存数据
         if (jsonObject != null) {
             return R.ok(jsonObject);
         }
