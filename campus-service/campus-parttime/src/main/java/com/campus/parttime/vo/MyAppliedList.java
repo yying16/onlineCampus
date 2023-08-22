@@ -8,6 +8,7 @@ import java.math.BigDecimal;
  */
 @Data
 public class MyAppliedList {
+    String applicationId; // 申请记录Id
     String jobTitle; // 兼职标题
     BigDecimal salary;  // 兼职薪资
     Integer applyStatus; // 兼职申请状态（0-已申请，1-已通过，2-已拒绝）

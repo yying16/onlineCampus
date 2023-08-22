@@ -11,6 +11,7 @@ import java.math.BigDecimal;
  */
 @Data
 public class MyActiveList {
+    String operationId;   //执行编号
     String jobTitle; // 兼职标题
     BigDecimal salary;  // 兼职薪资
     Integer status; // 订单执行状态（0-进行中，1-已完成，2-已超时，3-已取消，4-确认完成）

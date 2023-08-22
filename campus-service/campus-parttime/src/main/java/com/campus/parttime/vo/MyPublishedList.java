@@ -9,6 +9,7 @@ import java.math.BigDecimal;
  */
 @Data
 public class MyPublishedList {
+    String jobId; // 兼职Id
     String jobTitle; // 兼职标题
     BigDecimal salary;  // 兼职薪资
     Integer status; // 兼职职位状态(0-开启，1-关闭，2-招满，3-完成)

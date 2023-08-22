@@ -94,39 +94,44 @@ uid:t2
 GET http://localhost:7006/campusParttime/parttime/searchApplyListToPublisher?jobId=1684841016020135937
 uid:t2
 
-### 15.查看已申请列表
+### 15.查看用户信息
+GET http://localhost:7006/campusParttime/parttime/getUserInfo?userId=2
+
+### 16.查看已申请列表
 GET http://localhost:7006/campusParttime/parttime/searchMyAppliedList
 uid:t1
 
-### 16.查看用户信息
-GET http://localhost:7006/campusParttime/parttime/getUserInfo?userId=2
-
 ### 17.查看已发布列表
 GET http://localhost:7006/campusParttime/parttime/searchMyPublishedList
-uid:20251102258
+uid:t1
 
 ### 18.查看进行中列表（uid为t2时，为成功示例;为t3时，为异常示例）
 GET http://localhost:7006/campusParttime/parttime/searchMyActiveList
 uid:t2
 
-### 19.查看执行订单详情(点击已超时和进行列表下的执行详情都是显示这个界面)
+### 19.查看已完成列表
+GET http://localhost:7006/campusParttime/parttime/searchMyFinishedList
+uid:t2
+
+### 20.查看执行订单详情(点击已完成，已超时和进行中列表下的执行详情都是显示这个界面)
 GET http://localhost:7006/campusParttime/parttime/getOperationDetail?operationId=1686349645426479107
 
-### 20.懒加载（可正常使用）
+### 21.懒加载（可正常使用）
 GET http://localhost:7006/campusParttime/parttime/lazyLoading?num=3
 
-### 21.用户点赞操作
+### 22.用户点赞操作
 GET http://localhost:7006/campusParttime/parttime/likeJob?jobId=1692826507982725121
 uid:t1
 
-### 22.用户取消点赞操作
+### 23.用户取消点赞操作
 GET http://localhost:7006/campusParttime/parttime/cancelLikeJob?jobId=1692826507982725121
 uid:t1
 
-### 23.用户收藏操作
+### 24.用户收藏操作
 GET http://localhost:7006/campusParttime/parttime/FavoritesJob?jobId=1692826507982725121
 uid:t1
 
-### 24.用户取消收藏操作
+### 25.用户取消收藏操作
 GET http://localhost:7006/campusParttime/parttime/cancelFavoritesJob?jobId=1692826507982725121
 uid:t1
+

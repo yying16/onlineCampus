@@ -476,6 +476,7 @@ public class ParttimeController {
                 showJob.setApplyStatus(1);
             }else showJob.setApplyStatus(0);
             // 设置发布者信息
+            showJob.setUserId(user.getUserId());
             showJob.setUserImage(user.getUserImage());
             showJob.setUsername(user.getUsername());
             showJob.setCredit(user.getCredit());
@@ -755,11 +756,12 @@ public class ParttimeController {
             String jobId = apply.getJobId();
             //通过兼职Id获取兼职信息
             Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
-            MyAppliedList jobList = new MyAppliedList();
+            MyAppliedList jobList;
             jobList = FormTemplate.analyzeTemplate(job, MyAppliedList.class);
             if(jobList==null){
                 return R.failed(null,"获取已申请列表异常");
             }
+            jobList.setApplicationId(apply.getApplicationId());
             jobList.setApplyStatus(apply.getStatus());
             jobList.setUpdateTime(apply.getUpdateTime());
             jobLists.add(jobList);
@@ -784,6 +786,7 @@ public class ParttimeController {
             if(jobList==null){
                 return R.failed(null,"您的进行中列表查看异常");
             }
+            jobList.setOperationId(operation.getOperationId());
             jobList.setStatus(operation.getStatus());
             jobLists.add(jobList);
         }
@@ -807,6 +810,7 @@ public class ParttimeController {
             if (finishedList == null) {
                 return R.failed(null, "查看已完成列表异常");
             }
+            finishedList.setOperationId(operation.getOperationId());
             finishedList.setStatus(operation.getStatus());
             finishedList.setUpdateTime(operation.getUpdateTime());
             finishedLists.add(finishedList);
