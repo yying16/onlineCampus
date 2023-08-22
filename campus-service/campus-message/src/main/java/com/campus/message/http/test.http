@@ -2,6 +2,10 @@
 GET http://localhost:7002/campusMessage/message/initMessage
 uid:t1
 
+###用户1点击【首页】-【消息】
+GET http://localhost:7002/campusMessage/message/clickMyMessage
+uid:t1
+
 ###模拟用户t2登录后的消息初始化(将消息写入缓存)
 GET http://localhost:7002/campusMessage/message/initMessage
 uid:t2
@@ -12,10 +16,10 @@ uid:t1
 Content-Type: application/json
 
 {
-  "content": "靓仔加个好友吧",
+  "content": "测试一下会话更新，消息发送给t2",
   "sender": "t1",
   "receiver": "t2",
-  "type": 2,
+  "type": 0,
   "isPhoto": false
 }
 

@@ -12,6 +12,7 @@ import com.campus.message.dao.MessageDao;
 import com.campus.message.domain.Message;
 import com.campus.message.service.MessageService;
 import com.campus.message.service.impl.MessageServiceImpl;
+import com.campus.message.service.impl.UserOnlineServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -55,6 +56,9 @@ public class WebSocket {
     @Autowired
     MessageDao messageDao;
 
+    @Autowired
+    UserOnlineServiceImpl userOnlineService;
+
 
     /**
      * 连接成功时
@@ -95,7 +99,8 @@ public class WebSocket {
         } else {
             Message msg = JSONObject.parseObject(message, Message.class);
             MessageService messageService = (MessageService) SpringContextUtil.getBean("messageServiceImpl");
-            messageService.sendMessage(msg);
+            messageService.sendMessage(msg); // 发送消息
+            messageService.updateMessageSession(msg); // 更新会话
         }
     }
 
@@ -131,7 +136,7 @@ public class WebSocket {
             }
         } else {
             Message msg = JSONObject.parseObject(message, Message.class);
-            if (session != null && session.isOpen()) { // 用户在线
+            if (userOnlineService.isOnline(toUserId)) { // 用户在线
                 log.info(msg.getReceiver() + " 在线");
                 try {
                     synchronized (session) {
@@ -151,6 +156,8 @@ public class WebSocket {
                             dialog.add(0, JSONObject.toJSON(msg)); // 在最底部添加聊天内容
                             friend.put("dialog", dialog);
                             redisTemplate.opsForHash().put("message" + receiver, sender, friend.toJSONString()); // 更新redis
+                            MessageService messageService = (MessageService) SpringContextUtil.getBean("messageServiceImpl");
+                            messageService.updateMessageSession(msg); // 更新会话
                         } else if (MessageType.of(msg.getType()) == REQUEST) { // 请求消息
                             log.info("消息类型为请求消息");
                             //更新对方的请求消息缓存
@@ -218,11 +225,4 @@ public class WebSocket {
         }
     }
 
-    /**
-     * 判断当前用户是否在线
-     */
-    public boolean isOnline(String userId) {
-        Session session = SESSION_POOL.get(userId);
-        return session != null && session.isOpen();
-    }
 }

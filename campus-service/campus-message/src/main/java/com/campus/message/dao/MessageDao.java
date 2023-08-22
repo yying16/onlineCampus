@@ -28,7 +28,7 @@ public interface MessageDao extends BaseMapper<Message> {
     @Select("select * from t_message where type = 2 and receiver = #{uid} and deleted = 0 order by create_time desc")
     List<Message> getRequestMessage(String uid);
 
-    @Select("select * from t_message where deleted = 0 and type = 0 and ((sender = #{uid}) or (receiver = #{uid})) order by create_time desc limit 300")
+    @Select("select * from t_message where deleted = 0 and type = 0 and ((sender = #{uid}) or (receiver = #{uid})) order by create_time desc limit 1200")
     List<Message> getMyAllDialog(String uid);
 
     @Select("select auto_reply from t_user where user_id = #{uid}")
