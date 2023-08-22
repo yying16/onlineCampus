@@ -11,7 +11,7 @@ import java.util.List;
 
 @Mapper
 public interface FavoritesDao extends BaseMapper<Favorites> {
-    @Select("select favorites_id from t_job_favorites where user_id=#{userId} and job_id=#{jobId} and deleted=false")
+    @Select("select favorites_id from t_job_favorites where user_id=#{userId} and job_id=#{jobId} and deleted=0")
     String searchFavoritesIsExist(String userId, String jobId);
 
     @Select("select favorites_id, user_id, job_id ,deleted, job_title from t_job_favorites where user_id= #{userId}")
