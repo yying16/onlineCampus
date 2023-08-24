@@ -21,4 +21,11 @@ public interface OperationDao extends BaseMapper<Operation> {
 
     @Update("update t_user set credit=t_user.credit-20 where user_id= #{userId}")
     void subCreditByJobId(String userId);
+
+    @Select("select * from t_operation where applicant_id=#{userId} and status=0 and deleted=0")
+    List<Operation> searchOperationListByUserId(String userId);
+
+    @Select("select * from t_operation where applicant_id=#{userId} and status in(1,4)  and deleted=0")
+    List<Operation> searchFinishedListByUserId(String userId);
+
 }
