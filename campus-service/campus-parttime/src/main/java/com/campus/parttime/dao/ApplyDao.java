@@ -17,7 +17,7 @@ public interface ApplyDao extends BaseMapper<Apply> {
     @Select("select applicant_id from t_apply where job_id = #{jobId}")
     List<String> selectByJobId(String jobId);
 
-    @Update("update t_user set credit=t_user.credit+5 where user_id= #{userId}")
+    @Update("update t_user set credit=t_user.credit+5 where user_id= #{userId} AND deleted=0" )
     void addCreditByJobId(String userId);
 
     @Select("select credit from t_user where user_id= #{userId}")
@@ -30,4 +30,12 @@ public interface ApplyDao extends BaseMapper<Apply> {
 
     @Select("select * from t_apply where applicant_id=#{applicantId} and deleted=0")
     List<Apply> searchApplyListByApplicantId(String applicantId);
+
+    @Select("select * from t_apply where job_id=#{jobId} and applicant_id=#{applicantId} and deleted=0")
+    Apply isJobApplyExist(String jobId, String applicantId);
+
+    @Select("select application_id from t_apply where applicant_id=#{applicantId} and job_id=#{jobId} and deleted=0")
+    String searchApplyIsExist(String applicantId, String jobId);
+
+
 }

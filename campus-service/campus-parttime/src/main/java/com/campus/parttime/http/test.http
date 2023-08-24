@@ -4,7 +4,7 @@ token: t1
 Content-Type: application/json
 
 {
-  "publisherId": "20251102210",
+  "publisherId": "20251102219",
   "jobTitle": "找家教",
   "jobContent": "每周三次，去五周，每天晚上7；00-9；00，地点:正佳广场附近300m",
   "salary": "1700",
@@ -43,7 +43,7 @@ GET http://localhost:7006/campusParttime/parttime/deleteJob?jobId=16883783513996
 token:t2
 
 ### 5.提交兼职申请
-GET http://localhost:7006/campusParttime/parttime/addJobApply?jobId=1688098914372386817
+GET http://localhost:7006/campusParttime/parttime/addJobApply?jobId=1684841016020135937
 uid:t2
 
 ### 6.删除兼职申请记录
@@ -90,11 +90,48 @@ uid:t1
 GET http://localhost:7006/campusParttime/parttime/getApplyDetail?applicationId=1686382859536871426
 uid:t2
 
-### 14.查看兼职申请列表
-GET http://localhost:7006/campusParttime/parttime/searchApplyList?jobId=1684904371313364993
-uid:20251102258
+### 14.发布者查看兼职申请列表
+GET http://localhost:7006/campusParttime/parttime/searchApplyListToPublisher?jobId=1684841016020135937
+uid:t2
 
+### 15.查看用户信息
+GET http://localhost:7006/campusParttime/parttime/getUserInfo?userId=2
 
-###
-GET http://localhost:9000/campusParttime/parttime/addVisitNum?jobId=1685853561371643906
-token:t1
+### 16.查看已申请列表
+GET http://localhost:7006/campusParttime/parttime/searchMyAppliedList
+uid:t1
+
+### 17.查看已发布列表
+GET http://localhost:7006/campusParttime/parttime/searchMyPublishedList
+uid:t1
+
+### 18.查看进行中列表（uid为t2时，为成功示例;为t3时，为异常示例）
+GET http://localhost:7006/campusParttime/parttime/searchMyActiveList
+uid:t2
+
+### 19.查看已完成列表
+GET http://localhost:7006/campusParttime/parttime/searchMyFinishedList
+uid:t2
+
+### 20.查看执行订单详情(点击已完成，已超时和进行中列表下的执行详情都是显示这个界面)
+GET http://localhost:7006/campusParttime/parttime/getOperationDetail?operationId=1686349645426479107
+
+### 21.懒加载（可正常使用）
+GET http://localhost:7006/campusParttime/parttime/lazyLoading?num=3
+
+### 22.用户点赞操作
+GET http://localhost:7006/campusParttime/parttime/likeJob?jobId=1692826507982725121
+uid:t1
+
+### 23.用户取消点赞操作
+GET http://localhost:7006/campusParttime/parttime/cancelLikeJob?jobId=1692826507982725121
+uid:t1
+
+### 24.用户收藏操作
+GET http://localhost:7006/campusParttime/parttime/FavoritesJob?jobId=1692826507982725121
+uid:t1
+
+### 25.用户取消收藏操作
+GET http://localhost:7006/campusParttime/parttime/cancelFavoritesJob?jobId=1692826507982725121
+uid:t1
+
