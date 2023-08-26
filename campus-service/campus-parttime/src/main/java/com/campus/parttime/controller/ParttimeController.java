@@ -345,7 +345,7 @@ public class ParttimeController {
      * （其他处理）若当前Id为兼职执行者或者兼职发布者，想修改执行订单状态为取消,系统会提示取消需要联系客服处理。
      */
     @ApiOperation("修改兼职操作状态")
-    @GetMapping("/updateOperationStatus")
+    @PostMapping("/updateOperationStatus")
     public R updateOperationStatus(@RequestHeader("uid") String posterId, @RequestBody OperationStatusUpdateForm form) {
         Operation operation = FormTemplate.analyzeTemplate(form, Operation.class);
         assert operation != null;
