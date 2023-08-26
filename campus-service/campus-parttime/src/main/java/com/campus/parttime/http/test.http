@@ -57,7 +57,7 @@ POST http://localhost:7006/campusParttime/parttime/passApply?applicationId=16852
 POST http://localhost:7006/campusParttime/parttime/rejectApply?applicationId=1685857430080196609
 
 ### 9.修改兼职操作状态
-GET http://localhost:7006/campusParttime/parttime/updateOperationStatus
+POST http://localhost:7006/campusParttime/parttime/updateOperationStatus
 uid:20251102258
 Content-Type: application/json
 
