@@ -20,7 +20,6 @@ public class UserOnlineServiceImpl implements UserOnlineService {
      */
     @Override
     public boolean isOnline(String uid) {
-        redisTemplate.opsForHash().values("message" + uid);
-        return true;
+        return redisTemplate.opsForHash().values("message" + uid).size()>0;
     }
 }
