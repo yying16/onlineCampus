@@ -211,7 +211,8 @@ public class DynamicController {
     public R addComment(@RequestBody AddCommentForm form){
         String dynamicId = form.getDynamicId();
         Comment comment = FormTemplate.analyzeTemplate(form, Comment.class);
-        assert comment != null;
+        comment.setSender(form.getSenderId());
+        comment.setReceiver(form.getReceiverId());
         Comment com = dynamicService.insertComment(dynamicId, comment);
         if(com!=null){
             return R.ok(com);

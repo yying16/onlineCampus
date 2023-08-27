@@ -192,7 +192,7 @@ public class ParttimeController {
      * 将该记录插入数据库中
      */
     @ApiOperation("提交兼职申请")
-    @GetMapping("/addJobApply")
+    @PostMapping("/addJobApply")
     public R addJobApply(@RequestHeader("uid") String applicantId, @RequestParam("jobId") String jobId) {
         Apply applySql = applyDao.isJobApplyExist(jobId, applicantId);
         if (applySql != null) {
