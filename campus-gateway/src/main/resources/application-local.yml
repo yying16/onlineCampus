@@ -14,6 +14,10 @@ spring:
         locator:
           enabled: true # 让gateway根据注册中心找到其他服务
       routes:
+        - id: websocket-route # websocket 转发
+          uri: lb:ws://campus-message
+          predicates:
+            - Path=/campusMessage/websocket/**
         - id: campus-contact   #路由 id,没有固定规则，但唯一，建议与服务名对应
           uri: lb://campus-contact          #匹配后提供服务的路由地址
           predicates:
@@ -36,6 +40,7 @@ spring:
           uri: lb://campus-message          #匹配后提供服务的路由地址
           predicates:
             - Path=/campusMessage/**
+            - Method=GET,POST,PUT,DELETE
           filters:
             - Token=true
         - id: campus-parttime   #路由 id,没有固定规则，但唯一，建议与服务名对应
