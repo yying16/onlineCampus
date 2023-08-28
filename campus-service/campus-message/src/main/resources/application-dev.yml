@@ -26,8 +26,9 @@ spring:
     username: root
     password: olcampus8888!
   redis:
-    cluster:
-      nodes: 117.72.15.203:6379,117.72.14.204:6379, 117.72.13.205:6379
+    database: 0
+    host: 117.72.15.203
+    port: 6379
     timeout: 10000
     password: olcampus8888!
   kafka:
