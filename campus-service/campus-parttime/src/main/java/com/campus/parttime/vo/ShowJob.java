@@ -11,6 +11,7 @@ import java.util.List;
  */
 @Data
 public class ShowJob {
+    String userId; // 用户id
     String userImage;   //用户头像
     String username;    //用户名(长度为2-12)
     Integer credit;     //信用值

@@ -3,6 +3,7 @@ package com.campus.message.service;
 import com.alibaba.fastjson.JSONObject;
 import com.campus.message.constant.MessageType;
 import com.campus.message.domain.Message;
+import com.campus.message.pojo.User;
 import com.campus.message.vo.InitUserMessageData;
 
 import java.util.List;
@@ -114,4 +115,20 @@ public interface MessageService {
      * 重新添加缓存
      * */
     boolean clearUnRead(String uid);
+
+
+    /**
+     * 获取会话好友列表
+     * */
+    List<User> getSessionFriends(String uid);
+
+
+    /**
+     * 更新session
+     *
+     * 判断消息的双方是否在线，
+     * 若在线，则更新其session缓存
+     * 若不在线，待其下一次登录时从数据库获取数据则会自动更新session
+     * */
+    boolean updateMessageSession(Message message);
 }

@@ -30,10 +30,10 @@ public class MessageController {
     StringRedisTemplate redisTemplate;
 
 
-    @ApiOperation("心跳检测")
-    @GetMapping("/heartTest/{uid}")
-    public R heartTest(@PathVariable String uid) {
-        return R.ok();
+//    @ApiOperation("心跳检测")
+//    @GetMapping("/heartTest/{uid}")
+//    public R heartTest(@PathVariable String uid) {
+//        return R.ok();
 //        String flag = redisTemplate.opsForValue().get("heart_" + uid);
 //        if (flag == null || flag.length() == 0) {
 //            return R.failed();
@@ -42,7 +42,7 @@ public class MessageController {
 //            return R.ok();
 //        }
 //        return R.failed();
-    }
+//    }
 
 
     @ApiOperation("发送消息(系统/用户/请求)")
@@ -60,11 +60,23 @@ public class MessageController {
     @GetMapping("/initMessage")
     public R initMessage(@RequestHeader("uid") String uid) {
         JSONObject jsonObject = messageService.initMessage(uid);
+        messageService.clickMyMessage(uid); // 添加会话缓存数据
         if (jsonObject != null) {
             return R.ok(jsonObject);
         }
         return R.failed();
     }
+
+    @ApiOperation("用户点击【首页】->【消息】时返回的好友消息会话列表")
+    @GetMapping("/clickMyMessage")
+    public R clickMyMessage(@RequestHeader("uid") String uid){
+        List<InitUserMessageData> list = messageService.clickMyMessage(uid);
+        if (list != null) {
+            return R.ok(list);
+        }
+        return R.failed();
+    }
+
 
     @ApiOperation("用户消息初始化")
     @GetMapping("/initUserMessage")

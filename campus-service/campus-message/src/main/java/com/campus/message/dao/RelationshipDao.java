@@ -18,6 +18,9 @@ public interface RelationshipDao extends BaseMapper<Relationship> {
     List<User> getFriends(String myId);
 
 
+    @Select("select distinct user_id, account,username,user_image,telephone,email,credit from t_message tm,t_user tu where ((tm.sender = #{myId} and tm.receiver = tu.user_id) or (tm.receiver = #{myId} and tm.sender != 'system' and tm.sender = tu.user_id) ) and tm.deleted = 0")
+    List<User> getSessionFriends(String myId);
+
     @Update("update t_relationship set deleted = 1 where (sender = #{uid} and receiver = #{friendId}) or (sender = #{friendId} and receiver = #{uid})")
     void deleteFriend(@Param("uid")String uid,@Param("friendId")String friendId);
 

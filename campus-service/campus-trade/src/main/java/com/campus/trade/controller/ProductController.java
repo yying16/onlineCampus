@@ -6,6 +6,7 @@ import com.campus.common.util.R;
 import com.campus.trade.domain.Image;
 import com.campus.trade.domain.Product;
 import com.campus.trade.dto.AddProductForm;
+import com.campus.trade.dto.GetProductListForm;
 import com.campus.trade.dto.SearchProductForm;
 import com.campus.trade.service.*;
 import com.campus.trade.vo.ShowProduct;
@@ -16,6 +17,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,11 +64,35 @@ public class ProductController {
         searchProductMap.put("description",name);
         searchProductMap.put("limit",offset+" "+10);
         List<ShowProduct> products =  productService.listProduct(searchProductMap);
-
+        if (products==null){
+            return R.ok(null,"当前没有任何商品");
+        }
+        if (products.size()==0){
+            return R.ok(null,"当前没有任何商品");
+        }
         return R.ok(products,"查询商品列表成功");
     }
 
-    //查看商品列表（条件懒加载）
+
+    //篩選器查看商品列表（条件懒加载）
+    @ApiOperation(value = "带篩選器和查询条件的查看商品列表（条件懒加载）")
+    @PostMapping("/getProductList")
+    public R getProductList(@RequestBody Map condition){
+
+        List<ShowProduct> products =  productService.listProduct(condition);
+        if (products==null){
+            return R.ok(null,"当前没有任何商品");
+        }
+        if (products.size()==0){
+            return R.ok(null,"当前没有任何商品");
+        }
+        return R.ok(products,"查询商品列表成功");
+    }
+
+
+
+
+    //查看商品列表
     @ApiOperation(value = "首页查看商品列表（懒加载）")
     @GetMapping("/list/{offset}")
     public R listProduct(@ApiParam("已展示的数据条数") @PathVariable("offset") Integer offset){

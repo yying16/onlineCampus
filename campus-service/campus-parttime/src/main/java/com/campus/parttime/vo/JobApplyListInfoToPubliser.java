@@ -7,6 +7,7 @@ import lombok.Data;
  */
 @Data
 public class JobApplyListInfoToPubliser {
+    String applicationId; // 兼职申请表编号
     String username; //申请用户名
     String applicantId;  // 申请用户Id
     Integer gender;     //性别
