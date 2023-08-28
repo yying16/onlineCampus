@@ -61,4 +61,6 @@ public interface UserService{
     boolean checkEmailCode(CheckEmailCodeForm form);
 
     R updateBalance(String userId, BigDecimal balance);
+
+    List<User> getUserWithNotAuth(Integer auth);
 }

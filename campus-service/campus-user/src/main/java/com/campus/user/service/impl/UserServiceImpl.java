@@ -1,6 +1,7 @@
 package com.campus.user.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.AES;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -41,6 +42,7 @@ import java.math.BigDecimal;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 
 @Service
 @Log4j2
@@ -375,6 +377,18 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         } else {
             return R.failed(null, "用户不存在");
         }
+    }
+
+    /**
+     * 获取未认证的用户列表
+     * @return
+     */
+    @Override
+    public List<User> getUserWithNotAuth(Integer auth) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(auth != null,User::getAuth,auth);
+        List<User> userList = userDao.selectList(wrapper);
+        return userList;
     }
 
 
