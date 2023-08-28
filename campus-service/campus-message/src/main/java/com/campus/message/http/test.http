@@ -1,6 +1,6 @@
 ### 模拟用户t1登录后的消息初始化(将消息写入缓存)
-GET http://localhost:7002/campusMessage/message/initMessage
-uid:t1
+GET http://localhost:9000/campusMessage/message/initMessage
+token:t2
 
 ###用户1点击【首页】-【消息】
 GET http://localhost:7002/campusMessage/message/clickMyMessage
@@ -10,13 +10,13 @@ uid:t1
 GET http://localhost:7002/campusMessage/message/initMessage
 uid:t2
 
-### 发送好友请求
-POST http://localhost:7002/campusMessage/message/send
+### 发送好友消息
+POST http://localhost:9000/campusMessage/message/send
 uid:t1
 Content-Type: application/json
 
 {
-  "content": "测试一下会话更新，消息发送给t2",
+  "content": "测试一下跨服务会话，消息发送给t2",
   "sender": "t1",
   "receiver": "t2",
   "type": 0,
