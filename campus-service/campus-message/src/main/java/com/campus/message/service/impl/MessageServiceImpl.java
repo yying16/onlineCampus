@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.pojo.ServiceData;
 import com.campus.common.service.ServiceCenter;
+import com.campus.common.util.SpringContextUtil;
 import com.campus.common.util.TimeUtil;
 import com.campus.message.constant.MessageStatus;
 import com.campus.message.constant.MessageType;
@@ -19,6 +20,8 @@ import com.campus.message.service.MessageService;
 import com.campus.message.socket.WebSocket;
 import com.campus.message.vo.InitUserMessageData;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -603,37 +606,56 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public boolean updateMessageSession(Message message) {
-        String sender = message.getSender();
-        String receiver = message.getReceiver();
-        String senderSession = redisTemplate.opsForValue().get("session" + sender);
-        String receiverSession = redisTemplate.opsForValue().get("session" + receiver);
-        if(senderSession!=null&&senderSession.length()>1){ // 存在缓存，即处于登录状态
-            List<InitUserMessageData> list1 = JSONArray.parseArray(senderSession,InitUserMessageData.class);
-            for (int i = 0; i < list1.size(); i++) {
-                if(list1.get(i).getUserId().equals(receiver)){ // 找到对应的位置
-                    InitUserMessageData data = list1.remove(i);
-                    data.setRecentContent(message.getContent());
-                    data.setRecentTime(TimeUtil.getCurrentTime());
-                    list1.add(0,data);
-                    redisTemplate.opsForValue().set("session" + sender,JSONArray.toJSONString(list1));
-                    break;
+        try{
+            RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+            String sender = message.getSender();
+            String receiver = message.getReceiver();
+            /**
+             * 修改缓存，在获取原先的缓存之前要先获取锁，
+             * 修改完之后释放锁
+             * */
+            RLock senderLock = redissonClient.getLock("session" + sender);
+            RLock receiverLock = redissonClient.getLock("session" + receiver);
+            senderLock.tryLock(30, 2, TimeUnit.SECONDS);
+            receiverLock.tryLock(30, 2, TimeUnit.SECONDS);
+            String senderSession = redisTemplate.opsForValue().get("session" + sender);
+            String receiverSession = redisTemplate.opsForValue().get("session" + receiver);
+            if(senderSession!=null&&senderSession.length()>1){ // 存在缓存，即处于登录状态
+                List<InitUserMessageData> list1 = JSONArray.parseArray(senderSession,InitUserMessageData.class);
+                for (int i = 0; i < list1.size(); i++) {
+                    if(list1.get(i).getUserId().equals(receiver)){ // 找到对应的位置
+                        InitUserMessageData data = list1.remove(i);
+                        data.setRecentContent(message.getContent());
+                        data.setRecentTime(TimeUtil.getCurrentTime());
+                        list1.add(0,data);
+                        redisTemplate.opsForValue().set("session" + sender,JSONArray.toJSONString(list1));
+                        break;
+                    }
                 }
             }
-        }
-        if(receiverSession!=null&&receiverSession.length()>1){ // 存在缓存，即处于登录状态
-            List<InitUserMessageData> list2 = JSONArray.parseArray(receiverSession,InitUserMessageData.class);
-            for (int i = 0; i < list2.size(); i++) {
-                if(list2.get(i).getUserId().equals(sender)){ // 找到对应的位置
-                    InitUserMessageData data = list2.remove(i);
-                    data.setRecentContent(message.getContent());
-                    data.setRecentTime(TimeUtil.getCurrentTime());
-                    list2.add(0,data);
-                    redisTemplate.opsForValue().set("session" + receiver,JSONArray.toJSONString(list2));
-                    break;
+            senderLock.unlock();
+            if(receiverSession!=null&&receiverSession.length()>1){ // 存在缓存，即处于登录状态
+                List<InitUserMessageData> list2 = JSONArray.parseArray(receiverSession,InitUserMessageData.class);
+                for (int i = 0; i < list2.size(); i++) {
+                    if(list2.get(i).getUserId().equals(sender)){ // 找到对应的位置
+                        InitUserMessageData data = list2.remove(i);
+                        data.setRecentContent(message.getContent());
+                        data.setRecentTime(TimeUtil.getCurrentTime());
+                        list2.add(0,data);
+                        redisTemplate.opsForValue().set("session" + receiver,JSONArray.toJSONString(list2));
+                        break;
+                    }
                 }
             }
+            receiverLock.tryLock(30, 2, TimeUnit.SECONDS);
+            return true;
+        }catch (InterruptedException ie){
+            log.info("【分布式锁】加锁或解锁失败");
+            ie.printStackTrace();
+        }catch (Exception e){
+            e.printStackTrace();
         }
-        return true;
+        return false;
     }
 
 
