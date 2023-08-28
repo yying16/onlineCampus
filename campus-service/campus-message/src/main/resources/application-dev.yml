@@ -18,19 +18,18 @@ spring:
         server-addr: 117.72.15.203:8848,117.72.14.204:8848,117.72.13.205:8848 # nacos集群
   datasource:
     druid:
-      url: jdbc:mysql://47.115.219.35:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
+      url: jdbc:mysql://117.72.15.203:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
       driverClassName: com.mysql.jdbc.Driver
       max-active: 20
       min-idle: 8
       initial-size: 10
     username: root
-    password: olcampus8888
+    password: olcampus8888!
   redis:
-    database: 3
-    host: 47.115.219.35
-    port: 6379
+    cluster:
+      nodes: 117.72.15.203:6379,117.72.14.204:6379, 117.72.13.205:6379
     timeout: 10000
-    password: olcampus8888
+    password: olcampus8888!
   kafka:
     bootstrap-servers: 117.72.15.203:9092,117.72.14.204:9092,117.72.13.205:9092 # kafka集群
     producer:
