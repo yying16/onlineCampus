@@ -55,6 +55,12 @@
         <httpclient.version>4.5.1</httpclient.version>
         <json.version>20170516</json.version>
         <validation.version>3.0.4</validation.version>
+        <mahout.version>0.9</mahout.version>
+        <commons-dbcp2.version>2.9.0</commons-dbcp2.version>
+        <mysql-connector-java.version>8.0.26</mysql-connector-java.version>
+        <jieba-analysis.version>1.0.2</jieba-analysis.version>
+        <hanlp.version>portable-1.8.4</hanlp.version>
+        <redisson.version>3.20.0</redisson.version>
     </properties>
 
     <dependencyManagement>
