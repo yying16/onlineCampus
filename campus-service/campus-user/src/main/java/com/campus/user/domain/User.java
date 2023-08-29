@@ -1,10 +1,7 @@
 package com.campus.user.domain;
 
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -51,4 +48,12 @@ public class User {
     String createTime; // 创建时间
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
     String updateTime; // 更新时间
+
+    Integer auth; //是否认证
+
+    @TableField(value = "auth_front_image")
+    String authFrontImage; //学生证正面照片
+
+    @TableField(value = "auth_back_image")
+    String authBackImage; // 学生证反面照片
 }

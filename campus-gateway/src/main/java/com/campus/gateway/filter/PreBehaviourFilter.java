@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  */
 @Component
 @Slf4j
-@Order(2)
+@Order(3)
 public class PreBehaviourFilter implements GlobalFilter {
 
     @Autowired

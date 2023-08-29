@@ -460,6 +460,37 @@ public class UserController {
         }else return R.failed(null,"更新失败，请重试");
     }
 
+    @ApiOperation(value = "管理员确认认证")
+    @PostMapping("/admin/auth/{userid}/{auth}")
+    public R adminAuth(
+            @ApiParam(value = "用户id", required = true) @PathVariable("userid") String userid,
+            @ApiParam(value = "是否认证", required = true) @PathVariable("auth") Integer auth){
+        User user = userService.getById(userid);
+        if (user == null){
+            return R.failed(null,"用户不存在");
+        }
+        if (auth == 1){
+            user.setAuth(auth);
+        }else if (auth == 0){
+            user.setAuth(auth);
+        }
+        userService.updateById(user);
+        return R.ok();
+    }
+
+    @ApiOperation("用户上传图片认证")
+    @PostMapping("/auth/{userid}")
+    public R userAuth(
+            @ApiParam(value = "用户id", required =  true) @PathVariable("userid") String userid,
+            @ApiParam(value = "正面学生证图片", required = true) String file1,
+            @ApiParam(value = "反面学生证图片", required = true) String file2){
+        User user = userService.getById(userid);
+        user.setAuthFrontImage(file1);
+        user.setAuthBackImage(file2);
+        serviceCenter.insert(user);
+        return R.ok("认证信息上传成功，请等待管理员的审核");
+    }
+
     /**
      * 违规用户列表（管理员查看：违规次数最多的用户排名）
      * 还需要添加（方法：点击某一用户的所有违规详情;数据统计：违规次数最多的用户排名）

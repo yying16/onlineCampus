@@ -22,7 +22,7 @@ import java.util.Objects;
  */
 @Component
 @Slf4j
-@Order(1)
+@Order(2)
 public class PostBehaviourFilter implements GlobalFilter {
 
     @Autowired
