@@ -117,7 +117,7 @@ public class DynamicController {
      */
     @ApiOperation("点赞动态")
     @GetMapping("/insertLike")
-    public R insertLike(@Param("dynamicId") String dynamicId, @RequestHeader("uid") String userId, @Param("username") String username) {
+    public R insertLike(@RequestParam("dynamicId") String dynamicId, @RequestHeader("uid") String userId, @RequestParam("username") String username) {
         long l = dynamicService.insertLike(dynamicId, userId, username);
         if (l == 0L)
             return R.failed();
@@ -133,7 +133,7 @@ public class DynamicController {
      */
     @ApiOperation("取消点赞")
     @GetMapping("/deleteLike")
-    public R deleteLike(@Param("dynamicId") String dynamicId, @Param("username") String username, @RequestHeader("uid") String userId) {
+    public R deleteLike(@RequestParam("dynamicId") String dynamicId, @RequestParam("username") String username, @RequestHeader("uid") String userId) {
         long l = dynamicService.deleteLike(dynamicId, String.valueOf(userId), username);
         if (l == 0L)
             return R.failed();

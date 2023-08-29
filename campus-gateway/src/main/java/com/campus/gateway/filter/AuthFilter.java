@@ -28,13 +28,14 @@ public class AuthFilter implements GlobalFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String token = exchange.getRequest().getHeaders().getFirst("token");
+        assert token != null;
+        if(token.equals("t1")||token.equals("t2")||token.equals("t3")||token.equals("t4")){ // 测试账号直接通过
+            return chain.filter(exchange);
+        }
         String uid = TokenUtil.getUidFromToken(token);
-
         String userJson = stringRedisTemplate.opsForValue().get("user"+uid);
-
         JSONObject jsonObject = JSONObject.parseObject(userJson);
         Integer auth = (Integer) jsonObject.get("auth");
-
         if (auth == null || auth.equals(0)){
             exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
             return exchange.getResponse().setComplete();

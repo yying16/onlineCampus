@@ -1,0 +1,71 @@
+###发布动态
+POST http://localhost:9000/campusContact/dynamic/insertDynamic
+token:t1
+Content-Type: application/json
+
+{
+  "promulgatorId": "t1",
+  "promulgatorName": "t1",
+  "promulgatorImage": "",
+  "content": "测试分布式",
+  "photos": [
+    "https://edu20230513.oss-cn-guangzhou.aliyuncs.com/2023/07/28/b32ffe52f6294ed98f9d62896c56caeb.jpg"
+  ],
+  "city": "广州市",
+  "address": "广东省广州市",
+  "label": ["测试"],
+  "status": 0
+}
+
+###点赞
+GET http://localhost:9000/campusContact/dynamic/insertLike?dynamicId=64ed89af2b8a00002d314cb6&username=t2
+token:t2
+
+###取消点赞
+GET http://localhost:9000/campusContact/dynamic/deleteLike?dynamicId=64ed89af2b8a00002d314cb6&username=t1
+token:t1
+
+###插入评论t1
+POST http://localhost:9000/campusContact/dynamic/addComment
+token:t1
+Content-Type: application/json
+
+{
+  "dynamicId": "64ed89af2b8a00002d314cb6",
+  "senderId": "t1",
+  "senderName": "t1",
+  "content": "测试评论t1"
+}
+
+###插入评论t2
+POST http://localhost:9000/campusContact/dynamic/addComment
+token:t2
+Content-Type: application/json
+
+{
+  "dynamicId": "64ed89af2b8a00002d314cb6",
+  "senderId": "t2",
+  "senderName": "t2",
+  "content": "测试评论t2"
+}
+
+###删除评论
+POST http://localhost:9000/campusContact/dynamic/deleteComment
+token:t1
+Content-Type: application/json
+
+{
+  "dynamicId": "64ed89af2b8a00002d314cb6",
+  "commentId": "1696407049731477505"
+}
+
+
+###删除评论
+POST http://localhost:9000/campusContact/dynamic/deleteComment
+token:t1
+Content-Type: application/json
+
+{
+  "dynamicId": "64ed89af2b8a00002d314cb6",
+  "commentId": "1696407360055447553"
+}

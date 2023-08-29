@@ -44,9 +44,10 @@ public class DynamicDao {
     /**
      * 往集合中的_id对象下的listName列表中插入新的元素object
      */
-    public long insertSubList(String _id, String listName, Object object) {
-        Query query = Query.query(Criteria.where("_id").is(_id));
+    public long insertSubList(String dynamicId, String listName, Object object) {
+        Query query = Query.query(Criteria.where("_id").is(dynamicId));
         Update update = new Update();
+        deleteSubList(dynamicId,listName,object);
         update.push(listName).each(object);
         UpdateResult result = mongoTemplate.updateFirst(query, update, "dynamic");
         return result.getModifiedCount();

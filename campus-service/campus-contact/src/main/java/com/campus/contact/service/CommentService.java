@@ -18,11 +18,11 @@ public interface CommentService {
 //     * */
 //    public List<Comment> deleteComment(String id);
 
-    /**
-     * 添加评论
-     * @param dynamicId 动态id
-     * @param comment 要添加的评论
-     * */
-    public boolean addComment(String dynamicId,Comment comment);
+//    /**
+//     * 添加评论
+//     * @param dynamicId 动态id
+//     * @param comment 要添加的评论
+//     * */
+//    public boolean addComment(String dynamicId,Comment comment);
 
 }

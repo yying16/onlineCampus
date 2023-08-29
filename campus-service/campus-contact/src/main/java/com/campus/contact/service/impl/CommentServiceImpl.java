@@ -84,17 +84,17 @@ public class CommentServiceImpl implements CommentService {
 //        return List;
 //    }
 
-    /**
-     * 添加评论
-     *
-     * @param dynamicId 动态id
-     * @param comment   要添加的评论
-     */
-    @Override
-    public boolean addComment(String dynamicId, Comment comment) {
-         Dynamic dynamic = dynamicDao.getDynamicById(dynamicId);
-
-
-        return false;
-    }
+//    /**
+//     * 添加评论
+//     *
+//     * @param dynamicId 动态id
+//     * @param comment   要添加的评论
+//     */
+//    @Override
+//    public boolean addComment(String dynamicId, Comment comment) {
+//         Dynamic dynamic = dynamicDao.getDynamicById(dynamicId);
+//
+//
+//        return false;
+//    }
 }
