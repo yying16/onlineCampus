@@ -8,6 +8,7 @@ import com.campus.message.dto.HandleRequestForm;
 import com.campus.message.dto.MessageForm;
 import com.campus.message.dto.PromptInformationForm;
 import com.campus.message.service.impl.MessageServiceImpl;
+import com.campus.message.service.impl.UserOnlineServiceImpl;
 import com.campus.message.vo.InitUserMessageData;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -28,6 +29,9 @@ public class MessageController {
 
     @Autowired
     StringRedisTemplate redisTemplate;
+
+    @Autowired
+    UserOnlineServiceImpl userOnlineService;
 
 
 //    @ApiOperation("心跳检测")
@@ -146,6 +150,15 @@ public class MessageController {
             return R.ok();
         }
         return R.failed();
+    }
+
+    @ApiOperation("用户是否登录")
+    @GetMapping("/isOnline")
+    public R isOnline(@RequestHeader("uid")String uid){
+        if(userOnlineService.isOnline(uid)){
+            return R.ok(true);
+        }
+        return R.failed(false);
     }
 
 
