@@ -4,6 +4,8 @@ import com.campus.common.util.R;
 import com.campus.user.domain.User;
 import com.campus.user.dto.*;
 import com.campus.user.vo.LoginMessage;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -63,4 +65,5 @@ public interface UserService{
     R updateBalance(String userId, BigDecimal balance);
 
     List<User> getUserWithNotAuth(Integer auth);
+
 }

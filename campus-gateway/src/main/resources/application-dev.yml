@@ -7,6 +7,7 @@ spring:
     nacos:
       discovery:
         server-addr: 117.72.15.203:8848,117.72.14.204:8848,117.72.13.205:8848 # nacos集群
+        ip: ${serverIp}
     gateway:
       httpclient:
         wiretap: true # 输出请求和响应的详细日志

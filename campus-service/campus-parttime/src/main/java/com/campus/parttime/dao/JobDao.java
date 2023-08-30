@@ -3,8 +3,7 @@ package com.campus.parttime.dao;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.campus.parttime.domain.Apply;
 import com.campus.parttime.domain.Job;
-import com.campus.parttime.pojo.FavoritesList;
-import com.campus.user.domain.User;
+import com.campus.parttime.pojo.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 

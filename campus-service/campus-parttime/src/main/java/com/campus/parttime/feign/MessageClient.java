@@ -2,13 +2,11 @@ package com.campus.parttime.feign;
 
 
 import com.campus.common.util.R;
-import com.campus.message.dto.HandleRequestForm;
-import com.campus.message.dto.MessageForm;
-import com.campus.message.dto.PromptInformationForm;
-import io.swagger.annotations.ApiOperation;
+import com.campus.parttime.pojo.HandleRequestForm;
+import com.campus.parttime.pojo.MessageForm;
+import com.campus.parttime.pojo.PromptInformationForm;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;

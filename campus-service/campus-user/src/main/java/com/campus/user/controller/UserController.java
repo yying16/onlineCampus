@@ -101,7 +101,7 @@ public class UserController {
     //更新用户信息
     @ApiOperation(value = "更新用户信息")
     @PostMapping("/updateUser")
-    public R updateUser(@ApiParam("用户对象") @RequestBody UpdateUserForm updateUserForm,@RequestHeader("uid") String uid) {
+    public R updateUser(@ApiParam("用户对象") @RequestBody UpdateUserForm updateUserForm, @RequestHeader("uid") String uid) {
         User user = new User();
         BeanUtils.copyProperties(updateUserForm, user);
         user.setUserId(uid);
@@ -117,7 +117,7 @@ public class UserController {
     //修改用户头像
     @ApiOperation(value = "修改用户头像")
     @PostMapping("/updateAvatar")
-    public R updateAvatar(@RequestParam("avatar") String avatar,@RequestHeader("uid") String uid) {
+    public R updateAvatar(@RequestParam("avatar") String avatar, @RequestHeader("uid") String uid) {
         User user = new User();
         user.setUserId(uid);
         user.setUserImage(avatar);
@@ -132,7 +132,7 @@ public class UserController {
     //修改用户地址
     @ApiOperation(value = "修改用户地址")
     @PostMapping("/updateAddress")
-    public R updateAddress(@RequestParam("address") String address,@RequestHeader("uid") String uid) {
+    public R updateAddress(@RequestParam("address") String address, @RequestHeader("uid") String uid) {
         User user = new User();
         user.setUserId(uid);
         user.setAddress(address);
@@ -334,7 +334,7 @@ public class UserController {
      */
     @ApiOperation(value = "查询用户余额")
     @GetMapping("/getBalance/{userId}")
-    public BigDecimal getBalance(@ApiParam("用户id") @PathVariable("userId")  String userId) {
+    public BigDecimal getBalance(@ApiParam("用户id") @PathVariable("userId") String userId) {
         User user = userService.getById(userId);
         if (user != null) {
             BigDecimal balance = user.getBalance();
@@ -350,14 +350,14 @@ public class UserController {
      */
     @ApiOperation(value = "查看用户充值记录")
     @GetMapping("/getRechargeRecord")
-    public R getRechargeRecord(@RequestHeader("uid")  String userId) {
+    public R getRechargeRecord(@RequestHeader("uid") String userId) {
         //根据用户id查询卡密使用记录
         QueryWrapper<Card> wrapper = new QueryWrapper<>();
         wrapper.eq("uid", userId);
         List<Card> list = cardService.list(wrapper);
         List<RechargeRecord> rechargeRecordList = new ArrayList<>();
         //遍历卡密，获取卡密对应的充值记录
-        for (Card c: list){
+        for (Card c : list) {
             String cardsmid = c.getCardsmid();
             QueryWrapper<CardSM> wrapper1 = new QueryWrapper<>();
             wrapper1.eq("id", cardsmid);
@@ -365,7 +365,7 @@ public class UserController {
             if (cardSM == null) {
                 return R.failed(null, "卡密不存在");
             }
-            if(cardSM.getName().equals("充值卡")){
+            if (cardSM.getName().equals("充值卡")) {
                 RechargeRecord rechargeRecord = new RechargeRecord();
                 rechargeRecord.setId(c.getId());
                 rechargeRecord.setUserId(c.getUid());
@@ -382,23 +382,20 @@ public class UserController {
     }
 
 
-
-
-
     /**
      * 举报用户操作
      */
     @ApiOperation("举报用户操作")
     @GetMapping("/reportUser")
-    public R reportUser(@RequestBody ReportInsertForm form ){
+    public R reportUser(@RequestBody ReportInsertForm form) {
         Report report = FormTemplate.analyzeTemplate(form, Report.class);
-        assert report!=null;
+        assert report != null;
         report.setReportId(IdWorker.getIdStr(report));
         report.setReport_status(0);
-        if(!serviceCenter.insertMySql(report)) {
-            return R.failed(null,"举报失败，请重试");
+        if (!serviceCenter.insertMySql(report)) {
+            return R.failed(null, "举报失败，请重试");
         }
-        return R.ok(null,"举报信息提交成功");
+        return R.ok(null, "举报信息提交成功");
     }
 
     /**
@@ -406,7 +403,7 @@ public class UserController {
      */
     @ApiOperation(value = "修改用户余额")
     @PutMapping("/updateBalance/{userId}/{balance}")
-    public R updateBalance(@ApiParam("用户id") @PathVariable("userId")  String userId, @PathVariable("balance") BigDecimal balance) {
+    public R updateBalance(@ApiParam("用户id") @PathVariable("userId") String userId, @PathVariable("balance") BigDecimal balance) {
         return userService.updateBalance(userId, balance);
 
     }
@@ -418,19 +415,19 @@ public class UserController {
      */
     @ApiOperation("举报状态修改")
     @GetMapping("/updateReportStatus")
-    public R updateReportStatus(@RequestParam("reportId") String reportId, @RequestParam("reportStatus")Integer reportStatus){
-        Report report = (Report) serviceCenter.selectMySql(reportId,Report.class);
-        if(report==null){
-            return R.failed(null,"举报不存在");
+    public R updateReportStatus(@RequestParam("reportId") String reportId, @RequestParam("reportStatus") Integer reportStatus) {
+        Report report = (Report) serviceCenter.selectMySql(reportId, Report.class);
+        if (report == null) {
+            return R.failed(null, "举报不存在");
         }
         report.setReport_status(reportStatus);
-        if(!serviceCenter.updateMySql(report)) {
-            if(reportStatus==1){ // 当管理员通过举报请求后
-                addBreaker(report.getReported_id(),report.getReport_content());// 调用addBreak方法将该用户添加到违规用户列表中
+        if (!serviceCenter.updateMySql(report)) {
+            if (reportStatus == 1) { // 当管理员通过举报请求后
+                addBreaker(report.getReported_id(), report.getReport_content());// 调用addBreak方法将该用户添加到违规用户列表中
             }
-            return R.failed(null,"举报状态修改失败,请重试");
+            return R.failed(null, "举报状态修改失败,请重试");
         }
-        return R.ok(null,"举报状态修改成功");
+        return R.ok(null, "举报状态修改成功");
     }
 
     /**
@@ -440,10 +437,10 @@ public class UserController {
      */
     @ApiOperation("违规用户处理")
     @GetMapping("/addBreaker")
-    public R addBreaker(@RequestParam("breakerId")String breakerId, @RequestParam("breakText")String breakText){
-        User user = (User)serviceCenter.selectMySql(breakerId,User.class);
-        if(user==null){
-            return R.failed(null,"该用户不存在");
+    public R addBreaker(@RequestParam("breakerId") String breakerId, @RequestParam("breakText") String breakText) {
+        User user = (User) serviceCenter.selectMySql(breakerId, User.class);
+        if (user == null) {
+            return R.failed(null, "该用户不存在");
         }
         Breaker breaker = new Breaker();
         breaker.setBreakId(IdWorker.getIdStr(breaker));
@@ -451,27 +448,27 @@ public class UserController {
         breaker.setBreakerAccount(user.getAccount());
         breaker.setBreakerName(user.getUsername());
         breaker.setBreakText(breakText);
-        if(serviceCenter.insertMySql(breaker)) {
-            user.setBreakNum(user.getBreakNum()+1);
-            if(!serviceCenter.updateMySql(user)){
-                return R.failed(null,"用户记录更新失败");
+        if (serviceCenter.insertMySql(breaker)) {
+            user.setBreakNum(user.getBreakNum() + 1);
+            if (!serviceCenter.updateMySql(user)) {
+                return R.failed(null, "用户记录更新失败");
             }
             return R.ok();
-        }else return R.failed(null,"更新失败，请重试");
+        } else return R.failed(null, "更新失败，请重试");
     }
 
     @ApiOperation(value = "管理员确认认证")
     @PostMapping("/admin/auth/{userid}/{auth}")
     public R adminAuth(
             @ApiParam(value = "用户id", required = true) @PathVariable("userid") String userid,
-            @ApiParam(value = "是否认证", required = true) @PathVariable("auth") Integer auth){
+            @ApiParam(value = "是否认证", required = true) @PathVariable("auth") Integer auth) {
         User user = userService.getById(userid);
-        if (user == null){
-            return R.failed(null,"用户不存在");
+        if (user == null) {
+            return R.failed(null, "用户不存在");
         }
-        if (auth == 1){
+        if (auth == 1) {
             user.setAuth(auth);
-        }else if (auth == 0){
+        } else if (auth == 0) {
             user.setAuth(auth);
         }
         userService.updateById(user);
@@ -481,9 +478,9 @@ public class UserController {
     @ApiOperation("用户上传图片认证")
     @PostMapping("/auth/{userid}")
     public R userAuth(
-            @ApiParam(value = "用户id", required =  true) @PathVariable("userid") String userid,
+            @ApiParam(value = "用户id", required = true) @PathVariable("userid") String userid,
             @ApiParam(value = "正面学生证图片", required = true) String file1,
-            @ApiParam(value = "反面学生证图片", required = true) String file2){
+            @ApiParam(value = "反面学生证图片", required = true) String file2) {
         User user = userService.getById(userid);
         user.setAuthFrontImage(file1);
         user.setAuthBackImage(file2);
@@ -491,12 +488,11 @@ public class UserController {
         return R.ok("认证信息上传成功，请等待管理员的审核");
     }
 
+
     /**
      * 违规用户列表（管理员查看：违规次数最多的用户排名）
      * 还需要添加（方法：点击某一用户的所有违规详情;数据统计：违规次数最多的用户排名）
      */
-
-
 
 
     /**

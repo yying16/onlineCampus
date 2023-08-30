@@ -1,10 +1,10 @@
 package com.campus.parttime.feign.hystrix;
 
 import com.campus.common.util.R;
-import com.campus.message.dto.HandleRequestForm;
-import com.campus.message.dto.MessageForm;
-import com.campus.message.dto.PromptInformationForm;
 import com.campus.parttime.feign.MessageClient;
+import com.campus.parttime.pojo.HandleRequestForm;
+import com.campus.parttime.pojo.MessageForm;
+import com.campus.parttime.pojo.PromptInformationForm;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
