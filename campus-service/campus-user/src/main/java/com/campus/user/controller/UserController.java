@@ -394,7 +394,7 @@ public class UserController {
         Report report = FormTemplate.analyzeTemplate(form, Report.class);
         assert report!=null;
         report.setReportId(IdWorker.getIdStr(report));
-        report.setReport_status(0);
+        report.setReportStatus(0);
         if(!serviceCenter.insertMySql(report)) {
             return R.failed(null,"举报失败，请重试");
         }
@@ -412,7 +412,7 @@ public class UserController {
     }
 
     /**
-     * 举报状态修改：
+     * 举报状态修改：(管理员进行)
      * 举报状态（0-审核中，1-确认，2-驳回）
      * 若状态为确认，则调用addBreaker方法新增违规用户记录。
      */
@@ -423,10 +423,10 @@ public class UserController {
         if(report==null){
             return R.failed(null,"举报不存在");
         }
-        report.setReport_status(reportStatus);
+        report.setReportStatus(reportStatus);
         if(!serviceCenter.updateMySql(report)) {
             if(reportStatus==1){ // 当管理员通过举报请求后
-                addBreaker(report.getReported_id(),report.getReport_content());// 调用addBreak方法将该用户添加到违规用户列表中
+                addBreaker(report.getReportedId(),report.getReportContent());// 调用addBreak方法将该用户添加到违规用户列表中
             }
             return R.failed(null,"举报状态修改失败,请重试");
         }

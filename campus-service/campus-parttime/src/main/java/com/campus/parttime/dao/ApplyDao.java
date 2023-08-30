@@ -21,7 +21,7 @@ public interface ApplyDao extends BaseMapper<Apply> {
     void addCreditByJobId(String userId);
 
     @Select("select credit from t_user where user_id= #{userId}")
-    Integer selectCreditByJobId(String userId);
+    Integer selectCreditByUserId(String userId);
 
 
 
