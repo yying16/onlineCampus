@@ -2,9 +2,6 @@ package com.campus.common.service;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.nacos.api.NacosFactory;
-import com.alibaba.nacos.api.config.ConfigService;
-import com.alibaba.nacos.api.exception.NacosException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -12,8 +9,6 @@ import com.campus.common.pojo.Image;
 import com.campus.common.util.SpringContextUtil;
 import com.campus.common.util.TimeUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.ansj.library.DicLibrary;
-import org.ansj.splitWord.analysis.NlpAnalysis;
 import org.apache.mahout.cf.taste.impl.model.jdbc.MySQLJDBCDataModel;
 import org.apache.mahout.cf.taste.impl.neighborhood.ThresholdUserNeighborhood;
 import org.apache.mahout.cf.taste.impl.recommender.GenericItemBasedRecommender;
@@ -25,8 +20,6 @@ import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.apache.mahout.cf.taste.recommender.UserBasedRecommender;
 import org.apache.mahout.cf.taste.similarity.ItemSimilarity;
 import org.apache.mahout.cf.taste.similarity.UserSimilarity;
-import org.nlpcn.commons.lang.tire.domain.Forest;
-import org.nlpcn.commons.lang.tire.library.Library;
 import org.springframework.beans.MethodInvocationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -37,12 +30,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.ansj.domain.Term;
-import org.ansj.library.DicLibrary;
-import org.ansj.splitWord.analysis.*;
-import org.nlpcn.commons.lang.tire.domain.Forest;
-import org.nlpcn.commons.lang.tire.domain.Value;
-import org.nlpcn.commons.lang.tire.library.Library;
 
 import javax.annotation.Resource;
 import javax.sql.DataSource;
@@ -54,7 +41,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -101,16 +87,18 @@ public class ServiceCenter {
     private ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(); // 线程池
 
 
+
+
     /**
      * 从用户登录开始设置一个计时器，每五分钟更新一次高频词汇，并将高频词汇写入redis
-     * <p>
+     *
      * 猜你喜欢（点击搜索框弹出下拉窗口）
      * <p>
      * 协同过滤算法获取相关产品（10个）
      * 数据库获取最近访问的产品（10个）
      * 结巴分词获取高频词汇(过滤掉无效高频词)
      */
-    public <T> List<String> guessYouLikes(String uid, Class<T> clazz, String... args) {
+    public <T> List<String> guessYouLikes(String uid, Class<T> clazz, String titleArg) {
         try {
             String className = getName(clazz);
             String tableName = "t_" + className + "_record";
@@ -125,16 +113,11 @@ public class ServiceCenter {
             List<String> list2 = recommendations.stream().map(r -> String.valueOf(r.getItemID())).collect(Collectors.toList());
             list1.addAll(list2); // 连接列表
             List<T> sources = getTuplesByIds(list1, clazz);
-            StringBuffer summarize = new StringBuffer(); // 将有效信息进行拼接
-            for (int i = 0; i < sources.size(); i++) {
-                for (String arg : args) {
-                    summarize.append(getArg(sources.get(i), arg));
-                }
+            List<String> ret = new ArrayList<>();
+            for (T source : sources) {
+                ret.add(String.valueOf(getArg(source, titleArg)));
             }
-
-
-            //结巴分词处理
-            return new ArrayList<>();
+            return ret;
         } catch (Exception e) {
             e.printStackTrace();
             return new ArrayList<>();
@@ -143,29 +126,19 @@ public class ServiceCenter {
 
     /**
      * jieba分词处理
-     * <p>
+     *
      * 录入字典（从nacos获取数据）
      * 分词
      * 过滤词性（保留名词）
      * 统计高频词
-     * <p>
+     *
      * 返回最高频的10个词
      */
-    private List<String> jiebaAnalyse(String content) {
-        List<String> dictionary = JSONArray.parseArray(redisTemplate.opsForValue().get("dictionary"), String.class); //获取数据词典
-        List<Value> list = new ArrayList<>();
-        assert dictionary != null;
-        for(String word:dictionary){
-            list.add(new Value(DicLibrary.DEFAULT, word));
-        }
-        Forest forest = Library.makeForest(list);
-        String regex = "[^\\u4E00-\\u9FA5]";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(content);
-        String result = matcher.replaceAll("");
-        List<Term> terms = NlpAnalysis.parse(result, forest).getTerms();
-        return terms.stream().map(term -> term.getName()).collect(Collectors.toList());
-
+    private static List<String> jiebaAnalyse(String content) {
+//        JiebaSegmenter segmenter = new JiebaSegmenter();
+//        List<SegToken> tokens = segmenter.process(content, JiebaSegmenter.SegMode.SEARCH);
+//        return tokens.stream().map(token->token.word).collect(Collectors.toList());
+        return null;
     }
 
 
@@ -499,6 +472,7 @@ public class ServiceCenter {
         mapper.updateById(t);
         return true;
     }
+
 
 
     /**
@@ -1224,6 +1198,5 @@ public class ServiceCenter {
         c = c.replaceAll("([a-z])([A-Z])", "$1" + separator + "$2").toLowerCase();
         return c;
     }
-
 
 }

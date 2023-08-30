@@ -33,6 +33,7 @@ import org.thymeleaf.context.Context;
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -487,6 +488,39 @@ public class UserController {
         serviceCenter.insert(user);
         return R.ok("认证信息上传成功，请等待管理员的审核");
     }
+
+
+    /**
+     * 搜索记录
+     */
+    @ApiOperation("添加搜索记录")
+    @PostMapping("/insertSearchRecord")
+    public R insertSearchRecord(@RequestBody SearchForm searchForm, @RequestHeader("uid") String uid) {
+        Search search = FormTemplate.analyzeTemplate(searchForm,Search.class);
+        assert search != null;
+        search.setSearchUser(uid);
+        search.setSearchId(IdWorker.getIdStr(search));
+        if (serviceCenter.insertMySql(search)) {
+            return R.ok();
+        }
+        return R.failed();
+    }
+
+    /**
+     * 查看最近的搜索记录（限10条）
+     */
+    @ApiOperation("查看最近搜索记录")
+    @GetMapping("/getSearchRecord")
+    public R getSearchRecord(@RequestHeader("uid") String uid) {
+        List search = serviceCenter.search(new HashMap() {{
+            put("searchUser", uid);
+            put("order", "createTime desc");
+            put("limit", 10);
+        }}, Search.class);
+        return R.ok(search);
+    }
+
+
 
 
     /**

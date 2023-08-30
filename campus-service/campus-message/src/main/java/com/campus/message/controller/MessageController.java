@@ -7,6 +7,7 @@ import com.campus.message.domain.Message;
 import com.campus.message.dto.HandleRequestForm;
 import com.campus.message.dto.MessageForm;
 import com.campus.message.dto.PromptInformationForm;
+import com.campus.message.service.UserOnlineService;
 import com.campus.message.service.impl.MessageServiceImpl;
 import com.campus.message.service.impl.UserOnlineServiceImpl;
 import com.campus.message.vo.InitUserMessageData;
