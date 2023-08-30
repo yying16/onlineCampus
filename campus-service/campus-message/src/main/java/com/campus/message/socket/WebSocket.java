@@ -14,9 +14,14 @@ import com.campus.message.service.MessageService;
 import com.campus.message.service.impl.MessageServiceImpl;
 import com.campus.message.service.impl.UserOnlineServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
+import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.web.client.RestTemplate;
 
 import javax.websocket.OnClose;
@@ -59,6 +64,9 @@ public class WebSocket {
     @Autowired
     UserOnlineServiceImpl userOnlineService;
 
+
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
 
     /**
      * 连接成功时
@@ -129,17 +137,30 @@ public class WebSocket {
      * @param message  消息
      */
     public void sendOneMessage(String toUserId, String message) {
-        Session session = SESSION_POOL.get(toUserId);
-        if (message.equals("ok")) {
-            synchronized (session) {
-                session.getAsyncRemote().sendText(message); // 消息转发
-            }
-        } else {
-            Message msg = JSONObject.parseObject(message, Message.class);
-            if (userOnlineService.isOnline(toUserId)) { // 用户在线
-                log.info(msg.getReceiver() + " 在线");
+        /**
+         * 分布式
+         * 先判断本地是否存储对应的会话
+         * */
+        RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+        if (isExistSession(toUserId)) { // 存在本地
+            Session session = SESSION_POOL.get(toUserId);
+            String key = "SESSION_" + toUserId;
+            if (message.equals("ok")) {
+                RLock rLock = redissonClient.getLock(key);
                 try {
-                    synchronized (session) {
+                    rLock.tryLock(10, 1, TimeUnit.SECONDS);
+                    session.getAsyncRemote().sendText(message); // 消息转发
+                    rLock.unlock();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                Message msg = JSONObject.parseObject(message, Message.class);
+                if (userOnlineService.isOnline(toUserId)) { // 用户在线
+                    log.info(msg.getReceiver() + " 在线");
+                    try {
+                        RLock rLock = redissonClient.getLock(key);
+                        rLock.tryLock(60, 10, TimeUnit.SECONDS);
                         session.getAsyncRemote().sendText(message); // 消息转发
                         String sender = msg.getSender();
                         String receiver = msg.getReceiver();
@@ -173,36 +194,41 @@ public class WebSocket {
                             systemMessage.add(0, JSONObject.toJSON(msg)); // 添加请求内容
                             redisTemplate.opsForHash().put("message" + receiver, "system", systemMessage.toJSONString()); // 更新redis
                         }
+                        rLock.unlock();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            } else { // 用户不在线
-                log.info(msg.getReceiver() + " 不在线");
-                if (MessageType.of(msg.getType()) == USER) { // 用户消息
-                    log.info("消息类型为用户消息");
-                    if (redisTemplate.opsForHash().hasKey("autoReply", msg.getReceiver())) { // 有自动回复（离线）
-                        log.info("对方设置了自动回复");
-                        String replyContent = String.valueOf(redisTemplate.opsForHash().get("autoReply", msg.getReceiver()));
-                        Message reply = new Message(); // 设置自动回复消息
-                        reply.setSender(msg.getReceiver());
-                        reply.setReceiver(msg.getSender());
-                        reply.setContent(replyContent);
-                        reply.setMessageId(IdWorker.getIdStr(reply));
-                        reply.setType(MessageType.AUTOMATIC.code);
-                        reply.setDeleted(false);
-                        reply.setIsPhoto(false);
-                        reply.setStatus(MessageStatus.READ.code);
-                        reply.setCreateTime(TimeUtil.getCurrentTime());
-                        reply.setUpdateTime(TimeUtil.getCurrentTime());
-                        String replyStr = JSONObject.toJSONString(reply);
-                        messageDao.insert(reply);
-                        sendOneMessage(msg.getSender(), replyStr); // 自动回复
+                } else { // 用户不在线
+                    log.info(msg.getReceiver() + " 不在线");
+                    if (MessageType.of(msg.getType()) == USER) { // 用户消息
+                        log.info("消息类型为用户消息");
+                        if (redisTemplate.opsForHash().hasKey("autoReply", msg.getReceiver())) { // 有自动回复（离线）
+                            log.info("对方设置了自动回复");
+                            String replyContent = String.valueOf(redisTemplate.opsForHash().get("autoReply", msg.getReceiver()));
+                            Message reply = new Message(); // 设置自动回复消息
+                            reply.setSender(msg.getReceiver());
+                            reply.setReceiver(msg.getSender());
+                            reply.setContent(replyContent);
+                            reply.setMessageId(IdWorker.getIdStr(reply));
+                            reply.setType(MessageType.AUTOMATIC.code);
+                            reply.setDeleted(false);
+                            reply.setIsPhoto(false);
+                            reply.setStatus(MessageStatus.READ.code);
+                            reply.setCreateTime(TimeUtil.getCurrentTime());
+                            reply.setUpdateTime(TimeUtil.getCurrentTime());
+                            String replyStr = JSONObject.toJSONString(reply);
+                            messageDao.insert(reply);
+                            sendOneMessage(msg.getSender(), replyStr); // 自动回复
+                        }
                     }
                 }
             }
+        } else { // 不在本地，则通过消息中间件发送消息到别的服务
+            String topic = "WEBSOCKET";
+            ListenableFuture<SendResult<String, String>> future = kafkaTemplate.send(topic, toUserId, message);
+            future.addCallback(result -> log.info("消息成功同步到topic:{} partition:{}", result.getRecordMetadata().topic(), result.getRecordMetadata().partition()),
+                    ex -> log.error("消息同步失败，原因：{}", ex.getMessage()));
         }
-
     }
 
     /**
@@ -223,6 +249,13 @@ public class WebSocket {
                 }
             }
         }
+    }
+
+    /**
+     * 判断当前id对应的会话是否存在该服务器本地
+     */
+    public boolean isExistSession(String userId) {
+        return SESSION_POOL.containsKey(userId);
     }
 
 }

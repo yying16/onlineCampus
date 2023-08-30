@@ -25,7 +25,7 @@ public class ProductBloomTask {
     @Autowired
     private BloomFilterService bloomFilterService;
 
-    @Scheduled(cron = "0 0/10 0 * * ?")
+    @Scheduled(cron = "0 0/10 * * * ?")
     public void task(){
         try {
             List<Product> productList = productService.list();

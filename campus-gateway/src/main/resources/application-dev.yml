@@ -6,16 +6,28 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 117.72.10.120:8848 #Nacos地址
+        server-addr: 117.72.15.203:8848,117.72.14.204:8848,117.72.13.205:8848 # nacos集群
     gateway:
+      httpclient:
+        wiretap: true # 输出请求和响应的详细日志
       discovery:
         locator:
           enabled: true # 让gateway根据注册中心找到其他服务
       routes:
-        - id: campus-test   #路由 id,没有固定规则，但唯一，建议与服务名对应
-          uri: lb://campus-test          #匹配后提供服务的路由地址
+        - id: websocket-route # websocket 转发
+          uri: lb:ws://campus-message
           predicates:
-            - Path=/campusTest/**
+            - Path=/campusMessage/websocket/**
+        - id: campus-contact   #路由 id,没有固定规则，但唯一，建议与服务名对应
+          uri: lb://campus-contact          #匹配后提供服务的路由地址
+          predicates:
+            - Path=/campusContact/**
+          filters:
+            - Token=true
+        - id: campus-recruit   #路由 id,没有固定规则，但唯一，建议与服务名对应
+          uri: lb://campus-recruit          #匹配后提供服务的路由地址
+          predicates:
+            - Path=/campusRecruit/**
           filters:
             - Token=true
         - id: campus-user   #路由 id,没有固定规则，但唯一，建议与服务名对应
@@ -28,14 +40,47 @@ spring:
           uri: lb://campus-message          #匹配后提供服务的路由地址
           predicates:
             - Path=/campusMessage/**
+            - Method=GET,POST,PUT,DELETE
           filters:
             - Token=true
+        - id: campus-parttime   #路由 id,没有固定规则，但唯一，建议与服务名对应
+          uri: lb://campus-parttime          #匹配后提供服务的路由地址
+          predicates:
+            - Path=/campusParttime/**
+          filters:
+            - Token=true
+        - id: campus-trade   #路由 id,没有固定规则，但唯一，建议与服务名对应
+          uri: lb://campus-trade          #匹配后提供服务的路由地址
+          predicates:
+            - Path=/campusTrade/**
+          filters:
+            - Token=true
+  datasource:
+    druid:
+      url: jdbc:mysql://117.72.15.203:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
+      driverClassName: com.mysql.jdbc.Driver
+      max-active: 20
+      min-idle: 8
+      initial-size: 10
+    username: root
+    password: olcampus8888!
   redis:
-    database: 1
-    host: 47.115.219.35
+    database: 0
+    host: 117.72.15.203
     port: 6379
     timeout: 10000
-    password: olcampus8888
+    password: olcampus8888!
+
+mybatis-plus:
+  global-config:
+    db-config:
+      table-prefix: t_
+      id-type: auto
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.campus.user.domain
+  configuration:
+    map-underscore-to-camel-case: true
+
 management:
   endpoints:
     web:
@@ -44,6 +89,11 @@ management:
 
 exclude:
   patterns: # 网关非过滤路径
-    - '/campus-user/login'
-    - '/campus-user/register'
-    - '/campus-user/send'
+    - '/campusUser/login'
+    - '/campusUser/register'
+    - '/campusUser/send'
+    - '/campusUser/user/getUserByAccount/'
+    - '/campusUser/user/checkCode/'
+    - '/campusUser/user/updatePassword/'
+    - '/campusUser/user/checkEmailCode/'
+

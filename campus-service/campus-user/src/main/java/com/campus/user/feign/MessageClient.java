@@ -32,4 +32,12 @@ public interface MessageClient {
     @GetMapping("/campusMessage/message/clearCache")
     R clearCache(@RequestHeader("uid") String uid);
 
+    /**
+     * 用户是否登录
+     * @param uid
+     * @return
+     */
+    @GetMapping("/campusMessage/isOnline")
+    R isOnline(@RequestHeader("uid") String uid);
+
 }
