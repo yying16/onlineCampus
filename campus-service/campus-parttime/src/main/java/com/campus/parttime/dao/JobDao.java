@@ -27,4 +27,7 @@ public interface JobDao extends BaseMapper<Job> {
 
     @Select("select * from t_user where user_id=#{userId} and deleted=0")
     User searchUserInfo(String userId);
+
+    @Select("select job_id from t_job where deleted=0")
+    List<String> list();
 }
