@@ -33,8 +33,8 @@ public class MessageApplication {
     @Value("${serverId}")
     String serverId;
 
-    @Autowired
-    ConfigService configService;
+    @Value("${spring.cloud.nacos.discovery.ip}")
+    String ip;
 
     public static void main(String[] args) {
         ConfigurableApplicationContext context = SpringApplication.run(MessageApplication.class, args);
@@ -44,6 +44,7 @@ public class MessageApplication {
     @Bean
     CommandLineRunner commandLineRunner() {
         return args -> {
+            log.info("ip is {}",ip);
             InetAddress inetAddress = InetAddress.getLocalHost();
             log.info("【当前ip和端口号】 {} : {}",inetAddress.getHostAddress(),serverPort);
             log.info("【serverId】:{}",serverId);

@@ -56,6 +56,10 @@ spring:
             - Path=/campusTrade/**
           filters:
             - Token=true
+        - id: campus-oss   #路由 id,没有固定规则，但唯一，建议与服务名对应
+          uri: lb://campus-oss          #匹配后提供服务的路由地址
+          predicates:
+            - Path=/campusOss/**
   datasource:
     druid:
       url: jdbc:mysql://117.72.15.203:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
