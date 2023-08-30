@@ -16,19 +16,20 @@ import javax.annotation.Resource;
 @Component
 public class BloomFilterService {
 
-//    @Resource
-//    private RBloomFilter<Object> bloomFilter;
-//
-//
-//    public void bloomSet(String key){
-//        boolean flag = bloomFilter.add(key);
-//        if (flag != true){
-//            LoggerFactory.getLogger(BloomFilterService.class).error("布隆过滤器插入值失败！");
-//        }
-//    }
-//
-//    public boolean bloomContain(String key){
-//        boolean flag = bloomFilter.contains(key);
-//        return flag == true ? true : false;
-//    }
+    @Resource
+    private RBloomFilter<Object> bloomFilter;
+
+    public void bloomSet(String key){
+        boolean flag = bloomFilter.add(key);
+        if (flag != true){
+            LoggerFactory.getLogger(BloomFilterService.class).error("布隆过滤器插入值失败！");
+        }
+    }
+
+    public boolean bloomContain(String key){
+        boolean flag = bloomFilter.contains(key);
+        return flag == true ? true : false;
+    }
+
+
 }
