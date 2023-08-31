@@ -17,6 +17,8 @@ import com.campus.trade.service.ImageService;
 import com.campus.trade.service.ProductService;
 import com.campus.trade.vo.ShowProduct;
 import org.apache.catalina.User;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
 * @author xiaolin
@@ -47,13 +50,27 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
     private ServiceCenter serviceCenter;
 
 
+    @Autowired
+    private RedissonClient redissonClient;
+
     @Override
     public boolean addProduct(AddProductForm addProductForm) {
+
+        RLock addProductLock = redissonClient.getLock("addProduct"+addProductForm.getUserId());
+
+        try {
+            addProductLock.tryLock(6000,1500, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         //将productForm转换为product
         Product product = new Product();
         BeanUtils.copyProperties(addProductForm,product);
         String insert = serviceCenter.insert(product);
 //        int insert = baseMapper.insert(product);
+
+        addProductLock.unlock();
+
         if(insert!=null){
             return true;
         }else{
