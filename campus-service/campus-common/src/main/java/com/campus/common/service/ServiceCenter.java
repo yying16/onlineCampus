@@ -1031,6 +1031,7 @@ public class ServiceCenter {
     public <T> boolean updateMySql(T t) {
         try {
             BaseMapper<T> mapper = getMapper(t);
+            setArg(t, "updateTime", TimeUtil.getCurrentTime());
             mapper.updateById(t);
             return true;
         } catch (Exception e) {
