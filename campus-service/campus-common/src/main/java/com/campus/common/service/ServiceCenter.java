@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.campus.common.bloomFilter.BloomFilterService;
 import com.campus.common.pojo.Image;
 import com.campus.common.util.SpringContextUtil;
 import com.campus.common.util.TimeUtil;
@@ -83,6 +84,9 @@ public class ServiceCenter {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private BloomFilterService bloomFilterService;
 
     private ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(); // 线程池
 
@@ -799,11 +803,13 @@ public class ServiceCenter {
      */
     public <T> Object search(String id, Class<T> clazz) {
         try {
-            // 校验id
-            if (id == null || id.length() < 19) {
-                return null;
-            }
             String h = getName(clazz);
+            // 校验id
+            if (h.equals("job") || h.equals("product")){
+                if (!bloomFilterService.bloomContain(h+id)) {
+                    return null;
+                }
+            }
             String cache = redisTemplate.opsForValue().get(h + id);
             if (cache != null && cache.length() > 0) { // 如果存在对应缓存
                 Object ret = JSONObject.parseObject(redisTemplate.opsForValue().get(h + id), clazz);
