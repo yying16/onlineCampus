@@ -33,6 +33,7 @@ import org.thymeleaf.context.Context;
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -101,7 +102,7 @@ public class UserController {
     //更新用户信息
     @ApiOperation(value = "更新用户信息")
     @PostMapping("/updateUser")
-    public R updateUser(@ApiParam("用户对象") @RequestBody UpdateUserForm updateUserForm,@RequestHeader("uid") String uid) {
+    public R updateUser(@ApiParam("用户对象") @RequestBody UpdateUserForm updateUserForm, @RequestHeader("uid") String uid) {
         User user = new User();
         BeanUtils.copyProperties(updateUserForm, user);
         user.setUserId(uid);
@@ -117,7 +118,7 @@ public class UserController {
     //修改用户头像
     @ApiOperation(value = "修改用户头像")
     @PostMapping("/updateAvatar")
-    public R updateAvatar(@RequestParam("avatar") String avatar,@RequestHeader("uid") String uid) {
+    public R updateAvatar(@RequestParam("avatar") String avatar, @RequestHeader("uid") String uid) {
         User user = new User();
         user.setUserId(uid);
         user.setUserImage(avatar);
@@ -132,7 +133,7 @@ public class UserController {
     //修改用户地址
     @ApiOperation(value = "修改用户地址")
     @PostMapping("/updateAddress")
-    public R updateAddress(@RequestParam("address") String address,@RequestHeader("uid") String uid) {
+    public R updateAddress(@RequestParam("address") String address, @RequestHeader("uid") String uid) {
         User user = new User();
         user.setUserId(uid);
         user.setAddress(address);
@@ -334,7 +335,7 @@ public class UserController {
      */
     @ApiOperation(value = "查询用户余额")
     @GetMapping("/getBalance/{userId}")
-    public BigDecimal getBalance(@ApiParam("用户id") @PathVariable("userId")  String userId) {
+    public BigDecimal getBalance(@ApiParam("用户id") @PathVariable("userId") String userId) {
         User user = userService.getById(userId);
         if (user != null) {
             BigDecimal balance = user.getBalance();
@@ -350,14 +351,14 @@ public class UserController {
      */
     @ApiOperation(value = "查看用户充值记录")
     @GetMapping("/getRechargeRecord")
-    public R getRechargeRecord(@RequestHeader("uid")  String userId) {
+    public R getRechargeRecord(@RequestHeader("uid") String userId) {
         //根据用户id查询卡密使用记录
         QueryWrapper<Card> wrapper = new QueryWrapper<>();
         wrapper.eq("uid", userId);
         List<Card> list = cardService.list(wrapper);
         List<RechargeRecord> rechargeRecordList = new ArrayList<>();
         //遍历卡密，获取卡密对应的充值记录
-        for (Card c: list){
+        for (Card c : list) {
             String cardsmid = c.getCardsmid();
             QueryWrapper<CardSM> wrapper1 = new QueryWrapper<>();
             wrapper1.eq("id", cardsmid);
@@ -365,7 +366,7 @@ public class UserController {
             if (cardSM == null) {
                 return R.failed(null, "卡密不存在");
             }
-            if(cardSM.getName().equals("充值卡")){
+            if (cardSM.getName().equals("充值卡")) {
                 RechargeRecord rechargeRecord = new RechargeRecord();
                 rechargeRecord.setId(c.getId());
                 rechargeRecord.setUserId(c.getUid());
@@ -406,7 +407,7 @@ public class UserController {
      */
     @ApiOperation(value = "修改用户余额")
     @PutMapping("/updateBalance/{userId}/{balance}")
-    public R updateBalance(@ApiParam("用户id") @PathVariable("userId")  String userId, @PathVariable("balance") BigDecimal balance) {
+    public R updateBalance(@ApiParam("用户id") @PathVariable("userId") String userId, @PathVariable("balance") BigDecimal balance) {
         return userService.updateBalance(userId, balance);
 
     }
@@ -451,27 +452,27 @@ public class UserController {
         breaker.setBreakerAccount(user.getAccount());
         breaker.setBreakerName(user.getUsername());
         breaker.setBreakText(breakText);
-        if(serviceCenter.insertMySql(breaker)) {
-            user.setBreakNum(user.getBreakNum()+1);
-            if(!serviceCenter.updateMySql(user)){
-                return R.failed(null,"用户记录更新失败");
+        if (serviceCenter.insertMySql(breaker)) {
+            user.setBreakNum(user.getBreakNum() + 1);
+            if (!serviceCenter.updateMySql(user)) {
+                return R.failed(null, "用户记录更新失败");
             }
             return R.ok();
-        }else return R.failed(null,"更新失败，请重试");
+        } else return R.failed(null, "更新失败，请重试");
     }
 
     @ApiOperation(value = "管理员确认认证")
     @PostMapping("/admin/auth/{userid}/{auth}")
     public R adminAuth(
             @ApiParam(value = "用户id", required = true) @PathVariable("userid") String userid,
-            @ApiParam(value = "是否认证", required = true) @PathVariable("auth") Integer auth){
+            @ApiParam(value = "是否认证", required = true) @PathVariable("auth") Integer auth) {
         User user = userService.getById(userid);
-        if (user == null){
-            return R.failed(null,"用户不存在");
+        if (user == null) {
+            return R.failed(null, "用户不存在");
         }
-        if (auth == 1){
+        if (auth == 1) {
             user.setAuth(auth);
-        }else if (auth == 0){
+        } else if (auth == 0) {
             user.setAuth(auth);
         }
         userService.updateById(user);
@@ -481,15 +482,48 @@ public class UserController {
     @ApiOperation("用户上传图片认证")
     @PostMapping("/auth/{userid}")
     public R userAuth(
-            @ApiParam(value = "用户id", required =  true) @PathVariable("userid") String userid,
+            @ApiParam(value = "用户id", required = true) @PathVariable("userid") String userid,
             @ApiParam(value = "正面学生证图片", required = true) String file1,
-            @ApiParam(value = "反面学生证图片", required = true) String file2){
+            @ApiParam(value = "反面学生证图片", required = true) String file2) {
         User user = userService.getById(userid);
         user.setAuthFrontImage(file1);
         user.setAuthBackImage(file2);
         serviceCenter.insert(user);
         return R.ok("认证信息上传成功，请等待管理员的审核");
     }
+
+    /**
+     * 搜索记录
+     */
+    @ApiOperation("添加搜索记录")
+    @PostMapping("/insertSearchRecord")
+    public R insertSearchRecord(@RequestBody SearchForm searchForm, @RequestHeader("uid") String uid) {
+        Search search = FormTemplate.analyzeTemplate(searchForm,Search.class);
+        assert search != null;
+        search.setSearchUser(uid);
+        search.setSearchId(IdWorker.getIdStr(search));
+        if (serviceCenter.insertMySql(search)) {
+            return R.ok();
+        }
+        return R.failed();
+    }
+
+    /**
+     * 查看最近的搜索记录（限10条）
+     */
+    @ApiOperation("查看最近搜索记录")
+    @GetMapping("/getSearchRecord")
+    public R getSearchRecord(@RequestHeader("uid") String uid) {
+        List search = serviceCenter.search(new HashMap() {{
+            put("searchUser", uid);
+            put("order", "createTime desc");
+            put("limit", 10);
+        }}, Search.class);
+        return R.ok(search);
+    }
+
+
+
 
     /**
      * 违规用户列表（管理员查看：违规次数最多的用户排名）
