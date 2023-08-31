@@ -37,8 +37,8 @@ spring:
     producer:
       retries: 3 # 重新发送次数
       batch-size: 16384
-      buffer-memory: 33554432
-      acks: 1
+      buffer-memory: 33554432 # 32M缓存空间
+      acks: all
       # 指定消息key和消息体的编解码方式
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer

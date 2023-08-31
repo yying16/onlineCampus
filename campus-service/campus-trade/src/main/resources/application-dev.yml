@@ -25,19 +25,19 @@ spring:
       min-idle: 8
       initial-size: 10
     username: root
-    password: olcampus8888
+    password: olcampus8888!
   redis:
-    database: 4
-    host: 47.115.219.35
+    database: 0
+    host: 117.72.15.203
     port: 6379
     timeout: 10000
-    password: olcampus8888
+    password: olcampus8888!
   kafka:
-    bootstrap-servers: 47.115.219.35:9092
+    bootstrap-servers: 117.72.15.203:9092,117.72.14.204:9092,117.72.13.205:9092 # kafka集群
     producer:
       retries: 3 # 重新发送次数
       batch-size: 16384
-      buffer-memory: 33554432
+      buffer-memory: 2097152 # 2M缓存空间
       acks: 1
       # 指定消息key和消息体的编解码方式
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -50,12 +50,12 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     listener:
       ack-mode: manual_immediate
-  mybatis-plus:
-    global-config:
-      db-config:
-        table-prefix: t_
-        id-type: auto
-    mapper-locations: classpath:mapper/*.xml
-    type-aliases-package: com.campus.user.domain
-    configuration:
-      map-underscore-to-camel-case: true
+mybatis-plus:
+  global-config:
+    db-config:
+      table-prefix: t_
+      id-type: auto
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.campus.user.domain
+  configuration:
+    map-underscore-to-camel-case: true
