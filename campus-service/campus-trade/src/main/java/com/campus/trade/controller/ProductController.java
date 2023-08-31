@@ -13,6 +13,8 @@ import com.campus.trade.vo.ShowProduct;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @auther xiaolin
@@ -49,6 +52,10 @@ public class ProductController {
 
     @Autowired
     private ProductLikeService productLikeService;
+
+
+    @Autowired
+    private RedissonClient redissonClient;
 
     //查看商品列表（条件懒加载）
     @ApiOperation(value = "带查询条件的查看商品列表（条件懒加载）")
@@ -133,7 +140,18 @@ public class ProductController {
 //
 //        boolean delete = serviceCenter.delete(product);
 
+        RLock deleteProductLock = redissonClient.getLock("deleteProduct"+id);
+
+        try {
+            deleteProductLock.tryLock(6000,1500, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         boolean delete = serviceCenter.delete(id, Product.class);
+
+
+        deleteProductLock.unlock();
 
         if(delete){
             //处理点赞记录:逻辑删除与当前job绑定的所有like记录
@@ -166,10 +184,22 @@ public class ProductController {
     @PutMapping("{id}")
     @ApiOperation(value = "根据商品id修改商品信息")
     public R updateProduct(@PathVariable("id") String id,@RequestBody AddProductForm addProductForm){
+
+
+        RLock updateProductLock = redissonClient.getLock("updateProduct"+id);
+
+        try {
+            updateProductLock.tryLock(6000,1500, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         Product product = productService.getById(id);
         if(product == null){
+            updateProductLock.unlock();
             return R.failed(null,"商品不存在");
         }
+
         BeanUtils.copyProperties(addProductForm,product);
         boolean update = serviceCenter.update(product);
 
@@ -188,6 +218,8 @@ public class ProductController {
             image1.setOtherType("product");
             imageService.save(image1);
         }
+
+        updateProductLock.unlock();
 
         if(update){
             return R.ok(null,"修改商品信息成功");

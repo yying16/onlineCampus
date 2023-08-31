@@ -21,6 +21,9 @@ public class BidServiceImpl extends ServiceImpl<BidDao, Bid>
     @Autowired
     ServiceCenter serviceCenter;
 
+
+
+
     @Override
     public boolean addBid(AddBidForm addBidForm, String uid) {
         Bid bid = new Bid();

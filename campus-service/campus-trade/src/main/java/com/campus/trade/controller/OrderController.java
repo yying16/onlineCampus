@@ -16,6 +16,8 @@ import com.campus.trade.vo.ShowProduct;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @auther xiaolin
@@ -46,6 +49,9 @@ public class OrderController {
 
     @Autowired
     private UserClient userClient;
+
+    @Autowired
+    private RedissonClient redissonClient;
 
 
     //查询下单前确认信息（用户和商品信息）
@@ -95,14 +101,27 @@ public class OrderController {
     @PutMapping("/updateOrderStatus/{orderId}/{status}")
     @ApiOperation("修改订单状态")
     public R updateOrderStatus(@PathVariable("orderId") String orderId,@PathVariable("status") Integer status) {
+        RLock updateOrderStatusLock = redissonClient.getLock("updateOrderStatus"+orderId);
 
         Order order = (Order) serviceCenter.search(orderId, Order.class);
         if (order == null) {
+            updateOrderStatusLock.unlock();
+
             return R.failed(null, "订单不存在");
         }
+
+        try {
+            updateOrderStatusLock.tryLock(60000,1500, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         order.setStatus(status);
 
         boolean flag = serviceCenter.update(order);
+
+        updateOrderStatusLock.unlock();
+
 
         if (flag) {
             return R.ok(null, "订单状态修改成功");
@@ -186,7 +205,18 @@ public class OrderController {
     @DeleteMapping("{orderId}")
     @ApiOperation("根据订单id删除订单")
     public R deleteOrder(@ApiParam("订单id") @PathVariable("orderId") String orderId) {
+
+        RLock deleteOrderLock = redissonClient.getLock("deleteOrder"+orderId);
+
+        try {
+            deleteOrderLock.tryLock(60000,1500, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         boolean flag = serviceCenter.delete(orderId, Order.class);
+
+        deleteOrderLock.unlock();
         if (flag) {
             return R.ok(null, "订单删除成功");
         } else {

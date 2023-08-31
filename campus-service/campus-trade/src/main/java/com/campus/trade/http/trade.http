@@ -252,22 +252,22 @@ Content-Type: application/json
 
 ###用户点赞商品
 ###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/likeProduct/{{productId}}
-GET http://localhost:9000/campusTrade/favoritesAndLike/likeJob/02d233738a74b6f601d7b5674b32da78
+GET http://localhost:9000/campusTrade/favoritesAndLike/likeProduct/02d233738a74b6f601d7b5674b32da78
 token:t1
 
 ###用户取消点赞商品
 ###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/cancelLikeProduct/{{productId}}
-GET http://localhost:9000/campusTrade/favoritesAndLike/cancelLikeJob/02d233738a74b6f601d7b5674b32da78
+GET http://localhost:9000/campusTrade/favoritesAndLike/cancelLikeProduct/02d233738a74b6f601d7b5674b32da78
 token:t1
 
 ###用户收藏商品
 ###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/favoritesProduct/{{productId}}
-GET http://localhost:9000/campusTrade/favoritesAndLike/FavoritesJob/02d233738a74b6f601d7b5674b32da78
+GET http://localhost:9000/campusTrade/favoritesAndLike/favoritesProduct/02d233738a74b6f601d7b5674b32da78
 token:t1
 
 ###用户取消收藏商品
 ###请求路径：http://localhost:9000/campusTrade/favoritesAndLike/cancelFavoritesProduct/{{productId}}
-GET http://localhost:9000/campusTrade/favoritesAndLike/cancelFavoritesJob/02d233738a74b6f601d7b5674b32da78
+GET http://localhost:9000/campusTrade/favoritesAndLike/cancelFavoritesProduct/02d233738a74b6f601d7b5674b32da78
 token:t1
 
 ###用户查看收藏列表

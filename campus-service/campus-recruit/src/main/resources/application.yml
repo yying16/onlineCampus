@@ -1,24 +1,24 @@
 server:
-  port: 7007
+  port: 7002
   servlet:
-    context-path: /campusRecruit
+    context-path: /campusMessage
 spring:
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 1024MB
   application:
-    name: campus-recruit
+    name: campus-message
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
   cloud:
     nacos:
       discovery:
-        server-addr: localhost:8848 #Nacos地址
+        server-addr: 117.72.15.203:8848,117.72.14.204:8848,117.72.13.205:8848 #Nacos地址
   datasource:
     druid:
-      url: jdbc:mysql://47.115.219.35:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
+      url: jdbc:mysql://117.72.15.203:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
       driverClassName: com.mysql.jdbc.Driver
       max-active: 20
       min-idle: 8
@@ -26,13 +26,13 @@ spring:
     username: root
     password: olcampus8888
   redis:
-    database: 7
-    host: 47.115.219.35
+    database: 3
+    host: 117.72.15.203
     port: 6379
     timeout: 10000
-    password: olcampus8888
+#    password: olcampus8888
   kafka:
-    bootstrap-servers: 47.115.219.35:9092
+    bootstrap-servers: 117.72.15.203:9092
     producer:
       retries: 3 # 重新发送次数
       batch-size: 16384
