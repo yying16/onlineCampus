@@ -15,6 +15,8 @@ import com.campus.trade.service.ProductService;
 import com.campus.trade.vo.ConfirmOrderForm;
 import com.campus.trade.vo.ShowOrder;
 import com.campus.utils.OrderNoUtil;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.OrderUtils;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author xiaolin
@@ -46,9 +49,21 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
     @Autowired
     private ProductDao productDao;
 
+    @Autowired
+    private RedissonClient redissonClient;
+
     //查询订单信息
     @Override
     public ShowOrder showOrder(String uid, ConfirmOrderForm confirmOrderForm) {
+
+        RLock showOrderLock = redissonClient.getLock("showOrder"+uid);
+
+        try {
+            showOrderLock.tryLock(60000,1500, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         String productId = confirmOrderForm.getProduct().getProductId();
         BigDecimal totalPrice = confirmOrderForm.getProduct().getPrice();
         Order order = new Order();
@@ -84,8 +99,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
             showOrder.setSellerAvatar(avatar);
             showOrder.setSellerNickName(nickName);
             showOrder.setCreateTime(order.getCreateTime());
+
+            showOrderLock.unlock();
+
             return showOrder;
         }
+
+        showOrderLock.unlock();
+
         return null;
     }
 
@@ -194,22 +215,39 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
     @Transactional
     @Override
     public R payOrder(String orderId) {
+
+        RLock payOrderLock = redissonClient.getLock("payOrder"+orderId);
+
+        try {
+            payOrderLock.tryLock(6000,1500, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         Order order = (Order) serviceCenter.search(orderId, Order.class);
         if (order == null) {
+            payOrderLock.unlock();
+
             return R.failed(null, "订单不存在");
         }
         //判断商品是否已经被购买
         String productId = order.getProductId();
         Product product = (Product) serviceCenter.selectMySql(productId, Product.class);
         if (product == null) {
+            payOrderLock.unlock();
+
             return R.failed(null, "商品不存在或已经下架");
         }
         if (product.getStatus() == 1) {
+            payOrderLock.unlock();
+
             return R.failed(null, "商品已经被购买");
         }
 
         //判断订单是否已经支付
         if (order.getStatus() == 1) {
+            payOrderLock.unlock();
+
             return R.failed(null, "订单已经支付");
         }
 
@@ -218,6 +256,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
         BigDecimal userBalance = userClient.getBalance(order.getUserId());
 //        BigDecimal userBalance = new BigDecimal(balance);
         if (userBalance.compareTo(order.getTotalPrice()) == -1) {
+            payOrderLock.unlock();
+
             return R.failed(null, "用户余额不足");
         }
 
@@ -228,6 +268,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
         //调用user服务扣除用户余额
         R r = userClient.updateBalance(order.getUserId(), updateBalance);
         if (r.getCode() != 0) {
+            payOrderLock.unlock();
+
             return R.failed(null, "扣除用户余额失败");
         }
 
@@ -254,8 +296,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, Order>
             //调用user服务添加零钱明细记录
             R  r1 = userClient.addDetailsChange(map);
 
+            payOrderLock.unlock();
+
             return R.ok(null, "订单支付成功");
         } else {
+
+            payOrderLock.unlock();
+
             return R.failed(null, "订单支付失败");
         }
     }

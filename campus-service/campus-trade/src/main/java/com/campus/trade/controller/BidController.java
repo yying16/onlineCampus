@@ -9,6 +9,8 @@ import com.campus.trade.service.BidService;
 import com.campus.trade.vo.ShowBid;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @auther xiaolin
@@ -38,11 +41,26 @@ public class BidController {
     @Autowired
     UserClient userClient;
 
+    @Autowired
+    private RedissonClient redissonClient;
+
     //用户添加出价
     @PostMapping("/addBid")
     @ApiOperation(value = "用户添加出价")
     public R addBid(@RequestBody AddBidForm addBidForm, @RequestHeader("uid") String uid) {
+
+        RLock addBidLock = redissonClient.getLock("addBid"+addBidForm.getProductId()+uid);
+
+
+        try {
+            addBidLock.tryLock(6000,1500, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         boolean b = bidService.addBid(addBidForm, uid);
+
+        addBidLock.unlock();
+
         if(b){
             return R.ok(null,"出价成功");
         }else {
@@ -54,11 +72,26 @@ public class BidController {
     @DeleteMapping("/{bidId}")
     @ApiOperation(value = "删除出价")
     public R deleteBid(@PathVariable("bidId") String bidId,@RequestHeader("uid") String uid) {
+
+
+        RLock deleteBidLock = redissonClient.getLock("deleteBid"+bidId+uid);
+
+
+        try {
+            deleteBidLock.tryLock(6000,1500, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+
         Bid bid = (Bid) serviceCenter.search(bidId, Bid.class);
         if(!bid.getUserId().equals(uid)){
+            deleteBidLock.unlock();
             return R.failed(null,"无权限删除");
         }
         boolean b = serviceCenter.delete(bidId, Bid.class);
+
+        deleteBidLock.unlock();
         if(b){
             return R.ok(null,"删除成功");
         }else {
@@ -103,14 +136,29 @@ public class BidController {
     @PutMapping("/{bidId}/{price}")
     @ApiOperation(value = "修改出价")
     public R updateBid(@PathVariable("bidId") String bidId,@PathVariable("price") BigDecimal price,@RequestHeader("uid") String uid) {
+
+        RLock updateBidLock = redissonClient.getLock("updateBid"+bidId+uid);
+
+
+        try {
+            updateBidLock.tryLock(6000,1500, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+
         Bid bid = (Bid) serviceCenter.search(bidId, Bid.class);
 
         if(!bid.getUserId().equals(uid)){
+            updateBidLock.unlock();
+
             return R.failed(null,"无权限修改");
         }
 
         bid.setPrice(price);
         boolean update = serviceCenter.update(bid);
+        updateBidLock.unlock();
+
         if(update){
             return R.ok(null,"修改出价成功");
         }else {
