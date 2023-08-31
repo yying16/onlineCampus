@@ -13,7 +13,6 @@
     <packaging>pom</packaging>
     <modules>
         <module>campus-common</module>
-        <module>campus-test</module>
         <module>campus-user</module>
         <module>campus-message</module>
         <module>campus-contact</module>
