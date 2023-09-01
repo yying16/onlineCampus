@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -66,6 +67,9 @@ public class ParttimeController {
 
     @Autowired
     RecordDao recordDao;
+
+    @Autowired
+    BalanceRecordDao balanceRecordDao;
 
     @Autowired
     MessageClient messageClient;
@@ -438,6 +442,37 @@ public class ParttimeController {
         }
     }
 
+    @ApiOperation("支付兼职费用")
+    @PostMapping("/payJobFee")
+    public R updateOperationStatus(@RequestHeader("uid") String posterId, @RequestBody JobOrderForm form) {
+            Operation operationSql = (Operation) serviceCenter.selectMySql(form.getOperationId(), Operation.class);
+            if(posterId.equals(operationSql.getPublisherId()) && operationSql.getStatus().equals(CONFIRM.code)){ // 成功支付
+                BalanceRecord balanceRecord = FormTemplate.analyzeTemplate(form,BalanceRecord.class);
+                BigDecimal balance = balanceRecordDao.searchBalance(form.getUid());
+                // 判断余额是否充足
+                if(balance.doubleValue() < form.getMoney().doubleValue()){
+                    return R.failed(null,"余额不足，支付失败");
+                }
+                // 余额充足，进行以下支付操作
+                // 数据库操作:支出操作
+                balanceRecordDao.payJob(balanceRecord.getUid(),balanceRecord.getMoney());
+                // 新增余额变动记录
+                balanceRecord.setUid(form.getUid());
+                balanceRecord.setType(1);
+                balanceRecord.setBalance(balanceRecordDao.searchBalance(posterId));
+                if(!serviceCenter.insertMySql(balanceRecord)){
+                    balanceRecordDao.receiveJobPay(posterId,form.getMoney());
+                    return R.failed(null,"支付失败");
+                }
+                // 数据库操作：将支出的金额转入对应账户
+                Operation operation = (Operation) serviceCenter.selectMySql(form.getOperationId(),Operation.class);
+                String receiverId = operation.getApplicantId();
+                balanceRecordDao.receiveJobPay(receiverId,form.getMoney());
+                messageClient.sendPromptInformation(new PromptInformationForm(receiverId, "您有一条收款记录!"));
+            }
+            return R.failed(null,"您无权支付订单");
+    }
+
     /**
      * 提交兼职订单反馈
      * 若feedback为空，无法提交反馈
@@ -479,7 +514,7 @@ public class ParttimeController {
     @ApiOperation("条件查询兼职")
     @PostMapping("/searchJob")
     public R searchRecruit(@RequestBody Map condition) {
-        List search = serviceCenter.search(condition, Job.class);
+        List search = serviceCenter.search(condition, JobLoadList.class);
         if (search != null) {
             return R.ok(search);
         }

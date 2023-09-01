@@ -15,16 +15,16 @@ import javax.annotation.Resource;
 @Configuration
 public class BloomFilterConfig {
 
-//    @Resource
-//    private RedissonClient redissonClient;
-//
-//    @Bean(name = "RBloomFilter")
-//    public RBloomFilter<Object> bloom(){
-//        RBloomFilter<Object> bloomFilter = redissonClient.getBloomFilter("camps-filter");
-//        //初始化，容器100000.容错率千分之一
-//        bloomFilter.tryInit(100000,0.01);
-//        return bloomFilter;
-//    }
+    @Resource
+    private RedissonClient redissonClient;
+
+    @Bean(name = "RBloomFilter")
+    public RBloomFilter<Object> bloom(){
+        RBloomFilter<Object> bloomFilter = redissonClient.getBloomFilter("camps-filter");
+        //初始化，容器100000.容错率千分之一
+        bloomFilter.tryInit(100000,0.01);
+        return bloomFilter;
+    }
 
 //    public static void main(String[] args) {
 //        RBloomFilter<Object> bloomFilter = new BloomFilter().bloom();
