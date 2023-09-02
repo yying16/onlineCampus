@@ -91,6 +91,8 @@ public class ServiceCenter {
     private ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(); // 线程池
 
 
+
+
     /**
      * 从用户登录开始设置一个计时器，每五分钟更新一次高频词汇，并将高频词汇写入redis
      *
@@ -100,7 +102,7 @@ public class ServiceCenter {
      * 数据库获取最近访问的产品（10个）
      * 结巴分词获取高频词汇(过滤掉无效高频词)
      */
-    public <T> List<String> guessYouLikes(String uid, Class<T> clazz, String... args) {
+    public <T> List<String> guessYouLikes(String uid, Class<T> clazz, String titleArg) {
         try {
             String className = getName(clazz);
             String tableName = "t_" + className + "_record";
@@ -115,14 +117,11 @@ public class ServiceCenter {
             List<String> list2 = recommendations.stream().map(r -> String.valueOf(r.getItemID())).collect(Collectors.toList());
             list1.addAll(list2); // 连接列表
             List<T> sources = getTuplesByIds(list1, clazz);
-            StringBuffer summarize = new StringBuffer(); // 将有效信息进行拼接
-            for (int i = 0; i < sources.size(); i++) {
-                for (String arg : args) {
-                    summarize.append(getArg(sources.get(i), arg));
-                }
+            List<String> ret = new ArrayList<>();
+            for (T source : sources) {
+                ret.add(String.valueOf(getArg(source, titleArg)));
             }
-            //结巴分词处理
-            return new ArrayList<>();
+            return ret;
         } catch (Exception e) {
             e.printStackTrace();
             return new ArrayList<>();
@@ -1032,6 +1031,7 @@ public class ServiceCenter {
     public <T> boolean updateMySql(T t) {
         try {
             BaseMapper<T> mapper = getMapper(t);
+            setArg(t, "updateTime", TimeUtil.getCurrentTime());
             mapper.updateById(t);
             return true;
         } catch (Exception e) {

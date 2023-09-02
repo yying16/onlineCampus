@@ -21,14 +21,14 @@ public class BloomFilterService {
 
     public void bloomSet(String key){
         boolean flag = bloomFilter.add(key);
-//        if (flag != true){
+//        if (!flag){
 //            LoggerFactory.getLogger(BloomFilterService.class).error("布隆过滤器插入值失败！");
 //        }
     }
 
     public boolean bloomContain(String key){
         boolean flag = bloomFilter.contains(key);
-        return flag == true ? true : false;
+        return flag;
     }
 
 
