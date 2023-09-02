@@ -30,7 +30,7 @@ public class RedissonConfig {
         }};
         config.useMasterSlaveServers()
                 .setDatabase(redisProperties.getDatabase())
-                .setPassword(redisProperties.getPassword())
+                .setPassword("olcampus8888!")
                 .setMasterAddress(master)
                 .setSlaveAddresses(slaves); // 设置集群节点扫描间隔，单位毫秒，可选设置
         return Redisson.create(config);

@@ -21,9 +21,12 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.web.client.RestTemplate;
 
+import javax.annotation.PostConstruct;
+import javax.swing.*;
 import javax.websocket.OnClose;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
@@ -41,7 +44,7 @@ import static com.campus.message.constant.MessageType.*;
 /**
  * onlineUser 当前登录用户账号
  */
-@Component
+@Service
 @Slf4j
 @ServerEndpoint("/websocket/{onlineUser}")
 public class WebSocket {
@@ -70,6 +73,17 @@ public class WebSocket {
     @Autowired
     KafkaTemplate<String, String> kafkaTemplate;
 
+//    @PostConstruct
+//    private void init() {
+//        this.redisTemplate = (StringRedisTemplate) SpringContextUtil.getBean(StringRedisTemplate.class);
+//        this.messageDao = (MessageDao) SpringContextUtil.getBean(MessageDao.class);
+//        this.kafkaTemplate = (KafkaTemplate<String, String>) SpringContextUtil.getBean(KafkaTemplate.class);
+//        this.userOnlineService = (UserOnlineServiceImpl) SpringContextUtil.getBean(UserOnlineServiceImpl.class);
+//    }
+
+
+
+
     /**
      * 连接成功时
      */
@@ -79,7 +93,7 @@ public class WebSocket {
             if(!SESSION_POOL.containsKey(onlineUser)){
                 SESSIONS.add(session);
                 SESSION_POOL.put(onlineUser, session);
-                redisTemplate.opsForHash().put(onlineUserKey,onlineUser,TimeUtil.getCurrentTime());
+                ((StringRedisTemplate) SpringContextUtil.getBean(StringRedisTemplate.class)).opsForHash().put(onlineUserKey,onlineUser,TimeUtil.getCurrentTime());
                 log.info("【WebSocket消息】有新的连接，总数为：" + SESSIONS.size());
             }
         } catch (Exception e) {
@@ -93,7 +107,7 @@ public class WebSocket {
             SESSIONS.remove(session);
             SESSION_POOL.remove(onlineUser);
             log.info("【WebSocket消息】连接断开，总数为：" + SESSIONS.size());
-            redisTemplate.opsForHash().delete(onlineUserKey,onlineUser);
+            ((StringRedisTemplate) SpringContextUtil.getBean(StringRedisTemplate.class)).opsForHash().delete(onlineUserKey,onlineUser);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -104,6 +118,7 @@ public class WebSocket {
      */
     @OnMessage
     public void onMessage(String message, @PathParam("onlineUser") String onlineUser) {
+        this.redisTemplate = ((StringRedisTemplate) SpringContextUtil.getBean(StringRedisTemplate.class));
         log.info("【WebSocket消息】" + onlineUser + "发送消息：" + message);
         if (message.equals("ok")) {
             log.info("【WebSocket心跳检测】 用户id : {}", onlineUser);
@@ -163,7 +178,7 @@ public class WebSocket {
                 }
             } else {
                 Message msg = JSONObject.parseObject(message, Message.class);
-                if (userOnlineService.isOnline(toUserId)) { // 用户在线
+                if (((UserOnlineServiceImpl) SpringContextUtil.getBean(UserOnlineServiceImpl.class)).isOnline(toUserId)) { // 用户在线
                     log.info(msg.getReceiver() + " 在线");
                     try {
                         RLock rLock = redissonClient.getLock(key);
@@ -224,7 +239,7 @@ public class WebSocket {
                             reply.setCreateTime(TimeUtil.getCurrentTime());
                             reply.setUpdateTime(TimeUtil.getCurrentTime());
                             String replyStr = JSONObject.toJSONString(reply);
-                            messageDao.insert(reply);
+                            ((MessageDao) SpringContextUtil.getBean(MessageDao.class)).insert(reply);
                             sendOneMessage(msg.getSender(), replyStr); // 自动回复
                         }
                     }
@@ -232,7 +247,7 @@ public class WebSocket {
             }
         } else { // 不在本地，则通过消息中间件发送消息到别的服务
             String topic = "WEBSOCKET";
-            ListenableFuture<SendResult<String, String>> future = kafkaTemplate.send(topic, toUserId, message);
+            ListenableFuture<SendResult<String, String>> future = ((KafkaTemplate<String, String>) SpringContextUtil.getBean(KafkaTemplate.class)).send(topic, toUserId, message);
             future.addCallback(result -> log.info("消息成功同步到topic:{} partition:{}", result.getRecordMetadata().topic(), result.getRecordMetadata().partition()),
                     ex -> log.error("消息同步失败，原因：{}", ex.getMessage()));
         }
