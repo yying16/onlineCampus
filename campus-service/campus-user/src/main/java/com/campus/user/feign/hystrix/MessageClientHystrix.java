@@ -34,9 +34,4 @@ public class MessageClientHystrix implements MessageClient {
     public R clearCache(String uid) {
         return null;
     }
-
-    @Override
-    public R isOnline(String uid) {
-        return null;
-    }
 }

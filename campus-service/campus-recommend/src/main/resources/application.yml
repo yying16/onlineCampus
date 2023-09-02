@@ -1,14 +1,14 @@
 server:
-  port: 7002
+  port: 7008
   servlet:
-    context-path: /campusMessage
+    context-path: /campusRecommend
 spring:
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 1024MB
   application:
-    name: campus-message
+    name: campus-recommend
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
@@ -21,13 +21,13 @@ spring:
     druid:
       url: jdbc:mysql://47.115.219.35:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
       driverClassName: com.mysql.jdbc.Driver
-      max-active: 20
+      max-active: 100
       min-idle: 8
       initial-size: 10
     username: root
     password: olcampus8888
   redis:
-    database: 3
+    database: 6
     host: 47.115.219.35
     port: 6379
     timeout: 10000
@@ -56,7 +56,7 @@ mybatis-plus:
       table-prefix: t_
       id-type: auto
   mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.campus.message.domain
+  type-aliases-package: com.campus.recommend.domain
   configuration:
     map-underscore-to-camel-case: true
 

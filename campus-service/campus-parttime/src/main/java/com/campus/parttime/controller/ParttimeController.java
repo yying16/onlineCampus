@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.FormTemplate;
 import com.campus.common.util.R;
+import com.campus.common.util.SpringContextUtil;
 import com.campus.common.util.TimeUtil;
 import com.campus.parttime.dao.*;
 import com.campus.parttime.domain.*;
@@ -22,11 +23,16 @@ import com.campus.parttime.vo.*;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.LocalTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static com.campus.parttime.constant.ApplyStatus.*;
 import static com.campus.parttime.constant.JobStatus.*;
@@ -62,6 +68,9 @@ public class ParttimeController {
 
     @Autowired
     RecordDao recordDao;
+
+    @Autowired
+    BalanceRecordDao balanceRecordDao;
 
     @Autowired
     MessageClient messageClient;
@@ -100,6 +109,7 @@ public class ParttimeController {
             if (job.getStatus() != null && ((job.getStatus().equals(FINISH.code) || job.getStatus().equals(FULL.code)))) {
                 return R.failed(null, "您没有设置状态为完成或者招满的权限");
             }
+            LocalTime timeFromClock = LocalTime.now();
             if (serviceCenter.update(job)) {// 调用套件
                 return R.ok();
             }
@@ -130,12 +140,13 @@ public class ParttimeController {
         assert sqlJob != null;
         if (sqlJob.getApplyNum() > 0 && sqlJob.getPassedNum().equals(0)) {
 
-            //修改applyNum=0
-            job.setApplyNum(0);
             //兼职状态无法修改为除了关闭以外的状态
             if (job.getStatus() != null && !Objects.equals(job.getStatus(), CLOSE.code)) {
                 return R.failed(null, "您没有权限修改兼职状态");
             }
+            //修改applyNum=0
+            job.setApplyNum(0);
+            job.setVersion(job.getVersion()+1);
             //更新job数据（update到缓存和数据库）
             if (serviceCenter.update(job)) {
 
@@ -192,48 +203,69 @@ public class ParttimeController {
      */
     @ApiOperation("提交兼职申请")
     @PostMapping("/addJobApply")
-    public R addJobApply(@RequestHeader("uid") String applicantId, @RequestParam("jobId") String jobId) {
-        Apply applySql = applyDao.isJobApplyExist(jobId, applicantId);
-        if (applySql != null) {
-            return R.failed(null, "请勿重复提交兼职申请");
-        }
-        Job job = (Job) serviceCenter.search(jobId, Job.class);
-        assert job != null;
-        // 若当前兼职状态为关闭或者招满，兼职申请提交失败
-        if (applyDao.selectCreditByJobId(applicantId) <= 0) {
-            return R.failed(null, "信用值不足，无法提交申请");
-        }
-        if (job.getStatus().equals(CLOSE.code)) {
-            log.info("兼职已关闭，提交失败");
-            return R.failed(null, "兼职已关闭，提交失败");
-        }
-        if (job.getStatus().equals(FULL.code)) {
-            log.info("兼职已招满，提交失败");
-            return R.failed(null, "兼职已招满，提交失败");
-        }
-
-        // 创建兼职申请记录
-        Apply apply = new Apply();
-        apply.setJobId(jobId);
-        apply.setApplicantId(applicantId);
-        apply.setStatus(APPLIED.code); // 初始化状态为已申请
-
-        // 雪花算法为该申请记录生成主键Id
-        apply.setApplicationId(IdWorker.getIdStr(apply));
-
-        //将该记录插入数据库中
-        if (serviceCenter.insertMySql(apply)) { // 记录插入成功
-            log.info("兼职申请插入数据库成功!"); // 打印日志
-            //修改Job表兼职申请人数
-            job.setApplyNum(job.getApplyNum() + 1);
-            //将修改后的兼职记录修改到数据库中
-            if (serviceCenter.updateMySql(job)) { // 插入数据库
-                messageClient.sendPromptInformation(new PromptInformationForm(job.getPublisherId(), "已有用户" + apply.getApplicantId() + "提交申请，请及时查看！"));
-                return R.ok(apply.getApplicationId(), "提交成功");
+    public R addJobApply(@RequestHeader("uid") String applicantId, @RequestParam("jobId") String jobId,@RequestParam("jobVersion")Integer jobVersion) {
+        try {
+            RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+            RLock rLock = redissonClient.getLock("apply" + jobId);
+            rLock.tryLock(60, 10, TimeUnit.SECONDS);
+            Apply applySql = applyDao.isJobApplyExist(jobId, applicantId);
+            if (applySql != null) {
+                rLock.unlock();
+                return R.failed(null, "请勿重复提交兼职申请");
             }
+            Job job = (Job) serviceCenter.search(jobId, Job.class);
+            if (job == null){
+                return R.failed(null,"当前兼职已关闭");
+            }
+            if(!job.getVersion().equals(jobVersion)){ //若与前端发来的版本号不一致
+                return R.failed(null,"请刷新页面后再提交兼职申请");
+            }
+            // 若当前兼职状态为关闭或者招满，兼职申请提交失败
+            if (applyDao.selectCreditByUserId(applicantId) <= 0) {
+                rLock.unlock();
+                return R.failed(null, "信用值不足，无法提交申请");
+            }
+            if (job.getStatus().equals(CLOSE.code)) {
+                rLock.unlock();
+                log.info("兼职已关闭，提交失败");
+                return R.failed(null, "兼职已关闭，提交失败");
+            }
+            if (job.getStatus().equals(FULL.code)) {
+                rLock.unlock();
+                log.info("兼职已招满，提交失败");
+                return R.failed(null, "兼职已招满，提交失败");
+            }
+            // 创建兼职申请记录
+            Apply apply = new Apply();
+            apply.setJobId(jobId);
+            apply.setApplicantId(applicantId);
+            apply.setStatus(APPLIED.code); // 初始化状态为已申请
+
+            // 雪花算法为该申请记录生成主键Id
+            apply.setApplicationId(IdWorker.getIdStr(apply));
+
+            //将该记录插入数据库中
+            if (serviceCenter.insertMySql(apply)) { // 记录插入成功
+                log.info("兼职申请插入数据库成功!"); // 打印日志
+                //修改Job表兼职申请人数
+                job.setApplyNum(job.getApplyNum() + 1);
+                //将修改后的兼职记录修改到数据库中
+                if (serviceCenter.updateMySql(job)) { // 插入数据库
+                    rLock.unlock();
+                    messageClient.sendPromptInformation(new PromptInformationForm(job.getPublisherId(), "已有用户" + apply.getApplicantId() + "提交申请，请及时查看！"));
+                    return R.ok(apply.getApplicationId(), "提交成功");
+                }
+                rLock.unlock();
+                return R.failed(null, "提交失败,请重试");
+            }
+            rLock.unlock();
             return R.failed(null, "提交失败,请重试");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.info("【锁异常】提交兼职申请");
+            return R.failed("【锁异常】提交兼职申请");
         }
-        return R.failed(null, "提交失败,请重试");
     }
 
     /**
@@ -246,23 +278,38 @@ public class ParttimeController {
     @ApiOperation("删除兼职申请记录")
     @GetMapping("/deleteApply")
     public R deleteApply(@RequestParam("applicationId") String applicationId) {
-        Apply apply = (Apply) serviceCenter.selectMySql(applicationId, Apply.class);
-        assert apply != null;
-        if (apply.getStatus().equals(PASSED.code)) {
-            log.info("申请已通过，删除失败");
-            return R.failed(null, "申请已通过，删除失败");
-        }
-        if (serviceCenter.deleteMySql(Apply.class, applicationId)) {
-            log.info("兼职申请记录删除成功");
-            Job job = (Job) serviceCenter.selectMySql(apply.getJobId(), Job.class);
-            job.setApplyNum(job.getApplyNum() - 1);
-            if (serviceCenter.updateMySql(job)) {// 调用套件
-                log.info("兼职申请人数修改成功");
-                return R.ok();
+        try {
+            RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+            Apply applySql = (Apply) serviceCenter.selectMySql(applicationId, Apply.class);
+            String jobId = applySql.getJobId();
+            RLock rLock = redissonClient.getLock("apply" + jobId);
+            rLock.tryLock(60, 10, TimeUnit.SECONDS);
+            Apply apply = (Apply) serviceCenter.selectMySql(applicationId, Apply.class);
+            assert apply != null;
+            if (apply.getStatus().equals(PASSED.code)) {
+                rLock.unlock();
+                log.info("申请已通过，删除失败");
+                return R.failed(null, "申请已通过，删除失败");
             }
+            if (serviceCenter.deleteMySql(Apply.class, applicationId)) {
+                log.info("兼职申请记录删除成功");
+                Job job = (Job) serviceCenter.selectMySql(apply.getJobId(), Job.class);
+                job.setApplyNum(job.getApplyNum() - 1);
+                if (serviceCenter.updateMySql(job)) {// 调用套件
+                    rLock.unlock();
+                    log.info("兼职申请人数修改成功");
+                    return R.ok();
+                }
+            }
+            rLock.unlock();
+            return R.failed();
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.info("【锁异常】删除兼职申请");
+            return R.failed("【锁异常】删除兼职申请");
         }
-        return R.failed();
     }
+
 
     /**
      * 通过兼职申请
@@ -295,6 +342,7 @@ public class ParttimeController {
         job.setPassedNum(job.getPassedNum() + 1);
         if (job.getPassedNum().equals(job.getRecruitNum())) {
             job.setStatus(FULL.code);
+            job.setVersion(job.getVersion()+1);
         }
         if (serviceCenter.updateMySql(apply) && serviceCenter.update(job)) { // 申请和兼职数据更新成功
             Operation operation = new Operation();
@@ -348,40 +396,92 @@ public class ParttimeController {
     public R updateOperationStatus(@RequestHeader("uid") String posterId, @RequestBody OperationStatusUpdateForm form) {
         Operation operation = FormTemplate.analyzeTemplate(form, Operation.class);
         assert operation != null;
-        Operation operationSql = (Operation) serviceCenter.selectMySql(operation.getOperationId(), Operation.class);
+        // 加分布式锁
+        try {
+            Thread.sleep(2000);
+            RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+            RLock rLock = redissonClient.getLock("operation" + form.getOperationId());
+            rLock.tryLock(60, 10, TimeUnit.SECONDS);
+            Operation operationSql = (Operation) serviceCenter.selectMySql(operation.getOperationId(), Operation.class);
 
-        if (posterId.equals(operationSql.getApplicantId()) || posterId.equals(operationSql.getPublisherId())) {//判断当前Id是否为兼职发布者或执行者Id
-            if (posterId.equals(operationSql.getApplicantId()) && operation.getStatus().equals(CONFIRM.code)) {//若当前Id为执行者并且需要修改状态为确认完成
-                return R.failed(null, "您没有权限确认订单完成");
-            }
-            if (posterId.equals(operationSql.getPublisherId()) && operation.getStatus().equals(COMPLETED.code)) {//若当前Id为发布者并且需要修改状态为完成
-                return R.failed(null, "您没有权限完成订单");
-            }
-            if (operation.getStatus().equals(CANCEL.code)) {//若需要修改状态为取消，需要联系客服进行取消
-                //这里之后再补充
-                return R.failed(null, "请联系客服进行订单取消");
-            } else {//可直接修改的情况:直接更新数据库
-                if (posterId.equals(operationSql.getPublisherId()) && operation.getStatus().equals(CONFIRM.code)) {
-                    Job job = (Job) serviceCenter.selectMySql(operation.getJobId(), Job.class);
-                    assert job != null;
-                    //订单由发布者确认完成后，执行者信用值+5
-                    applyDao.addCreditByJobId(operation.getJobId());
-                    job.setFinishNum(job.getFinishNum() + 1);
-                    if (job.getFinishNum().equals(job.getRecruitNum())) {
-                        job.setStatus(FINISH.code);
-                    }
-                    if (!serviceCenter.updateMySql(job)) {
-                        return R.failed(null, "兼职数据更新异常");
-                    }
+            if (posterId.equals(operationSql.getApplicantId()) || posterId.equals(operationSql.getPublisherId())) {// 判断当前Id是否为兼职发布者或执行者Id
+                if (posterId.equals(operationSql.getApplicantId()) && operation.getStatus().equals(CONFIRM.code)) {// 若当前Id为执行者并且需要修改状态为确认完成
+                    rLock.unlock();
+                    return R.failed(null, "您没有权限确认订单完成");
                 }
-                if (serviceCenter.updateMySql(operation)) {
-                    return R.ok();
+                if (posterId.equals(operationSql.getPublisherId()) && operation.getStatus().equals(COMPLETED.code)) {// 若当前Id为发布者并且需要修改状态为完成
+                    rLock.unlock();
+                    return R.failed(null, "您没有权限完成订单");
                 }
-                return R.failed(null, "执行数据更新异常");
+                if (operation.getStatus().equals(CANCEL.code)) {// 若需要修改状态为取消，需要联系客服进行取消
+                    // 这里之后再补充
+                    rLock.unlock();
+                    return R.failed(null, "请联系客服进行订单取消");
+                } else {// 可直接修改的情况:直接更新数据库
+                    if (posterId.equals(operationSql.getPublisherId()) && operation.getStatus().equals(CONFIRM.code)) {
+                        Job job = (Job) serviceCenter.selectMySql(operation.getJobId(), Job.class);
+                        assert job != null;
+                        //订单由发布者确认完成后，执行者信用值+5
+                        applyDao.addCreditByJobId(operation.getJobId());
+                        job.setFinishNum(job.getFinishNum() + 1);
+                        if (job.getFinishNum().equals(job.getRecruitNum())) {
+                            job.setStatus(FINISH.code);
+                            // 修改版本信息
+                            job.setVersion(job.getVersion()+1);
+                        }
+                        if (!serviceCenter.updateMySql(job)) {
+                            rLock.unlock();
+                            return R.failed(null, "兼职数据更新异常");
+                        }
+                    }
+                    if (serviceCenter.updateMySql(operation)) {
+                        rLock.unlock();
+                        return R.ok();
+                    }
+                    rLock.unlock();
+                    return R.failed(null, "执行数据更新异常");
+                }
+            } else {
+                rLock.unlock();
+                return R.failed(null, "您无权修改执行订单状态");
             }
-        } else {
-            return R.failed(null, "您无权修改执行订单状态");
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.info("【锁异常】修改兼职操作状态");
+            return R.failed("【锁异常】修改兼职操作状态");
         }
+    }
+
+    @ApiOperation("支付兼职费用")
+    @PostMapping("/payJobFee")
+    public R updateOperationStatus(@RequestHeader("uid") String posterId, @RequestBody JobOrderForm form) {
+            Operation operationSql = (Operation) serviceCenter.selectMySql(form.getOperationId(), Operation.class);
+            if(posterId.equals(operationSql.getPublisherId()) && operationSql.getStatus().equals(CONFIRM.getCode())){ // 成功支付
+                BalanceRecord balanceRecord = FormTemplate.analyzeTemplate(form,BalanceRecord.class);
+                BigDecimal balance = balanceRecordDao.searchBalance(form.getUid());
+                // 判断余额是否充足
+                if(balance.compareTo(form.getMoney())==-1){
+                    return R.failed(null,"余额不足，支付失败");
+                }
+                // 余额充足，进行以下支付操作
+                // 数据库操作:支出操作
+                balanceRecordDao.payJob(balanceRecord.getUid(),balanceRecord.getMoney());
+                // 新增余额变动记录
+                balanceRecord.setUid(form.getUid());
+                balanceRecord.setType(1);
+                balanceRecord.setBalance(balanceRecordDao.searchBalance(posterId));
+                if(!serviceCenter.insertMySql(balanceRecord)){
+                    balanceRecordDao.receiveJobPay(posterId,form.getMoney());
+                    return R.failed(null,"支付失败");
+                }
+                // 数据库操作：将支出的金额转入对应账户
+                Operation operation = (Operation) serviceCenter.selectMySql(form.getOperationId(),Operation.class);
+                String receiverId = operation.getApplicantId();
+                balanceRecordDao.receiveJobPay(receiverId,form.getMoney());
+                // messageClient.sendPromptInformation(new PromptInformationForm(receiverId, "您有一条收款记录!"));
+                return R.ok(null,"支付成功");
+            }
+            return R.failed(null,"您无权支付订单");
     }
 
     /**
@@ -391,23 +491,41 @@ public class ParttimeController {
     @ApiOperation("提交兼职订单反馈")
     @GetMapping("/updateJobFeedback")
     public R updateJobStatus(@RequestHeader("uid") String postId, @RequestParam("operationId") String operationId, @RequestParam("feedback") String feedback) {
-        Operation operation = FormTemplate.analyzeTemplate(serviceCenter.selectMySql(operationId, Operation.class), Operation.class);
-        assert operation != null;
-        if (feedback != "") {
-            if (postId.equals(operation.getPublisherId())) {
-                operation.setFeedback_from_publisher_to_applicant(feedback);
-            } else operation.setFeedback_from_applicant_to_publisher(feedback);
-            if (serviceCenter.update(operation)) {// 调用套件
-                log.info("更新成功");
-                return R.ok();
-            } else return R.failed();
-        } else return R.failed(null, "反馈内容为空");
+        // 分布式锁
+        try {
+            RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+            RLock rLock = redissonClient.getLock("operation" + operationId);
+            rLock.tryLock(60, 10, TimeUnit.SECONDS);
+            Operation operation = FormTemplate.analyzeTemplate(serviceCenter.selectMySql(operationId, Operation.class), Operation.class);
+            assert operation != null;
+            if (feedback != "") {
+                if (postId.equals(operation.getPublisherId())) {
+                    operation.setFeedback_from_publisher_to_applicant(feedback);
+                } else operation.setFeedback_from_applicant_to_publisher(feedback);
+                if (serviceCenter.update(operation)) {// 调用套件
+                    // 释放锁资源
+                    rLock.unlock();
+                    log.info("更新成功");
+                    return R.ok();
+                } else {
+                    rLock.unlock();
+                    return R.failed();
+                }
+            } else {
+                rLock.unlock();
+                return R.failed(null, "反馈内容为空");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.info("【锁异常】提交兼职订单反馈");
+            return R.failed("【锁异常】提交兼职订单反馈");
+        }
     }
 
     @ApiOperation("条件查询兼职")
     @PostMapping("/searchJob")
     public R searchRecruit(@RequestBody Map condition) {
-        List search = serviceCenter.search(condition, Job.class);
+        List search = serviceCenter.search(condition, JobLoadList.class);
         if (search != null) {
             return R.ok(search);
         }
@@ -418,15 +536,15 @@ public class ParttimeController {
     @GetMapping("/lazyLoading")
     public R lazyLoading(@RequestParam("num") Integer num) {
         List<Job> jobLists = serviceCenter.loadData(num, Job.class);
-        if(jobLists.size()==0){
-            return R.failed(null,"兼职数据为空");
+        if (jobLists.size() == 0) {
+            return R.failed(null, "兼职数据为空");
         }
         List<JobLoadList> jobLoadLists = new ArrayList<>();
-        for(Job job : jobLists){
-            JobLoadList jobLoadList = FormTemplate.analyzeTemplate(job,JobLoadList.class);
-            User user =jobDao.searchUserInfo(job.getPublisherId());
-            if(jobLoadList==null || user==null){
-                return R.failed(null,"兼职数据获取异常");
+        for (Job job : jobLists) {
+            JobLoadList jobLoadList = FormTemplate.analyzeTemplate(job, JobLoadList.class);
+            User user = jobDao.searchUserInfo(job.getPublisherId());
+            if (jobLoadList == null || user == null) {
+                return R.failed(null, "兼职数据获取异常");
             }
             jobLoadList.setUsername(user.getUsername());
             jobLoadList.setUserImage(user.getUserImage());
@@ -459,21 +577,21 @@ public class ParttimeController {
                 } else return R.failed(null, "数据更新失败");
             }
             User user = jobDao.searchUserInfo(showJob.getPublisherId());
-            if(user==null){
-                return R.failed(null,"数据获取失败");
+            if (user == null) {
+                return R.failed(null, "数据获取失败");
             }
             // 判断用户点赞状态
-            String likeId = likeDao.searchLikeIsExist(userId,jobId);
-            if(likeId==null) showJob.setLikeStatus(0);
+            String likeId = likeDao.searchLikeIsExist(userId, jobId);
+            if (likeId == null) showJob.setLikeStatus(0);
             else showJob.setLikeStatus(1);
             // 判断用户收藏状态
             String favoriteId = favoritesDao.searchFavoritesIsExist(userId, jobId);
-            if(favoriteId==null) showJob.setFavoritesStatus(0);
+            if (favoriteId == null) showJob.setFavoritesStatus(0);
             else showJob.setFavoritesStatus(1);
             // 判断用户是否对兼职进行申请
-            if(applyDao.searchApplyIsExist(userId, jobId)!=null){
+            if (applyDao.searchApplyIsExist(userId, jobId) != null) {
                 showJob.setApplyStatus(1);
-            }else showJob.setApplyStatus(0);
+            } else showJob.setApplyStatus(0);
             // 设置发布者信息
             showJob.setUserId(user.getUserId());
             showJob.setUserImage(user.getUserImage());
@@ -548,6 +666,7 @@ public class ParttimeController {
     @ApiOperation("新增兼职访问量")
     @GetMapping("/addVisitNum")
     public R incrementVisitNum(@RequestParam("jobId") String jobId) {
+        // 异步处理
         if (serviceCenter.increment(jobId, Job.class, true, "visitNum")) {
             return R.ok();
         }
@@ -562,6 +681,9 @@ public class ParttimeController {
     @GetMapping("/cancelJobOperation")
     public R cancelJobOperation(@RequestParam("userId") String userId, @RequestParam("operationId") String operationId) {
         Operation operation = (Operation) serviceCenter.selectMySql(operationId, Operation.class);
+        if (operation.getStatus().equals(CANCEL.code)) {
+            return R.failed(null, "已成功取消，请勿重复操作");
+        }
         operation.setStatus(CANCEL.code);
         if (userId.equals(operation.getPublisherId()) || userId.equals(operation.getApplicantId())) {
             operationDao.subCreditByJobId(userId);
@@ -609,101 +731,160 @@ public class ParttimeController {
     @ApiOperation("用户点赞操作")
     @GetMapping("/likeJob")
     public R likeJob(@RequestHeader("uid") String userId, @RequestParam("jobId") String jobId) {
-        Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
-        if (job == null) {
-            return R.failed(null, "当前兼职记录不存在，无法点赞");
-        }
-        String likeId = likeDao.searchLikeIsExist(userId, jobId);
-        if (likeId == null) {
-            Like like = new Like();
-            like.setLikeId(IdWorker.getIdStr(like));
-            like.setUserId(userId);
-            like.setJobId(jobId);
-            if (serviceCenter.insertMySql(like)) {
-                job.setLikeNum(job.getLikeNum() + 1);
-                if (!serviceCenter.updateMySql(job)) {
-                    return R.failed(null, "更新兼职信息失败");
-                }
-                return R.ok(job.getLikeNum(), "点赞成功");
+        // 分布式锁
+        try {
+            RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+            RLock rLock = redissonClient.getLock("like" + jobId);
+            rLock.tryLock(60, 10, TimeUnit.SECONDS);
+            Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
+            if (job == null) {
+                rLock.unlock();
+                return R.failed(null, "当前兼职记录不存在，无法点赞");
             }
+            String likeId = likeDao.searchLikeIsExist(userId, jobId);
+            if (likeId == null) {
+                Like like = new Like();
+                like.setLikeId(IdWorker.getIdStr(like));
+                like.setUserId(userId);
+                like.setJobId(jobId);
+                if (serviceCenter.insertMySql(like)) {
+                    job.setLikeNum(job.getLikeNum() + 1);
+                    if (!serviceCenter.updateMySql(job)) {
+                        rLock.unlock();
+                        return R.failed(null, "更新兼职信息失败");
+                    }
+                    rLock.unlock();
+                    return R.ok(job.getLikeNum(), "点赞成功");
+                }
+            }
+            rLock.unlock();
+            return R.failed(null, "您已为该兼职点赞了，是否需要取消点赞？");
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.info("【锁异常】用户点赞操作");
+            return R.failed("【锁异常】用户点赞操作");
         }
-        return R.failed(null, "您已为该兼职点赞了，是否需要取消点赞？");
     }
 
     @ApiOperation("用户取消点赞操作")
     @GetMapping("/cancelLikeJob")
     public R cancelLikeJob(@RequestHeader("uid") String userId, @RequestParam("jobId") String jobId) {
-        Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
-        // 判断该用户点赞的兼职记录是否被删除
-        if (job == null) {
-            return R.failed(null, "当前兼职记录不存在");
-        }
-        // 兼职未被删除
-        String likeId = likeDao.searchLikeIsExist(userId, jobId); // 查找对应的点赞记录Id
-        // 若该用户点赞过该兼职，则取消点赞
-        if (likeId != null) {
-            if (!serviceCenter.deleteMySql(Like.class, likeId)) { // 删除点赞记录
-                return R.failed(null, "取消点赞失败");
+        // 分布式锁
+        try {
+            RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+            RLock rLock = redissonClient.getLock("like" + jobId);
+            rLock.tryLock(60, 10, TimeUnit.SECONDS);
+            Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
+            // 判断该用户点赞的兼职记录是否被删除
+            if (job == null) {
+                rLock.unlock();
+                return R.failed(null, "当前兼职记录不存在");
             }
-            //修改job记录中的likeNum
-            job.setLikeNum(job.getLikeNum() - 1);
-            if (!serviceCenter.updateMySql(job)) { // 存入数据库中
-                return R.failed(null, "更新兼职信息失败");
+            // 兼职未被删除
+            String likeId = likeDao.searchLikeIsExist(userId, jobId); // 查找对应的点赞记录Id
+            // 若该用户点赞过该兼职，则取消点赞
+            if (likeId != null) {
+                if (!serviceCenter.deleteMySql(Like.class, likeId)) { // 删除点赞记录
+                    rLock.unlock();
+                    return R.failed(null, "取消点赞失败");
+                }
+                //修改job记录中的likeNum
+                job.setLikeNum(job.getLikeNum() - 1);
+                if (!serviceCenter.updateMySql(job)) { // 存入数据库中
+                    rLock.unlock();
+                    return R.failed(null, "更新兼职信息失败");
+                }
+                rLock.unlock();
+                return R.ok(job.getLikeNum(), "取消点赞成功");
             }
-            return R.ok(job.getLikeNum(),"取消点赞成功");
+            rLock.unlock();
+            return R.failed(null, "您已取消点赞了");
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.info("【锁异常】用户取消点赞操作");
+            return R.failed("【锁异常】用户取消点赞操作");
         }
-        return R.failed(null, "您已取消点赞了");
     }
 
     @ApiOperation("用户收藏操作")
     @GetMapping("/FavoritesJob")
     public R FavoritesJob(@RequestHeader("uid") String userId, @RequestParam("jobId") String jobId) {
-        Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
-        if (job == null) {
-            return R.failed(null, "当前兼职记录不存在，无法收藏");
-        }
-        String favoritesId = favoritesDao.searchFavoritesIsExist(userId, jobId);
-        if (favoritesId == null) { // 若没有存在收藏记录，则新建收藏记录
-            Favorites favorites = new Favorites();
-            favorites.setFavoritesId(IdWorker.getIdStr(favorites));
-            favorites.setUserId(userId);
-            favorites.setJobTitle(job.getJobTitle());
-            favorites.setJobId(jobId);
-            if (serviceCenter.insertMySql(favorites)) { // 将收藏记录存入数据库
-                job.setFavoritesNum(job.getFavoritesNum() + 1); // 修改对应兼职记录的收藏人数
-                if (!serviceCenter.updateMySql(job)) { // 将修改后的兼职记录更新到数据库
-                    return R.failed(null, "更新兼职信息失败");
-                }
-                return R.ok(job.getFavoritesNum(), "收藏成功");
-            }
+        // 分布式锁
+        try {
+            RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+            RLock rLock = redissonClient.getLock("favorites" + jobId);
+            rLock.tryLock(60, 10, TimeUnit.SECONDS);
 
+            Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
+            if (job == null) {
+                rLock.unlock();
+                return R.failed(null, "当前兼职记录不存在，无法收藏");
+            }
+            String favoritesId = favoritesDao.searchFavoritesIsExist(userId, jobId);
+            if (favoritesId == null) { // 若没有存在收藏记录，则新建收藏记录
+                Favorites favorites = new Favorites();
+                favorites.setFavoritesId(IdWorker.getIdStr(favorites));
+                favorites.setUserId(userId);
+                favorites.setJobTitle(job.getJobTitle());
+                favorites.setJobId(jobId);
+                if (serviceCenter.insertMySql(favorites)) { // 将收藏记录存入数据库
+                    job.setFavoritesNum(job.getFavoritesNum() + 1); // 修改对应兼职记录的收藏人数
+                    if (!serviceCenter.updateMySql(job)) { // 将修改后的兼职记录更新到数据库
+                        rLock.unlock();
+                        return R.failed(null, "更新兼职信息失败");
+                    }
+                    rLock.unlock();
+                    return R.ok(job.getFavoritesNum(), "收藏成功");
+                }
+
+            }
+            rLock.unlock();
+            return R.failed(null, "您已收藏过该兼职了，是否需要取消收藏？");
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.info("【锁异常】用户收藏操作");
+            return R.failed("【锁异常】用户收藏操作");
         }
-        return R.failed(null, "您已收藏过该兼职了，是否需要取消收藏？");
     }
 
     @ApiOperation("用户取消收藏操作")
     @GetMapping("/cancelFavoritesJob")
     public R cancelFavoritesJob(@RequestHeader("uid") String userId, @RequestParam("jobId") String jobId) {
-        Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
-        // 判断该用户收藏的兼职记录是否被删除
-        if (job == null) {
-            return R.failed(null, "当前兼职记录不存在");
-        }
-        // 兼职未被删除
-        String favoritesId = favoritesDao.searchFavoritesIsExist(userId, jobId); // 查找对应的收藏记录Id
-        // 若该用户收藏过该兼职，则取消收藏
-        if (favoritesId != null) {
-            if (!serviceCenter.deleteMySql(Favorites.class, favoritesId)) { // 删除收藏记录
-                return R.failed(null, "取消收藏失败");
+        // 分布式锁
+        try {
+            RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+            RLock rLock = redissonClient.getLock("favorites" + jobId);
+            rLock.tryLock(60, 10, TimeUnit.SECONDS);
+            Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
+            // 判断该用户收藏的兼职记录是否被删除
+            if (job == null) {
+                rLock.unlock();
+                return R.failed(null, "当前兼职记录不存在");
             }
-            //修改job记录中的favoritesNum
-            job.setFavoritesNum(job.getFavoritesNum() - 1);
-            if (!serviceCenter.updateMySql(job)) { // 存入数据库中
-                return R.failed(null, "更新兼职信息失败");
+            // 兼职未被删除
+            String favoritesId = favoritesDao.searchFavoritesIsExist(userId, jobId); // 查找对应的收藏记录Id
+            // 若该用户收藏过该兼职，则取消收藏
+            if (favoritesId != null) {
+                if (!serviceCenter.deleteMySql(Favorites.class, favoritesId)) { // 删除收藏记录
+                    rLock.unlock();
+                    return R.failed(null, "取消收藏失败");
+                }
+                //修改job记录中的favoritesNum
+                job.setFavoritesNum(job.getFavoritesNum() - 1);
+                if (!serviceCenter.updateMySql(job)) { // 存入数据库中
+                    rLock.unlock();
+                    return R.failed(null, "更新兼职信息失败");
+                }
+                rLock.unlock();
+                return R.ok(job.getFavoritesNum(), "取消收藏成功");
             }
-            return R.ok(job.getFavoritesNum(),"取消收藏成功");
+            rLock.unlock();
+            return R.failed(null, "您已取消收藏了");
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.info("【锁异常】用户取消收藏操作");
+            return R.failed("【锁异常】用户取消收藏操作");
         }
-        return R.failed(null, "您已取消收藏了");
     }
 
     @ApiOperation("查看用户收藏列表")
@@ -732,11 +913,11 @@ public class ParttimeController {
             return R.failed(null, "无发布记录");
         }
         List<MyPublishedList> jobLists = new ArrayList<>();
-        for(Job job : publishedList){
+        for (Job job : publishedList) {
             MyPublishedList jobList;
             jobList = FormTemplate.analyzeTemplate(job, MyPublishedList.class);
-            if(jobList==null){
-                return R.failed(null,"获取已发布列表异常");
+            if (jobList == null) {
+                return R.failed(null, "获取已发布列表异常");
             }
             jobLists.add(jobList);
         }
@@ -751,14 +932,14 @@ public class ParttimeController {
             return R.failed(null, "无申请记录");
         }
         List<MyAppliedList> jobLists = new ArrayList<>();
-        for(Apply apply : applyList){
+        for (Apply apply : applyList) {
             String jobId = apply.getJobId();
             //通过兼职Id获取兼职信息
             Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
             MyAppliedList jobList;
             jobList = FormTemplate.analyzeTemplate(job, MyAppliedList.class);
-            if(jobList==null){
-                return R.failed(null,"获取已申请列表异常");
+            if (jobList == null) {
+                return R.failed(null, "获取已申请列表异常");
             }
             jobList.setApplicationId(apply.getApplicationId());
             jobList.setApplyStatus(apply.getStatus());
@@ -776,14 +957,14 @@ public class ParttimeController {
             return R.failed(null, "无进行记录");
         }
         List<MyActiveList> jobLists = new ArrayList<>();
-        for(Operation operation:operationList){
+        for (Operation operation : operationList) {
             String jobId = operation.getJobId();
             //通过兼职Id获取兼职信息
             Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
             MyActiveList jobList;
             jobList = FormTemplate.analyzeTemplate(job, MyActiveList.class);
-            if(jobList==null){
-                return R.failed(null,"您的进行中列表查看异常");
+            if (jobList == null) {
+                return R.failed(null, "您的进行中列表查看异常");
             }
             jobList.setOperationId(operation.getOperationId());
             jobList.setStatus(operation.getStatus());
@@ -800,7 +981,7 @@ public class ParttimeController {
             return R.failed(null, "无完成记录");
         }
         List<MyFinishedList> finishedLists = new ArrayList<>();
-        for(Operation operation:operationLists) {
+        for (Operation operation : operationLists) {
             String jobId = operation.getJobId();
             //通过兼职Id获取兼职信息
             Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
@@ -827,11 +1008,11 @@ public class ParttimeController {
                 return R.failed(null, "当前未有用户提交申请");
             }
             List<JobApplyListInfoToPubliser> jobApplyListInfos = new ArrayList<>();
-            for(Apply apply : applyList){
+            for (Apply apply : applyList) {
                 JobApplyListInfoToPubliser jobApplyListInfo = FormTemplate.analyzeTemplate(apply, JobApplyListInfoToPubliser.class);
                 User user = jobDao.searchUserInfo(apply.getApplicantId());
-                if(user==null || jobApplyListInfo==null){
-                    return R.failed(null,"兼职列表获取异常");
+                if (user == null || jobApplyListInfo == null) {
+                    return R.failed(null, "兼职列表获取异常");
                 }
                 jobApplyListInfo.setUsername(user.getUsername());
                 jobApplyListInfo.setGender(user.getGender());
@@ -842,4 +1023,6 @@ public class ParttimeController {
         }
         return R.failed(null, "查看失败");
     }
+
+
 }

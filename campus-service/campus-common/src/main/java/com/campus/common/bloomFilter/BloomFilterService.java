@@ -19,6 +19,7 @@ public class BloomFilterService {
     @Resource
     private RBloomFilter<Object> bloomFilter;
 
+
     public void bloomSet(String key){
         boolean flag = bloomFilter.add(key);
 //        if (!flag){
@@ -30,6 +31,4 @@ public class BloomFilterService {
         boolean flag = bloomFilter.contains(key);
         return flag;
     }
-
-
 }

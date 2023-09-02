@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
-import com.campus.common.bloomFilter.BloomFilterService;
 import com.campus.common.pojo.Image;
 import com.campus.common.util.SpringContextUtil;
 import com.campus.common.util.TimeUtil;
@@ -85,12 +84,7 @@ public class ServiceCenter {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private BloomFilterService bloomFilterService;
-
     private ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor(); // 线程池
-
-
 
 
     /**
@@ -102,7 +96,7 @@ public class ServiceCenter {
      * 数据库获取最近访问的产品（10个）
      * 结巴分词获取高频词汇(过滤掉无效高频词)
      */
-    public <T> List<String> guessYouLikes(String uid, Class<T> clazz, String titleArg) {
+    public <T> List<String> guessYouLikes(String uid, Class<T> clazz, String... args) {
         try {
             String className = getName(clazz);
             String tableName = "t_" + className + "_record";
@@ -117,11 +111,14 @@ public class ServiceCenter {
             List<String> list2 = recommendations.stream().map(r -> String.valueOf(r.getItemID())).collect(Collectors.toList());
             list1.addAll(list2); // 连接列表
             List<T> sources = getTuplesByIds(list1, clazz);
-            List<String> ret = new ArrayList<>();
-            for (T source : sources) {
-                ret.add(String.valueOf(getArg(source, titleArg)));
+            StringBuffer summarize = new StringBuffer(); // 将有效信息进行拼接
+            for (int i = 0; i < sources.size(); i++) {
+                for (String arg : args) {
+                    summarize.append(getArg(sources.get(i), arg));
+                }
             }
-            return ret;
+            //结巴分词处理
+            return new ArrayList<>();
         } catch (Exception e) {
             e.printStackTrace();
             return new ArrayList<>();
@@ -803,13 +800,11 @@ public class ServiceCenter {
      */
     public <T> Object search(String id, Class<T> clazz) {
         try {
-            String h = getName(clazz);
             // 校验id
-            if (h.equals("job") || h.equals("product")){
-                if (!bloomFilterService.bloomContain(h+id)) {
-                    return null;
-                }
+            if (id == null || id.length() < 19) {
+                return null;
             }
+            String h = getName(clazz);
             String cache = redisTemplate.opsForValue().get(h + id);
             if (cache != null && cache.length() > 0) { // 如果存在对应缓存
                 Object ret = JSONObject.parseObject(redisTemplate.opsForValue().get(h + id), clazz);
@@ -1031,7 +1026,6 @@ public class ServiceCenter {
     public <T> boolean updateMySql(T t) {
         try {
             BaseMapper<T> mapper = getMapper(t);
-            setArg(t, "updateTime", TimeUtil.getCurrentTime());
             mapper.updateById(t);
             return true;
         } catch (Exception e) {

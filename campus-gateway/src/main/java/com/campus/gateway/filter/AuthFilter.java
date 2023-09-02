@@ -25,20 +25,8 @@
 //    @Autowired
 //    private StringRedisTemplate stringRedisTemplate;
 //
-//    private String[] patterns;
-//
-//    public void setPatterns(String[] patterns) {
-//        this.patterns = patterns;
-//    }
-//
 //    @Override
 //    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-//        String path = exchange.getRequest().getURI().getPath();
-//        for (String p : patterns) { // patterns中的路径无须校验token
-//            if (path.contains(p)) {
-//                return chain.filter(exchange);
-//            }
-//        }
 //        String token = exchange.getRequest().getHeaders().getFirst("token");
 //        String uid = TokenUtil.getUidFromToken(token);
 //

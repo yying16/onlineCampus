@@ -383,20 +383,23 @@ public class UserController {
     }
 
 
+
+
+
     /**
      * 举报用户操作
      */
     @ApiOperation("举报用户操作")
     @GetMapping("/reportUser")
-    public R reportUser(@RequestBody ReportInsertForm form) {
+    public R reportUser(@RequestBody ReportInsertForm form ){
         Report report = FormTemplate.analyzeTemplate(form, Report.class);
-        assert report != null;
+        assert report!=null;
         report.setReportId(IdWorker.getIdStr(report));
-        report.setReport_status(0);
-        if (!serviceCenter.insertMySql(report)) {
-            return R.failed(null, "举报失败，请重试");
+        report.setReportStatus(0);
+        if(!serviceCenter.insertMySql(report)) {
+            return R.failed(null,"举报失败，请重试");
         }
-        return R.ok(null, "举报信息提交成功");
+        return R.ok(null,"举报信息提交成功");
     }
 
     /**
@@ -410,25 +413,25 @@ public class UserController {
     }
 
     /**
-     * 举报状态修改：
+     * 举报状态修改：(管理员进行)
      * 举报状态（0-审核中，1-确认，2-驳回）
      * 若状态为确认，则调用addBreaker方法新增违规用户记录。
      */
     @ApiOperation("举报状态修改")
     @GetMapping("/updateReportStatus")
-    public R updateReportStatus(@RequestParam("reportId") String reportId, @RequestParam("reportStatus") Integer reportStatus) {
-        Report report = (Report) serviceCenter.selectMySql(reportId, Report.class);
-        if (report == null) {
-            return R.failed(null, "举报不存在");
+    public R updateReportStatus(@RequestParam("reportId") String reportId, @RequestParam("reportStatus")Integer reportStatus){
+        Report report = (Report) serviceCenter.selectMySql(reportId,Report.class);
+        if(report==null){
+            return R.failed(null,"举报不存在");
         }
-        report.setReport_status(reportStatus);
-        if (!serviceCenter.updateMySql(report)) {
-            if (reportStatus == 1) { // 当管理员通过举报请求后
-                addBreaker(report.getReported_id(), report.getReport_content());// 调用addBreak方法将该用户添加到违规用户列表中
+        report.setReportStatus(reportStatus);
+        if(!serviceCenter.updateMySql(report)) {
+            if(reportStatus==1){ // 当管理员通过举报请求后
+                addBreaker(report.getReportedId(),report.getReportContent());// 调用addBreak方法将该用户添加到违规用户列表中
             }
-            return R.failed(null, "举报状态修改失败,请重试");
+            return R.failed(null,"举报状态修改失败,请重试");
         }
-        return R.ok(null, "举报状态修改成功");
+        return R.ok(null,"举报状态修改成功");
     }
 
     /**
@@ -438,10 +441,10 @@ public class UserController {
      */
     @ApiOperation("违规用户处理")
     @GetMapping("/addBreaker")
-    public R addBreaker(@RequestParam("breakerId") String breakerId, @RequestParam("breakText") String breakText) {
-        User user = (User) serviceCenter.selectMySql(breakerId, User.class);
-        if (user == null) {
-            return R.failed(null, "该用户不存在");
+    public R addBreaker(@RequestParam("breakerId")String breakerId, @RequestParam("breakText")String breakText){
+        User user = (User)serviceCenter.selectMySql(breakerId,User.class);
+        if(user==null){
+            return R.failed(null,"该用户不存在");
         }
         Breaker breaker = new Breaker();
         breaker.setBreakId(IdWorker.getIdStr(breaker));
@@ -527,6 +530,8 @@ public class UserController {
      * 违规用户列表（管理员查看：违规次数最多的用户排名）
      * 还需要添加（方法：点击某一用户的所有违规详情;数据统计：违规次数最多的用户排名）
      */
+
+
 
 
     /**

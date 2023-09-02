@@ -9,6 +9,9 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>campus-common</artifactId>
+    <properties>
+
+    </properties>
 
     <dependencies>
 
@@ -131,57 +134,57 @@
         <dependency>
             <groupId>org.apache.mahout</groupId>
             <artifactId>mahout-core</artifactId>
-            <version>${mahout.version}</version>
+            <version>0.9</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.mahout</groupId>
             <artifactId>mahout-integration</artifactId>
-            <version>${mahout.version}</version>
+            <version>0.9</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.mahout</groupId>
             <artifactId>mahout-math</artifactId>
-            <version>${mahout.version}</version>
+            <version>0.9</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.mahout</groupId>
             <artifactId>mahout-examples</artifactId>
-            <version>${mahout.version}</version>
+            <version>0.9</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-dbcp2</artifactId>
-            <version>${commons-dbcp2.version}</version>
+            <version>2.9.0</version>
         </dependency>
 
         <!-- MySQL Connector/J -->
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>${mysql-connector-java.version}</version>
+            <version>8.0.26</version>
         </dependency>
         <!--结巴分词-->
         <dependency>
             <groupId>com.huaban</groupId>
             <artifactId>jieba-analysis</artifactId>
-            <version>${jieba-analysis.version}</version>
+            <version>1.0.2</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.hankcs/hanlp -->
         <dependency>
             <groupId>com.hankcs</groupId>
             <artifactId>hanlp</artifactId>
-            <version>${hanlp.version}</version>
+            <version>portable-1.8.4</version>
         </dependency>
 
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson</artifactId>
-            <version>${redisson.version}</version>
+            <version>3.20.0</version>
         </dependency>
 
 

@@ -18,11 +18,11 @@ public class BloomFilterConfig {
     @Resource
     private RedissonClient redissonClient;
 
-    @Bean
+    @Bean(name = "RBloomFilter")
     public RBloomFilter<Object> bloom(){
-        RBloomFilter<Object> bloomFilter = redissonClient.getBloomFilter("bloom-filter");
+        RBloomFilter<Object> bloomFilter = redissonClient.getBloomFilter("camps-filter");
         //初始化，容器100000.容错率千分之一
-        bloomFilter.tryInit(1000000,0.01);
+        bloomFilter.tryInit(100000,0.01);
         return bloomFilter;
     }
 
