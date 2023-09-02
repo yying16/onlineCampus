@@ -79,12 +79,12 @@ public class WebSocket {
     @OnOpen
     public void onOpen(Session session, @PathParam(value = "onlineUser") String onlineUser) {
         try {
-            if(!SESSION_POOL.containsKey(onlineUser)){
+//            if(!SESSION_POOL.containsKey(onlineUser)){
                 SESSIONS.add(session);
                 SESSION_POOL.put(onlineUser, session);
                 ((StringRedisTemplate) SpringContextUtil.getBean(StringRedisTemplate.class)).opsForHash().put(onlineUserKey,onlineUser,TimeUtil.getCurrentTime());
                 log.info("【WebSocket消息】有新的连接，总数为：" + SESSIONS.size());
-            }
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
