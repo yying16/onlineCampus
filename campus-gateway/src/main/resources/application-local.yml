@@ -6,7 +6,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: localhost:8848 #Nacos地址
+        server-addr: 127.0.0.1:8848 # nacos集群
         ip: ${serverIp}
     gateway:
       httpclient:
@@ -15,6 +15,10 @@ spring:
         locator:
           enabled: true # 让gateway根据注册中心找到其他服务
       routes:
+        - id: websocket-route # websocket 转发
+          uri: lb:ws://campus-message
+          predicates:
+            - Path=/campusMessage/websocket/**
         - id: campus-contact   #路由 id,没有固定规则，但唯一，建议与服务名对应
           uri: lb://campus-contact          #匹配后提供服务的路由地址
           predicates:
@@ -37,6 +41,7 @@ spring:
           uri: lb://campus-message          #匹配后提供服务的路由地址
           predicates:
             - Path=/campusMessage/**
+            - Method=GET,POST,PUT,DELETE
           filters:
             - Token=true
         - id: campus-parttime   #路由 id,没有固定规则，但唯一，建议与服务名对应
@@ -51,21 +56,25 @@ spring:
             - Path=/campusTrade/**
           filters:
             - Token=true
+        - id: campus-oss   #路由 id,没有固定规则，但唯一，建议与服务名对应
+          uri: lb://campus-oss          #匹配后提供服务的路由地址
+          predicates:
+            - Path=/campusOss/**
   datasource:
     druid:
-      url: jdbc:mysql://47.115.219.35:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
+      url: jdbc:mysql://117.72.15.203:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
       driverClassName: com.mysql.jdbc.Driver
       max-active: 20
       min-idle: 8
       initial-size: 10
     username: root
-    password: olcampus8888
+    password: olcampus8888!
   redis:
-    database: 1
-    host: 47.115.219.35
+    database: 0
+    host: 117.72.15.203
     port: 6379
     timeout: 10000
-    password: olcampus8888
+    password: olcampus8888!
 
 mybatis-plus:
   global-config:
@@ -85,6 +94,7 @@ management:
 
 exclude:
   patterns: # 网关非过滤路径
+    - '/campusMessage/websocket'
     - '/campusUser/login'
     - '/campusUser/register'
     - '/campusUser/send'

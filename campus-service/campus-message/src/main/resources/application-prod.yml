@@ -1,0 +1,64 @@
+server:
+  port: 7002
+  servlet:
+    context-path: /campusMessage
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 1024MB
+  application:
+    name: campus-message
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 117.72.15.203:8848,117.72.14.204:8848,117.72.13.205:8848 # nacos集群
+        ip: ${serverIp:127.0.0.1}
+  datasource:
+    druid:
+      url: jdbc:mysql://117.72.15.203:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
+      driverClassName: com.mysql.jdbc.Driver
+      max-active: 20
+      min-idle: 8
+      initial-size: 10
+    username: root
+    password: olcampus8888!
+  redis:
+    database: 0
+    host: 117.72.15.203
+    port: 6379
+    timeout: 10000
+    password: olcampus8888!
+  kafka:
+    bootstrap-servers: 117.72.15.203:9092,117.72.14.204:9092,117.72.13.205:9092 # kafka集群
+    producer:
+      retries: 3 # 重新发送次数
+      batch-size: 16384
+      buffer-memory: 33554432 # 32M缓存空间
+      acks: all
+      # 指定消息key和消息体的编解码方式
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: default-group
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: manual_immediate
+mybatis-plus:
+  global-config:
+    db-config:
+      table-prefix: t_
+      id-type: auto
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.campus.message.domain
+  configuration:
+    map-underscore-to-camel-case: true
+
+serverId: 2
+

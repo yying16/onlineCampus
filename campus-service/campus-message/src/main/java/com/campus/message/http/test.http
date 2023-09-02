@@ -1,18 +1,18 @@
 ### 模拟用户t1登录后的消息初始化(将消息写入缓存)
-GET http://localhost:7002/campusMessage/message/initMessage
-uid:t1
+GET http://117.72.15.203:9000/campusMessage/message/initMessage
+token:t2
 
 ###用户1点击【首页】-【消息】
-GET http://localhost:7002/campusMessage/message/clickMyMessage
-uid:t1
+GET http://117.72.15.203:9000/campusMessage/message/clickMyMessage
+token:t1
 
 ###模拟用户t2登录后的消息初始化(将消息写入缓存)
-GET http://localhost:7002/campusMessage/message/initMessage
-uid:t2
+GET http://117.72.15.203:9000/campusMessage/message/initMessage
+token:t2
 
 ### 发送好友请求
-POST http://localhost:7002/campusMessage/message/send
-uid:t1
+POST http://117.72.15.203:9000/campusMessage/message/send
+token:t1
 Content-Type: application/json
 
 {
@@ -26,8 +26,8 @@ Content-Type: application/json
 <> 2023-07-25T111436.200.json
 
 ### 接受好友请求
-POST http://localhost:7002/campusMessage/message/handleRequest
-uid:t2
+POST http://117.72.15.203:9000/campusMessage/message/handleRequest
+token:t2
 Content-Type: application/json
 
 {
@@ -37,14 +37,14 @@ Content-Type: application/json
 
 
 ###
-GET http://localhost:7002/campusMessage/message/initMessage
-uid:2
+GET http://117.72.15.203:9000/campusMessage/message/initMessage
+token:2
 
 ###获取2和他的好友1的聊天记录
-GET http://localhost:7002/campusMessage/message/getUserChatRecords?friendId=1
-uid:2
+GET http://117.72.15.203:9000/campusMessage/message/getUserChatRecords?friendId=1
+token:2
 
 
 ###懒加载2和他的好友1的聊天记录
-GET http://localhost:7002/campusMessage/message/lazyLoadingChatRecords?friendId=1
-uid:2
+GET http://117.72.15.203:9000/campusMessage/message/lazyLoadingChatRecords?friendId=1
+token:2

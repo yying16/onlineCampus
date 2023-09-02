@@ -94,6 +94,7 @@ management:
 
 exclude:
   patterns: # 网关非过滤路径
+    - '/campusMessage/websocket'
     - '/campusUser/login'
     - '/campusUser/register'
     - '/campusUser/send'
