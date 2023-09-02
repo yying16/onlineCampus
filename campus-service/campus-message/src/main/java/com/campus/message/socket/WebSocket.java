@@ -55,6 +55,8 @@ public class WebSocket {
      */
     private static final Map<String, Session> SESSION_POOL = new HashMap<>();
 
+    private static final String onlineUserKey = "ONLINE_USERS";
+
     @Autowired
     StringRedisTemplate redisTemplate;
 
@@ -76,6 +78,7 @@ public class WebSocket {
         try {
             SESSIONS.add(session);
             SESSION_POOL.put(onlineUser, session);
+            redisTemplate.opsForHash().put(onlineUserKey,onlineUser,TimeUtil.getCurrentTime());
             log.info("【WebSocket消息】有新的连接，总数为：" + SESSIONS.size());
         } catch (Exception e) {
             e.printStackTrace();
@@ -83,10 +86,11 @@ public class WebSocket {
     }
 
     @OnClose
-    public void onClose(Session session) {
+    public void onClose(Session session ,@PathParam(value = "onlineUser") String onlineUser) {
         try {
             SESSIONS.remove(session);
             log.info("【WebSocket消息】连接断开，总数为：" + SESSIONS.size());
+            redisTemplate.opsForHash().delete(onlineUserKey,onlineUser);
         } catch (Exception e) {
             e.printStackTrace();
         }

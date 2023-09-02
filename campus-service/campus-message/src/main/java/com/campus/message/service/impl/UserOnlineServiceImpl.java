@@ -12,6 +12,7 @@ public class UserOnlineServiceImpl implements UserOnlineService {
     @Autowired
     StringRedisTemplate redisTemplate;
 
+    private static final String onlineUserKey = "ONLINE_USERS";
 
     /**
      * 判断用户是否在线
@@ -20,6 +21,6 @@ public class UserOnlineServiceImpl implements UserOnlineService {
      */
     @Override
     public boolean isOnline(String uid) {
-        return redisTemplate.opsForHash().values("message" + uid).size()>0;
+        return redisTemplate.opsForHash().hasKey(onlineUserKey,uid);
     }
 }

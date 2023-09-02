@@ -7,6 +7,7 @@ spring:
     nacos:
       discovery:
         server-addr: localhost:8848 #Nacos地址
+        ip: ${serverIp}
     gateway:
       httpclient:
         wiretap: true # 输出请求和响应的详细日志
