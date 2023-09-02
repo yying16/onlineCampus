@@ -117,7 +117,8 @@ uid:t2
 GET http://localhost:7006/campusParttime/parttime/getOperationDetail?operationId=1686349645426479107
 
 ### 21.懒加载（可正常使用）
-GET http://localhost:7006/campusParttime/parttime/lazyLoading?num=3
+GET http://117.72.15.203:9000/campusParttime/parttime/lazyLoading?num=3
+token:t1
 
 ### 22.用户点赞操作
 GET http://localhost:7006/campusParttime/parttime/likeJob?jobId=1692826507982725121
