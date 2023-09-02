@@ -68,7 +68,7 @@ public class WebSocket {
 
 
     @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
+    KafkaTemplate<String, String> kafkaTemplate;
 
     /**
      * 连接成功时
@@ -76,10 +76,12 @@ public class WebSocket {
     @OnOpen
     public void onOpen(Session session, @PathParam(value = "onlineUser") String onlineUser) {
         try {
-            SESSIONS.add(session);
-            SESSION_POOL.put(onlineUser, session);
-            redisTemplate.opsForHash().put(onlineUserKey,onlineUser,TimeUtil.getCurrentTime());
-            log.info("【WebSocket消息】有新的连接，总数为：" + SESSIONS.size());
+            if(!SESSION_POOL.containsKey(onlineUser)){
+                SESSIONS.add(session);
+                SESSION_POOL.put(onlineUser, session);
+                redisTemplate.opsForHash().put(onlineUserKey,onlineUser,TimeUtil.getCurrentTime());
+                log.info("【WebSocket消息】有新的连接，总数为：" + SESSIONS.size());
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -89,6 +91,7 @@ public class WebSocket {
     public void onClose(Session session ,@PathParam(value = "onlineUser") String onlineUser) {
         try {
             SESSIONS.remove(session);
+            SESSION_POOL.remove(onlineUser);
             log.info("【WebSocket消息】连接断开，总数为：" + SESSIONS.size());
             redisTemplate.opsForHash().delete(onlineUserKey,onlineUser);
         } catch (Exception e) {
