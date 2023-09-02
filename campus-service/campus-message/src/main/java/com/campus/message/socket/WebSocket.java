@@ -73,17 +73,6 @@ public class WebSocket {
     @Autowired
     KafkaTemplate<String, String> kafkaTemplate;
 
-//    @PostConstruct
-//    private void init() {
-//        this.redisTemplate = (StringRedisTemplate) SpringContextUtil.getBean(StringRedisTemplate.class);
-//        this.messageDao = (MessageDao) SpringContextUtil.getBean(MessageDao.class);
-//        this.kafkaTemplate = (KafkaTemplate<String, String>) SpringContextUtil.getBean(KafkaTemplate.class);
-//        this.userOnlineService = (UserOnlineServiceImpl) SpringContextUtil.getBean(UserOnlineServiceImpl.class);
-//    }
-
-
-
-
     /**
      * 连接成功时
      */
