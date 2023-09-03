@@ -86,12 +86,12 @@ GET http://117.72.15.203:9000/campusParttime/parttime/getJobDetail?jobId=1688378
 token:t1
 
 ### 13.查看兼职申请详情
-GET http://117.72.15.203:9000/campusParttime/parttime/getApplyDetail?applicationId=1686382859536871426
+GET http://117.72.15.203:9000/campusParttime/parttime/getApplyDetail?applicationId=1695473796031270913
 token:t2
 
 ### 14.发布者查看兼职申请列表
-GET http://117.72.15.203:9000/campusParttime/parttime/searchApplyListToPublisher?jobId=1684841016020135937
-token:t2
+GET http://117.72.15.203:9000/campusParttime/parttime/searchApplyListToPublisher?jobId=1685633977653895169
+token:t1
 
 ### 15.查看用户信息
 GET http://117.72.15.203:9000/campusParttime/parttime/getUserInfo?userId=2
@@ -117,7 +117,7 @@ GET http://117.72.15.203:9000/campusParttime/parttime/getOperationDetail?operati
 token:t2
 
 ### 21.懒加载（可正常使用）
-GET http://117.72.15.203:9000/campusParttime/parttime/lazyLoading?num=3
+GET http://117.72.15.203:9000/campusParttime/parttime/lazyLoading?num=0
 token:t1
 
 ### 22.用户点赞操作
