@@ -1,0 +1,2 @@
+GET http://117.72.15.203:9000/campusUser/user/getDetail
+token:t1
