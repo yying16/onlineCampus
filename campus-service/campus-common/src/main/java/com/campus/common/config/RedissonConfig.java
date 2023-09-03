@@ -26,7 +26,7 @@ public class RedissonConfig {
         String master = "redis://117.72.15.203:6379";
         Set<String> slaves = new HashSet() {{
             add("redis://117.72.14.204:6379");
-            add("redis://117.72.13.205:6379");
+//            add("redis://117.72.13.205:6379");
         }};
         config.useMasterSlaveServers()
                 .setDatabase(redisProperties.getDatabase())
