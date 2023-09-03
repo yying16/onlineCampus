@@ -124,9 +124,17 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
         //分类名
         String categoryId = product.getCategoryId();
         Category category = categoryService.getById(categoryId);
-        showProduct.setCategoryName(category.getName());
+        if (category==null){
+            showProduct.setCategoryName("暂无分类");
+        }else{
+            showProduct.setCategoryName(category.getName());
+        }
         Category parentCategory = categoryService.getById(category.getParentId());
-        showProduct.setSubCategoryName(parentCategory.getName());
+        if (parentCategory==null){
+            showProduct.setSubCategoryName("暂无分类");
+        }else {
+            showProduct.setSubCategoryName(parentCategory.getName());
+        }
 
         //根据商品id查询商品图片
 //        String productId = product.getProductId();
