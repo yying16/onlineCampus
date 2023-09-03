@@ -6,7 +6,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848 # nacos集群
+        server-addr: 117.72.15.203:8848,117.72.14.204:8848,117.72.13.205:8848 # nacos集群
         ip: ${serverIp}
     gateway:
       httpclient:
