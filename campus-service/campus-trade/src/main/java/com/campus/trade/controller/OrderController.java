@@ -61,7 +61,7 @@ public class OrderController {
         //查询商品信息
 //        Product product = productService.getById(productId);
 //        Product product = (Product) serviceCenter.search(productId, Product.class);
-        Product search = (Product) serviceCenter.search(productId, Product.class);
+        Product search = (Product) serviceCenter.selectMySql(productId, Product.class);
         if (search == null) {
             return R.failed(null, "商品不存在");
         }
@@ -235,7 +235,7 @@ public class OrderController {
     @GetMapping("{orderId}")
     @ApiOperation("根据订单id查看订单信息")
     public R getOrderByOrderId(@ApiParam("订单id") @PathVariable("orderId") String orderId){
-        Order order = (Order) serviceCenter.search(orderId, Order.class);
+        Order order = (Order) serviceCenter.selectMySql(orderId, Order.class);
         if (order == null) {
             return R.failed(null, "订单不存在");
         }

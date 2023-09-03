@@ -8,12 +8,12 @@ token: t1
 ###//查看商品列表（条件懒加载）
 #请求路径：http://localhost:9000/campusTrade/product/listByQuery/{offset}
 ##searchContent 为搜索内容，与商品的描述进行匹配，可以为空，为空时返回所有商品
-POST http://localhost:9000/campusTrade/product/listByQuery/0
+POST http://117.72.15.203:9000/campusTrade/product/listByQuery/0
 token: t1
 Content-Type: application/json
 
 {
-  "searchContent": "手机"
+  "searchContent": ""
 }
 
 
@@ -70,7 +70,7 @@ Content-Type: application/json
 
 ###根据用户id查看发布的商品列表
 ###请求路径：http://localhost:9000/campusTrade/product/listByUserId/{offset}
-POST http://localhost:9000/campusTrade/product/listByUserId/0
+POST http://117.72.15.203:9000/campusTrade/product/listByUserId/0
 token: t1
 Content-Type: application/json
 
@@ -82,7 +82,7 @@ Content-Type: application/json
 
 ###查询下单前确认信息（用户和商品信息）
 ###请求路径：http://localhost:9000/campusTrade/order/confirm/{productId}
-GET http://localhost:9000/campusTrade/order/confirm/1679428131023458306
+GET http://localhost:9000/campusTrade/order/confirm/1689506597450219522
 token: t1
 
 
@@ -154,9 +154,8 @@ token:t1
 
 ###根据订单id查询订单详情
 ###请求路径：http://localhost:9000/campusTrade/order/{orderId}
-GET http://localhost:9000/campusTrade/order/02d233738a74b6f601d7b5674b32da78
+GET http://localhost:9000/campusTrade/order/1681872413881679874
 token:t1
-
 
 
 ###添加出价
