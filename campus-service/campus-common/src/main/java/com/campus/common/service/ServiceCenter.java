@@ -1014,7 +1014,9 @@ public class ServiceCenter {
             try {
                 Method method = t.getClass().getMethod("getImages");
                 List<String> list = (List<String>) method.invoke(t);
-                insertImage(list, String.valueOf(getArg(t, getName(t, "Id"))), t.getClass());
+                if(list!=null){
+                    insertImage(list, String.valueOf(getArg(t, getName(t, "Id"))), t.getClass());
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 log.info("图片插入异常");
