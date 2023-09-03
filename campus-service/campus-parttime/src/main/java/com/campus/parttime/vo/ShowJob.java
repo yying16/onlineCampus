@@ -32,6 +32,7 @@ public class ShowJob {
     String createTime;  // 创建时间
     String updateTime;  // 更新时间
 
+    Integer version; // 版本号
     Integer applyNum;  // 已申请人数
     Integer passedNum; // 已通过人数
     Integer finishNum; // 已完成人数
