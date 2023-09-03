@@ -43,7 +43,7 @@ GET http://117.72.15.203:9000/campusParttime/parttime/deleteJob?jobId=1688378351
 token:t2
 
 ### 5.提交兼职申请
-POST http://117.72.15.203:9000/campusParttime/parttime/addJobApply?jobId=1688098914372386817
+POST http://117.72.15.203:9000/campusParttime/parttime/addJobApply?jobId=1688098914372386817&jobVersion=1
 token:t2
 
 ### 6.删除兼职申请记录
@@ -68,18 +68,17 @@ Content-Type: application/json
 }
 
 ### 10.提交兼职订单反馈
-GET http://117.72.15.203:9000/campusParttime/parttime/updateJobFeedback?operationId=1684147132394815490&feedback=工作效率很高
-token:20251102299
+GET http://117.72.15.203:9000/campusParttime/parttime/updateJobFeedback?operationId=1692036297166516227&feedback=工作效率很高
+token:t1
 
 ### 11.条件查询兼职
 POST http://117.72.15.203:9000/campusParttime/parttime/searchJob
-token:t1
+token:t2
 Content-Type: application/json
 
 {
   "location": "1",
-  "term": "0",
-  "classification": "0"
+  "term": "0"
 }
 
 ### 12.查看兼职详情
@@ -115,6 +114,7 @@ token:t2
 
 ### 20.查看执行订单详情(点击已完成，已超时和进行中列表下的执行详情都是显示这个界面)
 GET http://117.72.15.203:9000/campusParttime/parttime/getOperationDetail?operationId=1686349645426479107
+token:t2
 
 ### 21.懒加载（可正常使用）
 GET http://117.72.15.203:9000/campusParttime/parttime/lazyLoading?num=3
