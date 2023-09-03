@@ -70,12 +70,22 @@ spring:
     username: root
     password: olcampus8888!
   redis:
-    database: 0
-    host: 117.72.15.203
-    port: 6379
+    sentinel:
+      master: mymaster
+      nodes:
+        - 117.72.15.203:26379
+        - 117.72.14.204:26379
+        - 117.72.13.205:26379
+      password: olcampus8888!
     timeout: 10000
+    connect-timeout: 10000
     password: olcampus8888!
-
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 8
+        min-idle: 2
+        max-wait: 100
 mybatis-plus:
   global-config:
     db-config:

@@ -73,22 +73,12 @@ spring:
         max-idle: 8
         min-idle: 2
         max-wait: 100
-logging:
-  pattern:
-    console: '%date{yyyy-MM-dd HH:mm:ss.SSS} | %highlight(%5level) [%green(%16.16thread)] %clr(%-50.50logger{49}){cyan} %4line -| %highlight(%msg%n)'
-  level:
-    root: info
-    io.lettuce.core: debug
-    org.springframework.data.redis: debug
-
-
-
   kafka:
     bootstrap-servers: 47.115.219.35:9092
     producer:
       retries: 3 # 重新发送次数
       batch-size: 16384
-      buffer-memory: 33554432
+      buffer-memory: 2097152 # 2M缓存空间
       acks: 1
       # 指定消息key和消息体的编解码方式
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -101,6 +91,13 @@ logging:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     listener:
       ack-mode: manual_immediate
+logging:
+  pattern:
+    console: '%date{yyyy-MM-dd HH:mm:ss.SSS} | %highlight(%5level) [%green(%16.16thread)] %clr(%-50.50logger{49}){cyan} %4line -| %highlight(%msg%n)'
+  level:
+    root: info
+    io.lettuce.core: debug
+    org.springframework.data.redis: debug
 mybatis-plus:
   global-config:
     db-config:
