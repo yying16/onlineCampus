@@ -419,14 +419,14 @@ public class ParttimeController {
                     // 这里之后再补充
                     rLock.unlock();
                     return R.failed(null, "请联系客服进行订单取消");
-                } else {// 可直接修改的情况:直接更新数据库
+                } else {// 可直接修改的情况:直接更新数据库中的job信息和用户信用值和余额
                     if (posterId.equals(operationSql.getPublisherId()) && operation.getStatus().equals(CONFIRM.code)) {
                         Job job = (Job) serviceCenter.selectMySql(operation.getJobId(), Job.class);
                         assert job != null;
                         //订单由发布者确认完成后，执行者信用值+5
                         applyDao.addCreditByJobId(operation.getJobId());
                         job.setFinishNum(job.getFinishNum() + 1);
-                        if (job.getFinishNum().equals(job.getRecruitNum())) {
+                        if (job.getFinishNum().equals(job.getRecruitNum())) {// 判断若加上当前执行完成订单后，该兼职是否全部完成
                             job.setStatus(FINISH.code);
                             // 修改版本信息
                             job.setVersion(job.getVersion()+1);
@@ -435,6 +435,11 @@ public class ParttimeController {
                             rLock.unlock();
                             return R.failed(null, "兼职数据更新异常");
                         }
+
+                        // 数据库操作：将支出的金额转入对应账户
+                        String receiverId = operation.getApplicantId();
+                        balanceRecordDao.receiveJobPay(receiverId,job.getSalary());
+                        // messageClient.sendPromptInformation(new PromptInformationForm(receiverId, "您有一条收款记录!"));
                     }
                     if (serviceCenter.updateMySql(operation)) {
                         rLock.unlock();
@@ -458,12 +463,12 @@ public class ParttimeController {
     @PostMapping("/payJobFee")
     public R updateOperationStatus(@RequestHeader("uid") String posterId, @RequestBody JobOrderForm form) {
             Operation operationSql = (Operation) serviceCenter.selectMySql(form.getOperationId(), Operation.class);
-            if(posterId.equals(operationSql.getPublisherId()) && operationSql.getStatus().equals(CONFIRM.getCode())){ // 成功支付
+            if(posterId.equals(operationSql.getPublisherId())){
                 BalanceRecord balanceRecord = FormTemplate.analyzeTemplate(form,BalanceRecord.class);
                 BigDecimal balance = balanceRecordDao.searchBalance(form.getUid());
                 // 判断余额是否充足
                 if(balance.compareTo(form.getMoney())==-1){
-                    return R.failed(null,"余额不足，支付失败");
+                    return R.failed(null,"余额不足，请充值后再重试");
                 }
                 // 余额充足，进行以下支付操作
                 // 数据库操作:支出操作
@@ -476,15 +481,12 @@ public class ParttimeController {
                     balanceRecordDao.receiveJobPay(posterId,form.getMoney());
                     return R.failed(null,"支付失败");
                 }
-                // 数据库操作：将支出的金额转入对应账户
-                Operation operation = (Operation) serviceCenter.selectMySql(form.getOperationId(),Operation.class);
-                String receiverId = operation.getApplicantId();
-                balanceRecordDao.receiveJobPay(receiverId,form.getMoney());
-                // messageClient.sendPromptInformation(new PromptInformationForm(receiverId, "您有一条收款记录!"));
+
                 return R.ok(null,"支付成功");
             }
             return R.failed(null,"您无权支付订单");
     }
+
 
     /**
      * 提交兼职订单反馈
@@ -696,6 +698,10 @@ public class ParttimeController {
         if (operation.getStatus().equals(CANCEL.code)) {
             return R.failed(null, "已成功取消，请勿重复操作");
         }
+        // 执行取消兼职执行订单操作
+        Job job = (Job)serviceCenter.selectMySql(operation.getJobId(),Job.class);
+        // 将原先扣除的金额退还给发布者
+        balanceRecordDao.receiveJobPay(operation.getPublisherId(),job.getSalary());
         operation.setStatus(CANCEL.code);
         if (userId.equals(operation.getPublisherId()) || userId.equals(operation.getApplicantId())) {
             operationDao.subCreditByJobId(userId);
