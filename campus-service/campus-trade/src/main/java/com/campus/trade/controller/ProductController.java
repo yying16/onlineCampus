@@ -3,6 +3,7 @@ package com.campus.trade.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
+import com.campus.common.util.SpringContextUtil;
 import com.campus.trade.domain.Image;
 import com.campus.trade.domain.Product;
 import com.campus.trade.dto.AddProductForm;
@@ -54,8 +55,22 @@ public class ProductController {
     private ProductLikeService productLikeService;
 
 
-    @Autowired
-    private RedissonClient redissonClient;
+//    @Autowired
+//    private RedissonClient redissonClient;
+
+
+    //测试布隆过滤器
+    @GetMapping("test/{productId}")
+    public R test(@ApiParam("商品id") @PathVariable("productId") String productId){
+        Product product = (Product) serviceCenter.search(productId, Product.class);
+        if (product==null){
+            return R.failed(null,"查不到此商品");
+        }else {
+            return R.ok(product,"查询成功");
+        }
+    }
+
+
 
     //查看商品列表（条件懒加载）
     @ApiOperation(value = "带查询条件的查看商品列表（条件懒加载）")
@@ -139,19 +154,11 @@ public class ProductController {
 //        Product product = new Gson().fromJson(search.toString(), Product.class);
 //
 //        boolean delete = serviceCenter.delete(product);
-
-        RLock deleteProductLock = redissonClient.getLock("deleteProduct"+id);
-
-        try {
-            deleteProductLock.tryLock(6000,1500, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
+//        RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+//        RLock deleteProductLock = redissonClient.getLock("deleteProduct"+id);
+        //            deleteProductLock.tryLock(60,10, TimeUnit.SECONDS);
         boolean delete = serviceCenter.delete(id, Product.class);
 
-
-        deleteProductLock.unlock();
 
         if(delete){
             //处理点赞记录:逻辑删除与当前job绑定的所有like记录
@@ -159,11 +166,16 @@ public class ProductController {
 
             //处理收藏记录:逻辑删除与当前job绑定的所有favorites记录,并用后端调用message模块的sendPromptInformation方法发送提示信息给申请者
             productFavoritesService.deleteFavoritesByProductId(id);
+//                deleteProductLock.unlock();
 
             return R.ok(null,"删除商品成功");
         }else{
+//                deleteProductLock.unlock();
+
             return R.failed(null,"删除商品失败");
         }
+
+
     }
 
     //根据商品id查询商品详细信息
@@ -185,47 +197,51 @@ public class ProductController {
     @ApiOperation(value = "根据商品id修改商品信息")
     public R updateProduct(@PathVariable("id") String id,@RequestBody AddProductForm addProductForm){
 
-
+        RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
         RLock updateProductLock = redissonClient.getLock("updateProduct"+id);
 
         try {
-            updateProductLock.tryLock(6000,1500, TimeUnit.SECONDS);
+            updateProductLock.tryLock(60,10, TimeUnit.SECONDS);
+            Product product = productService.getById(id);
+            if(product == null){
+                updateProductLock.unlock();
+                return R.failed(null,"商品不存在");
+            }
+
+            BeanUtils.copyProperties(addProductForm,product);
+            boolean update = serviceCenter.update(product);
+
+            //修改商品信息后，修改图片信息
+            //根据商品id查询图片信息
+            QueryWrapper<Image> wrapper = new QueryWrapper<>();
+            wrapper.eq("other_id",id);
+            //先删除原来的图片信息
+            imageService.remove(wrapper);
+            //再添加新的图片信息
+            List<String> images = addProductForm.getImages();
+            for (String image : images) {
+                Image image1 = new Image();
+                image1.setOtherId(id);
+                image1.setImgUrl(image);
+                image1.setOtherType("product");
+                imageService.save(image1);
+            }
+
+
+            if(update){
+                updateProductLock.unlock();
+
+                return R.ok(null,"修改商品信息成功");
+            }else{
+                updateProductLock.unlock();
+
+                return R.failed(null,"修改商品信息失败");
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        Product product = productService.getById(id);
-        if(product == null){
-            updateProductLock.unlock();
-            return R.failed(null,"商品不存在");
-        }
 
-        BeanUtils.copyProperties(addProductForm,product);
-        boolean update = serviceCenter.update(product);
-
-        //修改商品信息后，修改图片信息
-        //根据商品id查询图片信息
-        QueryWrapper<Image> wrapper = new QueryWrapper<>();
-        wrapper.eq("other_id",id);
-        //先删除原来的图片信息
-        imageService.remove(wrapper);
-        //再添加新的图片信息
-        List<String> images = addProductForm.getImages();
-        for (String image : images) {
-            Image image1 = new Image();
-            image1.setOtherId(id);
-            image1.setImgUrl(image);
-            image1.setOtherType("product");
-            imageService.save(image1);
-        }
-
-        updateProductLock.unlock();
-
-        if(update){
-            return R.ok(null,"修改商品信息成功");
-        }else{
-            return R.failed(null,"修改商品信息失败");
-        }
     }
 
     //根据用户id查看发布的商品列表

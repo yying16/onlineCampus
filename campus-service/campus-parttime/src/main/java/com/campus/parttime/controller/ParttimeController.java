@@ -13,6 +13,7 @@ import com.campus.parttime.dao.OperationDao;
 import com.campus.parttime.domain.Apply;
 import com.campus.parttime.domain.Job;
 import com.campus.parttime.domain.Operation;
+import com.campus.parttime.domain.Record;
 import com.campus.parttime.dto.*;
 import com.campus.parttime.feign.MessageClient;
 import com.campus.parttime.pojo.FavoritesList;

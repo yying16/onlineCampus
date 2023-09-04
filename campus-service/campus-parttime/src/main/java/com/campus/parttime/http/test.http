@@ -68,7 +68,7 @@ Content-Type: application/json
 }
 
 ### 10.提交兼职订单反馈
-GET http://117.72.15.203:9000/campusParttime/parttime/updateJobFeedback?operationId=1692036297166516227&feedback=工作效率很高
+GET http://117.72.15.203:9000/campusParttime/parttime/updateJobFeedback?operationId=1692036297166516227&feedback=工作效率很高!
 token:t1
 
 ### 11.条件查询兼职

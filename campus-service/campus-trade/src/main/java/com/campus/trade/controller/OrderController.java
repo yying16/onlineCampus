@@ -4,6 +4,7 @@ import com.alibaba.nacos.shaded.com.google.gson.Gson;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
+import com.campus.common.util.SpringContextUtil;
 import com.campus.trade.domain.Order;
 import com.campus.trade.domain.Product;
 import com.campus.trade.dto.SearchOrderForm;
@@ -50,8 +51,8 @@ public class OrderController {
     @Autowired
     private UserClient userClient;
 
-    @Autowired
-    private RedissonClient redissonClient;
+//    @Autowired
+//    private RedissonClient redissonClient;
 
 
     //查询下单前确认信息（用户和商品信息）
@@ -89,58 +90,80 @@ public class OrderController {
     @PostMapping("/createOrder")
     @ApiOperation("展示生成的订单信息")
     public R createOrder(@RequestBody ConfirmOrderForm confirmOrderForm, @RequestHeader("uid") String uid) {
-        ShowOrder showOrder = orderService.showOrder(uid, confirmOrderForm);
-        if (showOrder == null) {
-            return R.failed(null, "订单生成失败");
+
+        RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+        RLock showOrderLock = redissonClient.getLock("showOrder" + uid);
+
+
+        try {
+            showOrderLock.tryLock(60, 10, TimeUnit.SECONDS);
+            ShowOrder showOrder = orderService.showOrder(uid, confirmOrderForm);
+            if (showOrder == null) {
+                showOrderLock.unlock();
+                return R.failed(null, "订单生成失败");
+            } else {
+                showOrderLock.unlock();
+                return R.ok(showOrder, "订单生成成功");
+            }
+
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
-        return R.ok(showOrder, "订单生成成功");
+
+
     }
 
 
     //修改订单状态
     @PutMapping("/updateOrderStatus/{orderId}/{status}")
     @ApiOperation("修改订单状态")
-    public R updateOrderStatus(@PathVariable("orderId") String orderId,@PathVariable("status") Integer status) {
-        RLock updateOrderStatusLock = redissonClient.getLock("updateOrderStatus"+orderId);
-
-        Order order = (Order) serviceCenter.search(orderId, Order.class);
-        if (order == null) {
-            updateOrderStatusLock.unlock();
-
-            return R.failed(null, "订单不存在");
-        }
-
+    public R updateOrderStatus(@PathVariable("orderId") String orderId, @PathVariable("status") Integer status) {
+        RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+        RLock updateOrderStatusLock = redissonClient.getLock("updateOrderStatus" + orderId);
         try {
-            updateOrderStatusLock.tryLock(60000,1500, TimeUnit.SECONDS);
+            updateOrderStatusLock.tryLock(60, 10, TimeUnit.SECONDS);
+            Order order = (Order) serviceCenter.search(orderId, Order.class);
+            if (order == null) {
+                updateOrderStatusLock.unlock();
+                return R.failed(null, "订单不存在");
+            }
+            order.setStatus(status);
+
+            boolean flag = serviceCenter.update(order);
+
+
+            if (flag) {
+                updateOrderStatusLock.unlock();
+
+                return R.ok(null, "订单状态修改成功");
+            } else {
+                updateOrderStatusLock.unlock();
+
+                return R.failed(null, "订单状态修改失败");
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        order.setStatus(status);
-
-        boolean flag = serviceCenter.update(order);
-
-        updateOrderStatusLock.unlock();
 
 
-        if (flag) {
-            return R.ok(null, "订单状态修改成功");
-        } else {
-            return R.failed(null, "订单状态修改失败");
-        }
+
+
+
+
     }
 
     //根据用户id查询订单
     @PostMapping("/getOrder/{offset}")
     @ApiOperation("根据用户id查询订单")
-    public R getOrder(@ApiParam("已展示的数据条数") @PathVariable("offset") Integer offset,@RequestBody SearchOrderForm searchOrderForm,@RequestHeader("uid") String uid) {
+    public R getOrder(@ApiParam("已展示的数据条数") @PathVariable("offset") Integer offset, @RequestBody SearchOrderForm searchOrderForm, @RequestHeader("uid") String uid) {
         // 根据页码和每页数据量计算偏移量
 //        long offset = (page - 1) * size;
 //        searchOrderForm.put("limit",offset+" "+size);
         String searchcontent = searchOrderForm.getSearchContent();//商品描述
         //根据商品描述查询商品id
         QueryWrapper<Product> queryWrapper = new QueryWrapper<>();
-        queryWrapper.like("description",searchcontent);
+        queryWrapper.like("description", searchcontent);
         List<Product> productList = productService.list(queryWrapper);
         if (productList.size() == 0) {
             return R.failed(null, "查找不到任何订单");
@@ -154,16 +177,15 @@ public class OrderController {
         }
 
 
-
 //        Map<String, Object>  searchOrderMap = new HashMap<>();
 //
 //        searchOrderMap.put("limit",offset+" "+10);
 //
 //        List<ShowOrder> showOrderList =  orderService.getOrderListByUid(searchOrderMap,uid);
 
-        List<ShowOrder> showOrderList =  orderService.getOrderListByMyUid(offset,productIdList,uid);
-        if (showOrderList.size()==0){
-            return R.failed(null,"查找不到任何相关订单");
+        List<ShowOrder> showOrderList = orderService.getOrderListByMyUid(offset, productIdList, uid);
+        if (showOrderList.size() == 0) {
+            return R.failed(null, "查找不到任何相关订单");
         }
         return R.ok(showOrderList, "查询成功");
     }
@@ -180,7 +202,7 @@ public class OrderController {
         String searchcontent = searchOrderForm.getSearchContent();//商品描述
         //根据商品描述查询商品id
         QueryWrapper<Product> queryWrapper = new QueryWrapper<>();
-        queryWrapper.like("description",searchcontent);
+        queryWrapper.like("description", searchcontent);
         List<Product> productList = productService.list(queryWrapper);
         if (productList.size() == 0) {
             return R.failed(null, "查找不到任何相关订单");
@@ -193,10 +215,10 @@ public class OrderController {
             productIdList.add(product.getProductId());
         }
 
-        List<ShowOrder> showOrderList =  orderService.getOrderListByTheSellerId(offset,productIdList,sellerId);
+        List<ShowOrder> showOrderList = orderService.getOrderListByTheSellerId(offset, productIdList, sellerId);
 //        List<ShowOrder> showOrderList =  orderService.getOrderListBySellerId(searchOrderForm,sellerId);
-        if (showOrderList.size()==0){
-            return R.failed(null,"查找不到任何相关订单");
+        if (showOrderList.size() == 0) {
+            return R.failed(null, "查找不到任何相关订单");
         }
         return R.ok(showOrderList, "查询成功");
     }
@@ -205,36 +227,39 @@ public class OrderController {
     @DeleteMapping("{orderId}")
     @ApiOperation("根据订单id删除订单")
     public R deleteOrder(@ApiParam("订单id") @PathVariable("orderId") String orderId) {
-
-        RLock deleteOrderLock = redissonClient.getLock("deleteOrder"+orderId);
-
+        RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+        RLock deleteOrderLock = redissonClient.getLock("deleteOrder" + orderId);
         try {
-            deleteOrderLock.tryLock(60000,1500, TimeUnit.SECONDS);
+            deleteOrderLock.tryLock(60, 10, TimeUnit.SECONDS);
+            boolean flag = serviceCenter.delete(orderId, Order.class);
+
+            if (flag) {
+                deleteOrderLock.unlock();
+
+                return R.ok(null, "订单删除成功");
+            } else {
+                deleteOrderLock.unlock();
+
+                return R.failed(null, "订单删除失败");
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        boolean flag = serviceCenter.delete(orderId, Order.class);
 
-        deleteOrderLock.unlock();
-        if (flag) {
-            return R.ok(null, "订单删除成功");
-        } else {
-            return R.failed(null, "订单删除失败");
-        }
     }
 
     //支付订单
     @PostMapping("/payOrder/{orderId}")
     @ApiOperation("支付订单")
     public R payOrder(@ApiParam("订单id") @PathVariable("orderId") String orderId) {
-       return orderService.payOrder(orderId);
+        return orderService.payOrder(orderId);
     }
 
     //根据订单id查看订单信息
     @GetMapping("{orderId}")
     @ApiOperation("根据订单id查看订单信息")
-    public R getOrderByOrderId(@ApiParam("订单id") @PathVariable("orderId") String orderId){
+    public R getOrderByOrderId(@ApiParam("订单id") @PathVariable("orderId") String orderId) {
         Order order = (Order) serviceCenter.selectMySql(orderId, Order.class);
         if (order == null) {
             return R.failed(null, "订单不存在");
@@ -271,7 +296,7 @@ public class OrderController {
         showOrder.setSellerAvatar(sellerAvatar);
         showOrder.setSellerNickName(sellerNickName);
         showOrder.setCreateTime(order.getCreateTime());
-        return R.ok(showOrder,"查询订单信息成功！");
+        return R.ok(showOrder, "查询订单信息成功！");
     }
 
 }

@@ -18,13 +18,13 @@ spring:
         server-addr: localhost:8848 #Nacos地址
   datasource:
     druid:
-      url: jdbc:mysql://47.115.219.35:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
+      url: jdbc:mysql://117.72.15.203:3305/campus?serverTimezone=UTC&useSSL=false&characterEncoding=utf-8
       driverClassName: com.mysql.jdbc.Driver
       max-active: 20
       min-idle: 8
       initial-size: 10
     username: root
-    password: olcampus8888
+    password: olcampus8888!
   redis:
     sentinel:
       master: mymaster

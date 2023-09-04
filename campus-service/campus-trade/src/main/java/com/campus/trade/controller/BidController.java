@@ -2,6 +2,7 @@ package com.campus.trade.controller;
 
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
+import com.campus.common.util.SpringContextUtil;
 import com.campus.trade.domain.Bid;
 import com.campus.trade.dto.AddBidForm;
 import com.campus.trade.feign.UserClient;
@@ -41,31 +42,37 @@ public class BidController {
     @Autowired
     UserClient userClient;
 
-    @Autowired
-    private RedissonClient redissonClient;
+//    @Autowired
+//    private RedissonClient redissonClient;
 
     //用户添加出价
     @PostMapping("/addBid")
     @ApiOperation(value = "用户添加出价")
     public R addBid(@RequestBody AddBidForm addBidForm, @RequestHeader("uid") String uid) {
 
+        RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
+
         RLock addBidLock = redissonClient.getLock("addBid"+addBidForm.getProductId()+uid);
 
 
         try {
-            addBidLock.tryLock(6000,1500, TimeUnit.SECONDS);
+            addBidLock.tryLock(60,10, TimeUnit.SECONDS);
+            boolean b = bidService.addBid(addBidForm, uid);
+
+
+            if(b){
+                addBidLock.unlock();
+
+                return R.ok(null,"出价成功");
+            }else {
+                addBidLock.unlock();
+
+                return R.failed(null,"出价失败");
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        boolean b = bidService.addBid(addBidForm, uid);
 
-        addBidLock.unlock();
-
-        if(b){
-            return R.ok(null,"出价成功");
-        }else {
-            return R.failed(null,"出价失败");
-        }
     }
 
     //删除出价
@@ -73,30 +80,35 @@ public class BidController {
     @ApiOperation(value = "删除出价")
     public R deleteBid(@PathVariable("bidId") String bidId,@RequestHeader("uid") String uid) {
 
+        RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
 
         RLock deleteBidLock = redissonClient.getLock("deleteBid"+bidId+uid);
 
 
         try {
             deleteBidLock.tryLock(6000,1500, TimeUnit.SECONDS);
+            Bid bid = (Bid) serviceCenter.search(bidId, Bid.class);
+            if(!bid.getUserId().equals(uid)){
+                deleteBidLock.unlock();
+                return R.failed(null,"无权限删除");
+            }
+            boolean b = serviceCenter.delete(bidId, Bid.class);
+
+            if(b){
+                deleteBidLock.unlock();
+
+                return R.ok(null,"删除成功");
+            }else {
+                deleteBidLock.unlock();
+
+                return R.failed(null,"删除失败");
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
 
-        Bid bid = (Bid) serviceCenter.search(bidId, Bid.class);
-        if(!bid.getUserId().equals(uid)){
-            deleteBidLock.unlock();
-            return R.failed(null,"无权限删除");
-        }
-        boolean b = serviceCenter.delete(bidId, Bid.class);
 
-        deleteBidLock.unlock();
-        if(b){
-            return R.ok(null,"删除成功");
-        }else {
-            return R.failed(null,"删除失败");
-        }
     }
 
     //查看某个商品的出价列表
@@ -136,34 +148,39 @@ public class BidController {
     @PutMapping("/{bidId}/{price}")
     @ApiOperation(value = "修改出价")
     public R updateBid(@PathVariable("bidId") String bidId,@PathVariable("price") BigDecimal price,@RequestHeader("uid") String uid) {
+        RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
 
         RLock updateBidLock = redissonClient.getLock("updateBid"+bidId+uid);
 
 
         try {
-            updateBidLock.tryLock(6000,1500, TimeUnit.SECONDS);
+            updateBidLock.tryLock(60,10, TimeUnit.SECONDS);
+            Bid bid = (Bid) serviceCenter.search(bidId, Bid.class);
+
+            if(!bid.getUserId().equals(uid)){
+                updateBidLock.unlock();
+
+                return R.failed(null,"无权限修改");
+            }
+
+            bid.setPrice(price);
+            boolean update = serviceCenter.update(bid);
+
+            if(update){
+                updateBidLock.unlock();
+
+                return R.ok(null,"修改出价成功");
+            }else {
+                updateBidLock.unlock();
+
+                return R.failed(null,"修改出价失败");
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
 
-        Bid bid = (Bid) serviceCenter.search(bidId, Bid.class);
 
-        if(!bid.getUserId().equals(uid)){
-            updateBidLock.unlock();
-
-            return R.failed(null,"无权限修改");
-        }
-
-        bid.setPrice(price);
-        boolean update = serviceCenter.update(bid);
-        updateBidLock.unlock();
-
-        if(update){
-            return R.ok(null,"修改出价成功");
-        }else {
-            return R.failed(null,"修改出价失败");
-        }
     }
 
     //查看用户的出价列表

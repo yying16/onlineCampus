@@ -38,8 +38,9 @@ Content-Type: application/json
 
 ###根据商品id删除商品
 ###请求路径：http://localhost:9000/campusTrade/product/{id}
-DELETE http://localhost:9000/campusTrade/product/1691817569780076546
+DELETE http://117.72.15.203:9000/campusTrade/product/1679428131023458306
 token: t1
+uid: t1
 
 
 ###根据商品id查看商品详情
@@ -82,14 +83,15 @@ Content-Type: application/json
 
 ###查询下单前确认信息（用户和商品信息）
 ###请求路径：http://localhost:9000/campusTrade/order/confirm/{productId}
-GET http://localhost:9000/campusTrade/order/confirm/1689506597450219522
+GET http://117.72.15.203:9000/campusTrade/order/confirm/1689506597450219522
 token: t1
 
 
 ###展示生成的订单信息
 ###请求路径： http://localhost:9000/campusTrade/order/createOrder
-POST http://localhost:9000/campusTrade/order/createOrder
+POST http://117.72.15.203:9000/campusTrade/order/createOrder
 token: t1
+#uid:t1
 Content-Type: application/json
 
 {
@@ -144,7 +146,7 @@ Content-Type: application/json
 
 ###根据订单id删除订单
 ###请求路径：http://localhost:9000/campusTrade/order/{orderId}
-DELETE http://localhost:9000/campusTrade/order/0089eab1c387f58facac266a6189cd42
+DELETE http://117.72.15.203:9000/campusTrade/order/1698396728486658049
 token:t1
 
 ###支付订单

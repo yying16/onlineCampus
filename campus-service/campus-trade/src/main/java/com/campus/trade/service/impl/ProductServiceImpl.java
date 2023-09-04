@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.campus.common.service.ServiceCenter;
 import com.campus.common.util.R;
+import com.campus.common.util.SpringContextUtil;
 import com.campus.trade.dao.ProductDao;
 import com.campus.trade.domain.Category;
 import com.campus.trade.domain.Image;
@@ -50,32 +51,37 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
     private ServiceCenter serviceCenter;
 
 
-    @Autowired
-    private RedissonClient redissonClient;
+//    @Autowired
+//    private RedissonClient redissonClient;
 
     @Override
     public boolean addProduct(AddProductForm addProductForm) {
+        RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
 
         RLock addProductLock = redissonClient.getLock("addProduct"+addProductForm.getUserId());
 
         try {
-            addProductLock.tryLock(6000,1500, TimeUnit.SECONDS);
+            addProductLock.tryLock(60,10, TimeUnit.SECONDS);
+            //将productForm转换为product
+            Product product = new Product();
+            BeanUtils.copyProperties(addProductForm,product);
+            String insert = serviceCenter.insert(product);
+//        int insert = baseMapper.insert(product);
+
+
+            if(insert!=null){
+                addProductLock.unlock();
+
+                return true;
+            }else{
+                addProductLock.unlock();
+
+                return false;
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        //将productForm转换为product
-        Product product = new Product();
-        BeanUtils.copyProperties(addProductForm,product);
-        String insert = serviceCenter.insert(product);
-//        int insert = baseMapper.insert(product);
 
-        addProductLock.unlock();
-
-        if(insert!=null){
-            return true;
-        }else{
-            return false;
-        }
     }
 
     @Override
