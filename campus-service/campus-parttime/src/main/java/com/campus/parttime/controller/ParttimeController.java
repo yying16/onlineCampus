@@ -21,6 +21,7 @@ import com.campus.parttime.pojo.MonthlyStatistics;
 import com.campus.parttime.pojo.PromptInformationForm;
 import com.campus.parttime.pojo.User;
 import com.campus.parttime.vo.*;
+import com.sun.jersey.json.impl.provider.entity.JSONArrayProvider;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -598,6 +599,16 @@ public class ParttimeController {
             showJob.setUserImage(user.getUserImage());
             showJob.setUsername(user.getUsername());
             showJob.setCredit(user.getCredit());
+            if(!userId.equals(job.getPublisherId())){
+                ShowJobToOtherUser toOtherUser = FormTemplate.analyzeTemplate(showJob, ShowJobToOtherUser.class);
+                if(toOtherUser==null){
+                    return R.failed(null,"兼职详情查看异常");
+                }
+                Apply apply = applyDao.isJobApplyExist(jobId,userId);
+                if(apply==null) toOtherUser.setIsApplied(0); //标记未提交申请
+                else toOtherUser.setIsApplied(1); // 标记已提交申请
+                return R.ok(toOtherUser);
+            }
             return R.ok(showJob);
         }
         return R.failed(null, "当前兼职不存在");
@@ -925,6 +936,32 @@ public class ParttimeController {
         return R.ok(jobLists, "查找成功");
     }
 
+    @ApiOperation("发布者查看兼职申请列表")
+    @GetMapping("/searchApplyListToPublisher")
+    public R searchApplyListToPublisher(@RequestHeader("uid") String userId, @RequestParam("jobId") String jobId) {
+        Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
+        if (userId.equals(job.getPublisherId())) {// 发布者查看当前兼职申请列表 008rsa下
+            List<Apply> applyList = jobDao.SearchApplyListByJobId(jobId);
+            if (applyList.size() == 0) {
+                return R.failed(null, "当前未有用户提交申请");
+            }
+            List<JobApplyListInfoToPubliser> jobApplyListInfos = new ArrayList<>();
+            for (Apply apply : applyList) {
+                JobApplyListInfoToPubliser jobApplyListInfo = FormTemplate.analyzeTemplate(apply, JobApplyListInfoToPubliser.class);
+                User user = jobDao.searchUserInfo(apply.getApplicantId());
+                if (user == null || jobApplyListInfo == null) {
+                    return R.failed(null, "兼职列表获取异常");
+                }
+                jobApplyListInfo.setUsername(user.getUsername());
+                jobApplyListInfo.setGender(user.getGender());
+                jobApplyListInfo.setCredit(user.getCredit());
+                jobApplyListInfos.add(jobApplyListInfo);
+            }
+            return R.ok(jobApplyListInfos, "查找成功");
+        }
+        return R.failed(null, "查看失败");
+    }
+
     @ApiOperation("查看已申请列表")
     @GetMapping("/searchMyAppliedList")
     public R searchApplyListToApplicant(@RequestHeader("uid") String applicantId) {
@@ -999,31 +1036,7 @@ public class ParttimeController {
         return R.ok(finishedLists, "查找成功");
     }
 
-    @ApiOperation("发布者查看兼职申请列表")
-    @GetMapping("/searchApplyListToPublisher")
-    public R searchApplyListToPublisher(@RequestHeader("uid") String userId, @RequestParam("jobId") String jobId) {
-        Job job = (Job) serviceCenter.selectMySql(jobId, Job.class);
-        if (userId.equals(job.getPublisherId())) {// 发布者查看当前兼职申请列表 008rsa下
-            List<Apply> applyList = jobDao.SearchApplyListByJobId(jobId);
-            if (applyList.size() == 0) {
-                return R.failed(null, "当前未有用户提交申请");
-            }
-            List<JobApplyListInfoToPubliser> jobApplyListInfos = new ArrayList<>();
-            for (Apply apply : applyList) {
-                JobApplyListInfoToPubliser jobApplyListInfo = FormTemplate.analyzeTemplate(apply, JobApplyListInfoToPubliser.class);
-                User user = jobDao.searchUserInfo(apply.getApplicantId());
-                if (user == null || jobApplyListInfo == null) {
-                    return R.failed(null, "兼职列表获取异常");
-                }
-                jobApplyListInfo.setUsername(user.getUsername());
-                jobApplyListInfo.setGender(user.getGender());
-                jobApplyListInfo.setCredit(user.getCredit());
-                jobApplyListInfos.add(jobApplyListInfo);
-            }
-            return R.ok(jobApplyListInfos, "查找成功");
-        }
-        return R.failed(null, "查看失败");
-    }
+
 
 
 }
