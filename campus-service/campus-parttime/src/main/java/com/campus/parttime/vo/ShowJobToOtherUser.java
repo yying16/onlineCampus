@@ -33,7 +33,7 @@ public class ShowJobToOtherUser {
     String updateTime;  // 更新时间
     Integer isApplied;  // 当前用户是否申请过该兼职
 
-    Integer version; // 版本号
+    Integer jobVersion; // 版本号
     Integer applyNum;  // 已申请人数
     Integer passedNum; // 已通过人数
     Integer finishNum; // 已完成人数
