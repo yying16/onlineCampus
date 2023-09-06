@@ -92,6 +92,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductDao, Product>
 
         //封装数据
         for (Product product : search) {
+            if (product.getIsPublished()==0){
+                continue;
+            }
             String productId = product.getProductId();
             QueryWrapper<Image> imageQueryWrapper = new QueryWrapper<>();
             imageQueryWrapper.eq("other_id",productId);

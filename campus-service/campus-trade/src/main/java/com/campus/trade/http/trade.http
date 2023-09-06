@@ -1,6 +1,6 @@
 ###//首页查看商品列表（懒加载）
 #请求路径：http://localhost:9000/campusTrade/product/listByQuery/{offset}  offset为前端已经展示的数量，第一次为0，每次请求会获得10条数据
-GET http://117.72.15.203:9000/campusTrade/product/list/0
+GET https://117.72.15.203/campusTrade/product/list/0
 token: t1
 
 
