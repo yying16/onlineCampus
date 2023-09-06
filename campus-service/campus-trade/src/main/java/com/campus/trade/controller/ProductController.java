@@ -84,6 +84,7 @@ public class ProductController {
 
         Map<String, Object> searchProductMap= new HashMap<>();
         searchProductMap.put("description",name);
+        searchProductMap.put("isPublished",1);
         searchProductMap.put("limit",offset+" "+10);
         List<ShowProduct> products =  productService.listProduct(searchProductMap);
         if (products==null){

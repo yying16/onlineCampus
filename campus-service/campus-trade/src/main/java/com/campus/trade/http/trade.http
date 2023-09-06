@@ -1,15 +1,21 @@
 ###//首页查看商品列表（懒加载）
-#请求路径：http://localhost:9000/campusTrade/product/listByQuery/{offset}  offset为前端已经展示的数量，第一次为0，每次请求会获得10条数据
+#请求路径：http://localhost:9000/campusTrade/product/list/{offset}  offset为前端已经展示的数量，第一次为0，每次请求会获得10条数据
 GET https://117.72.15.203/campusTrade/product/list/0
+#GET http://localhost:7004/campusTrade/product/list/0
 token: t1
 
+###//首页筛选器查询商品列表（前端自行带条件）
+POST http://localhost:9000/campusTrade/product/getProductList
+token: t1
+Content-Type: application/json
+{}
 
 
 ###//查看商品列表（条件懒加载）
 #请求路径：http://localhost:9000/campusTrade/product/listByQuery/{offset}
 ##searchContent 为搜索内容，与商品的描述进行匹配，可以为空，为空时返回所有商品
 POST http://117.72.15.203:9000/campusTrade/product/listByQuery/0
-token: t1
+#POST http://localhost:7004/campusTrade/product/listByQuery/0
 Content-Type: application/json
 
 {
