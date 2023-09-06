@@ -116,8 +116,8 @@ public class LoginController {
         //获取当前登录用户的token
         String uid = request.getHeader("uid");
         log.info("退出登录的用户是：" + uid);
-        //删除redis中的token
-        redisTemplate.delete(uid);
+        //删除redis中的user+uid 即用户数据
+        redisTemplate.delete("user"+uid);
 //        messageClient.clearCache(uid); // 删除用户消息缓存区（前端调用）
         return R.ok();
     }

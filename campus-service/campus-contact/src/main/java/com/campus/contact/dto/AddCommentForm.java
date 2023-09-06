@@ -13,6 +13,7 @@ public class AddCommentForm {
     String dynamicId; // 动态id
     @ApiParam(required = true)
     String senderId; // 发送者id
+    String senderImage; // 发送者头像
     @ApiParam(required = true)
     String senderName; // 发送者名称
     String receiverId; // 被回复者id（如果为空则表示该评论为直接评论）

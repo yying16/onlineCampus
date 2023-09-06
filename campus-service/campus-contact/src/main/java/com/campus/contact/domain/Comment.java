@@ -20,6 +20,7 @@ public class Comment implements Comparable<Comment>{
     private String _class;
     private String content; // 评论内容
     private String sender; // 发送者id
+    private String senderImage; // 发送者头像
     private String receiver; // 被回复者id（如果为空则表示该评论为直接评论）
     private String senderName; // 发布者名称（冗余数据）
     private String receiverName; // 被回复者名称（冗余数据）（如果为空则表示该评论为直接评论）
