@@ -10,7 +10,7 @@ import java.util.List;
  * author kakakaka
  */
 @Data
-public class ShowJob {
+public class ShowJobToOtherUser {
     String userId; // 用户id
     String userImage;   //用户头像
     String username;    //用户名(长度为2-12)
@@ -31,6 +31,7 @@ public class ShowJob {
     Integer classification; // 兼职分类(0-代购，1-跑腿，2-学习，3-宣传，4-技术，5-家教，6-助理，7-其他)
     String createTime;  // 创建时间
     String updateTime;  // 更新时间
+    Integer isApplied;  // 当前用户是否申请过该兼职
 
     Integer jobVersion; // 版本号
     Integer applyNum;  // 已申请人数

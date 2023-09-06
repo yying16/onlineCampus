@@ -110,7 +110,7 @@ token:t2
 
 ### 19.查看已完成列表
 GET http://117.72.15.203:9000/campusParttime/parttime/searchMyFinishedList
-token:t2
+token:t1
 
 ### 20.查看执行订单详情(点击已完成，已超时和进行中列表下的执行详情都是显示这个界面)
 GET http://117.72.15.203:9000/campusParttime/parttime/getOperationDetail?operationId=1686349645426479107

@@ -865,6 +865,9 @@ public class ServiceCenter {
             String json = JSONObject.toJSON(t).toString(); // 要写入redis的数据
             redisTemplate.opsForList().leftPush(h, id); // 添加到id列表缓存
             redisTemplate.opsForValue().set(key, json, getCacheTime(), TimeUnit.SECONDS); // 写入redis
+            if(h.equals("product") || h.equals("job")){
+                bloomFilterService.bloomSet(key);
+            }
             return id;
         } catch (Exception e) {
             e.printStackTrace();
