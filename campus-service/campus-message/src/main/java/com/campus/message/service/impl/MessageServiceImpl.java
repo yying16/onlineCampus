@@ -565,7 +565,8 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public boolean clearCache(String uid) {
-        redisTemplate.delete(uid); // 删除当前用户对应的消息缓存空间
+        redisTemplate.delete("message"+uid); // 删除当前用户对应的消息缓存空间
+        redisTemplate.delete("session"+uid); // 删除当前用户对应的消息缓存空间
         String auto = messageDao.getAutoReply(uid);
         if (auto != null && auto.length() != 0) { // 有设置自动回复内容
             redisTemplate.opsForHash().put("autoReply", uid, auto);
