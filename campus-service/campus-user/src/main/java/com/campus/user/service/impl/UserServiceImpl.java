@@ -159,7 +159,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
 
             req.setSmsSdkAppId("1400825014");
             req.setSignName("你也是程序员吗公众号");
-            req.setTemplateId("1812940");
+            req.setTemplateId("1917442");
             String[] templateParamSet1 = {code, "5"};
             req.setTemplateParamSet(templateParamSet1);
 
