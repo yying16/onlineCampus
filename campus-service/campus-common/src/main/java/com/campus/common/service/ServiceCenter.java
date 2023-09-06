@@ -663,7 +663,12 @@ public class ServiceCenter {
             String h = getName(clazz);
             String xxx_id = h + "_id";
             String t_xxx = "t_" + h;
-            String sql = "select " + xxx_id + " from " + t_xxx + " where deleted = 0 order by  update_time desc limit 50";
+            String sql;
+            if(clazz.getSimpleName().contains("Product")){ // 商品必须为未删除且已发布
+                sql = "select " + xxx_id + " from " + t_xxx + " where deleted = 0 and is_published = 1 order by  update_time desc limit 50";
+            }else{
+                sql = "select " + xxx_id + " from " + t_xxx + " where deleted = 0 order by  update_time desc limit 50";
+            }
             List<String> list = jdbcTemplate.queryForList(sql, String.class);
             redisTemplate.delete(h);
             if (list == null || list.size() == 0) {
@@ -768,6 +773,9 @@ public class ServiceCenter {
         BaseMapper<T> baseMapper = getMapper(clazz);
         QueryWrapper<T> wrapper = new QueryWrapper<>();
         wrapper.eq("deleted", 0);
+        if(clazz.getSimpleName().contains("Product")){ // 商品需考虑是否发布（草稿）
+            wrapper.eq("is_published",1);
+        }
         wrapper.orderByDesc("update_time");
         wrapper.last(limit);
         return baseMapper.selectList(wrapper);
@@ -863,7 +871,9 @@ public class ServiceCenter {
             setArg(t, "updateTime", TimeUtil.getCurrentTime());
             insertMySql(t);
             String json = JSONObject.toJSON(t).toString(); // 要写入redis的数据
-            redisTemplate.opsForList().leftPush(h, id); // 添加到id列表缓存
+            if(!(t.getClass().getSimpleName().contains("Product") && String.valueOf(getArg(t,"isPublished")).contains("0"))){ // 如果发布的是商品，且只是作为草稿，则不写入缓存id列表，否则写入
+                redisTemplate.opsForList().leftPush(h, id); // 添加到id列表缓存
+            }
             redisTemplate.opsForValue().set(key, json, getCacheTime(), TimeUnit.SECONDS); // 写入redis
             if(h.equals("product") || h.equals("job")){
                 bloomFilterService.bloomSet(key);
