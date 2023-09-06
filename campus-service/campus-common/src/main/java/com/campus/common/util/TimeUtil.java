@@ -1,5 +1,8 @@
 package com.campus.common.util;
 
+import cn.hutool.core.date.DateField;
+import cn.hutool.core.date.DateUtil;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -12,7 +15,9 @@ public class TimeUtil {
     private static SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public static String getCurrentTime() {
-        return format.format(new Date());
+        Date now = new Date();
+        DateUtil.offset(now, DateField.HOUR, 8);
+        return format.format(now);
     }
 
     public static long getTime() {
