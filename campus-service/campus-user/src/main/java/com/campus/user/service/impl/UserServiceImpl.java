@@ -143,7 +143,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             // 实例化一个认证对象，入参需要传入腾讯云账户 SecretId 和 SecretKey，此处还需注意密钥对的保密
             // 代码泄露可能会导致 SecretId 和 SecretKey 泄露，并威胁账号下所有资源的安全性。以下代码示例仅供参考，建议采用更安全的方式来使用密钥，请参见：https://cloud.tencent.com/document/product/1278/85305
             // 密钥可前往官网控制台 https://console.cloud.tencent.com/cam/capi 进行获取
-            Credential cred = new Credential("AKIDqX2MRGrEOHwL8i39zd3C7oFTSCj25sRo", "EHE3e092FFD3nKfmjV5QVP7aoxwgDVZX");
+            Credential cred = new Credential("AKIDOflfNyOdgX8apunaAYnrnW8dzGPN9i5T", "PC1e8QUWKvIQLAnCxWv9AxVpxrX0GI8k");
             // 实例化一个http选项，可选的，没有特殊需求可以跳过
             HttpProfile httpProfile = new HttpProfile();
             httpProfile.setEndpoint("sms.tencentcloudapi.com");
@@ -157,10 +157,10 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
             String[] phoneNumberSet1 = {phone};
             req.setPhoneNumberSet(phoneNumberSet1);
 
-            req.setSmsSdkAppId("1400825014");
-            req.setSignName("你也是程序员吗公众号");
-            req.setTemplateId("1917442");
-            String[] templateParamSet1 = {code, "5"};
+            req.setSmsSdkAppId("1400852425");
+                req.setSignName("财宝线上校园系统公众号");
+            req.setTemplateId("1922871");
+            String[] templateParamSet1 = {code};
             req.setTemplateParamSet(templateParamSet1);
 
             // 返回的resp是一个SendSmsResponse的实例，与请求对象对应
