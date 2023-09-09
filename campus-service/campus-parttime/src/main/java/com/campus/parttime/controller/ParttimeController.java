@@ -82,7 +82,13 @@ public class ParttimeController {
      */
     @ApiOperation("发布兼职")
     @PostMapping("/addJob")
-    public R addJob(@RequestBody JobInsertForm form) {
+    public R addJob(@RequestHeader("uid") String userId, @RequestBody JobInsertForm form) {
+        // 判断信用值
+        int credit = jobDao.selectCreditByUserId(userId);
+        if(credit<=0){
+            return R.failed(null,"您的信用值不足，无法发布兼职");
+        }
+        // 执行发布兼职操作
         Job job = FormTemplate.analyzeTemplate(form, Job.class);
         assert job != null;
         job.setStatus(OPEN.code); // 初始化状态为已发布
@@ -702,7 +708,9 @@ public class ParttimeController {
         Job job = (Job)serviceCenter.selectMySql(operation.getJobId(),Job.class);
         // 将原先扣除的金额退还给发布者
         balanceRecordDao.receiveJobPay(operation.getPublisherId(),job.getSalary());
+
         operation.setStatus(CANCEL.code);
+        // 当前取消订单的用户扣除信用值20
         if (userId.equals(operation.getPublisherId()) || userId.equals(operation.getApplicantId())) {
             operationDao.subCreditByJobId(userId);
         }

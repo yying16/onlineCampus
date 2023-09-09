@@ -12,6 +12,9 @@ import java.util.Map;
 
 @Mapper
 public interface JobDao extends BaseMapper<Job> {
+    @Select("select credit from t_user where user_id= #{userId}")
+    Integer selectCreditByUserId(String userId);
+
     @Select("select count(*) from  t_job where publisher_id=#{publisherId} AND deleted=0")
     Integer searchPersonalPostJobNum(String publisherId);
 

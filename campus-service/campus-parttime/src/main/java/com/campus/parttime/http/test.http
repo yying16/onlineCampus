@@ -1,14 +1,14 @@
 ### 1.发布兼职
 POST http://117.72.15.203:9000/campusParttime/parttime/addJob
-token: t1
+token: t2
 Content-Type: application/json
 
 {
-  "publisherId": "20251102219",
-  "jobTitle": "找家教",
-  "jobContent": "每周三次，去五周，每天晚上7；00-9；00，地点:正佳广场附近300m",
-  "salary": "1700",
-  "deadline": "2023-08-08",
+  "publisherId": "1",
+  "jobTitle": "找跑腿",
+  "jobContent": "地点:正佳广场附近300m",
+  "salary": "5",
+  "deadline": "2023-09-06",
   "location": "1",
   "recruitNum": "2",
   "term": "1",
