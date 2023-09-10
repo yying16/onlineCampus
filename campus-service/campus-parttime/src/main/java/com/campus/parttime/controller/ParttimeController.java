@@ -35,6 +35,7 @@ import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.campus.parttime.constant.ApplyStatus.*;
 import static com.campus.parttime.constant.JobStatus.*;
@@ -85,8 +86,8 @@ public class ParttimeController {
     public R addJob(@RequestHeader("uid") String userId, @RequestBody JobInsertForm form) {
         // 判断信用值
         int credit = jobDao.selectCreditByUserId(userId);
-        if(credit<=0){
-            return R.failed(null,"您的信用值不足，无法发布兼职");
+        if (credit <= 0) {
+            return R.failed(null, "您的信用值不足，无法发布兼职");
         }
         // 执行发布兼职操作
         Job job = FormTemplate.analyzeTemplate(form, Job.class);
@@ -154,7 +155,7 @@ public class ParttimeController {
             }
             //修改applyNum=0
             job.setApplyNum(0);
-            job.setVersion(job.getVersion()+1);
+            job.setVersion(job.getVersion() + 1);
             //更新job数据（update到缓存和数据库）
             if (serviceCenter.update(job)) {
 
@@ -211,7 +212,7 @@ public class ParttimeController {
      */
     @ApiOperation("提交兼职申请")
     @PostMapping("/addJobApply")
-    public R addJobApply(@RequestHeader("uid") String applicantId, @RequestParam("jobId") String jobId,@RequestParam("jobVersion")Integer jobVersion) {
+    public R addJobApply(@RequestHeader("uid") String applicantId, @RequestParam("jobId") String jobId, @RequestParam("jobVersion") Integer jobVersion) {
         try {
             RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
             RLock rLock = redissonClient.getLock("apply" + jobId);
@@ -222,11 +223,11 @@ public class ParttimeController {
                 return R.failed(null, "请勿重复提交兼职申请");
             }
             Job job = (Job) serviceCenter.search(jobId, Job.class);
-            if (job == null){
-                return R.failed(null,"当前兼职已关闭");
+            if (job == null) {
+                return R.failed(null, "当前兼职已关闭");
             }
-            if(!job.getVersion().equals(jobVersion)){ //若与前端发来的版本号不一致
-                return R.failed(null,"请刷新页面后再提交兼职申请");
+            if (!job.getVersion().equals(jobVersion)) { //若与前端发来的版本号不一致
+                return R.failed(null, "请刷新页面后再提交兼职申请");
             }
             // 若当前兼职状态为关闭或者招满，兼职申请提交失败
             if (applyDao.selectCreditByUserId(applicantId) <= 0) {
@@ -350,7 +351,7 @@ public class ParttimeController {
         job.setPassedNum(job.getPassedNum() + 1);
         if (job.getPassedNum().equals(job.getRecruitNum())) {
             job.setStatus(FULL.code);
-            job.setVersion(job.getVersion()+1);
+            job.setVersion(job.getVersion() + 1);
         }
         if (serviceCenter.updateMySql(apply) && serviceCenter.update(job)) { // 申请和兼职数据更新成功
             Operation operation = new Operation();
@@ -435,7 +436,7 @@ public class ParttimeController {
                         if (job.getFinishNum().equals(job.getRecruitNum())) {// 判断若加上当前执行完成订单后，该兼职是否全部完成
                             job.setStatus(FINISH.code);
                             // 修改版本信息
-                            job.setVersion(job.getVersion()+1);
+                            job.setVersion(job.getVersion() + 1);
                         }
                         if (!serviceCenter.updateMySql(job)) {
                             rLock.unlock();
@@ -444,7 +445,7 @@ public class ParttimeController {
 
                         // 数据库操作：将支出的金额转入对应账户
                         String receiverId = operation.getApplicantId();
-                        balanceRecordDao.receiveJobPay(receiverId,job.getSalary());
+                        balanceRecordDao.receiveJobPay(receiverId, job.getSalary());
                         // messageClient.sendPromptInformation(new PromptInformationForm(receiverId, "您有一条收款记录!"));
                     }
                     if (serviceCenter.updateMySql(operation)) {
@@ -468,29 +469,29 @@ public class ParttimeController {
     @ApiOperation("支付兼职费用")
     @PostMapping("/payJobFee")
     public R updateOperationStatus(@RequestHeader("uid") String posterId, @RequestBody JobOrderForm form) {
-            Operation operationSql = (Operation) serviceCenter.selectMySql(form.getOperationId(), Operation.class);
-            if(posterId.equals(operationSql.getPublisherId())){
-                BalanceRecord balanceRecord = FormTemplate.analyzeTemplate(form,BalanceRecord.class);
-                BigDecimal balance = balanceRecordDao.searchBalance(form.getUid());
-                // 判断余额是否充足
-                if(balance.compareTo(form.getMoney())==-1){
-                    return R.failed(null,"余额不足，请充值后再重试");
-                }
-                // 余额充足，进行以下支付操作
-                // 数据库操作:支出操作
-                balanceRecordDao.payJob(balanceRecord.getUid(),balanceRecord.getMoney());
-                // 新增余额变动记录
-                balanceRecord.setUid(form.getUid());
-                balanceRecord.setType(1);
-                balanceRecord.setBalance(balanceRecordDao.searchBalance(posterId));
-                if(!serviceCenter.insertMySql(balanceRecord)){
-                    balanceRecordDao.receiveJobPay(posterId,form.getMoney());
-                    return R.failed(null,"支付失败");
-                }
-
-                return R.ok(null,"支付成功");
+        Operation operationSql = (Operation) serviceCenter.selectMySql(form.getOperationId(), Operation.class);
+        if (posterId.equals(operationSql.getPublisherId())) {
+            BalanceRecord balanceRecord = FormTemplate.analyzeTemplate(form, BalanceRecord.class);
+            BigDecimal balance = balanceRecordDao.searchBalance(form.getUid());
+            // 判断余额是否充足
+            if (balance.compareTo(form.getMoney()) == -1) {
+                return R.failed(null, "余额不足，请充值后再重试");
             }
-            return R.failed(null,"您无权支付订单");
+            // 余额充足，进行以下支付操作
+            // 数据库操作:支出操作
+            balanceRecordDao.payJob(balanceRecord.getUid(), balanceRecord.getMoney());
+            // 新增余额变动记录
+            balanceRecord.setUid(form.getUid());
+            balanceRecord.setType(1);
+            balanceRecord.setBalance(balanceRecordDao.searchBalance(posterId));
+            if (!serviceCenter.insertMySql(balanceRecord)) {
+                balanceRecordDao.receiveJobPay(posterId, form.getMoney());
+                return R.failed(null, "支付失败");
+            }
+
+            return R.ok(null, "支付成功");
+        }
+        return R.failed(null, "您无权支付订单");
     }
 
 
@@ -535,11 +536,17 @@ public class ParttimeController {
     @ApiOperation("条件查询兼职")
     @PostMapping("/searchJob")
     public R searchRecruit(@RequestBody Map condition) {
-        List search = serviceCenter.search(condition, JobLoadList.class);
-        if (search != null) {
-            return R.ok(search);
-        }
-        return R.failed();
+        List<Job> search = serviceCenter.search(condition, Job.class);
+        List<String> ids = search.stream().map(Job::getPublisherId).distinct().collect(Collectors.toList());// 发布者的id列表
+        List<User> userList = serviceCenter.getTuplesByIds(ids, User.class);
+        Map<String, User> userMap = userList.stream().collect(Collectors.toMap(User::getUserId, a -> a, (k1, k2) -> k1));
+        Object ret = search.stream().map(job -> {
+            final JobLoadList jobLoadList = FormTemplate.analyzeTemplate(job, JobLoadList.class);
+            jobLoadList.setUsername(userMap.get(job.getPublisherId()).getUsername());
+            jobLoadList.setUserImage(userMap.get(job.getPublisherId()).getUserImage());
+            return jobLoadList;
+        }).collect(Collectors.toList());
+        return R.ok(ret);
     }
 
     @ApiOperation("兼职首页懒加载")
@@ -607,13 +614,13 @@ public class ParttimeController {
             showJob.setUserImage(user.getUserImage());
             showJob.setUsername(user.getUsername());
             showJob.setCredit(user.getCredit());
-            if(!userId.equals(job.getPublisherId())){
+            if (!userId.equals(job.getPublisherId())) {
                 ShowJobToOtherUser toOtherUser = FormTemplate.analyzeTemplate(showJob, ShowJobToOtherUser.class);
-                if(toOtherUser==null){
-                    return R.failed(null,"兼职详情查看异常");
+                if (toOtherUser == null) {
+                    return R.failed(null, "兼职详情查看异常");
                 }
-                Apply apply = applyDao.isJobApplyExist(jobId,userId);
-                if(apply==null) toOtherUser.setIsApplied(0); //标记未提交申请
+                Apply apply = applyDao.isJobApplyExist(jobId, userId);
+                if (apply == null) toOtherUser.setIsApplied(0); //标记未提交申请
                 else toOtherUser.setIsApplied(1); // 标记已提交申请
                 return R.ok(toOtherUser);
             }
@@ -705,9 +712,9 @@ public class ParttimeController {
             return R.failed(null, "已成功取消，请勿重复操作");
         }
         // 执行取消兼职执行订单操作
-        Job job = (Job)serviceCenter.selectMySql(operation.getJobId(),Job.class);
+        Job job = (Job) serviceCenter.selectMySql(operation.getJobId(), Job.class);
         // 将原先扣除的金额退还给发布者
-        balanceRecordDao.receiveJobPay(operation.getPublisherId(),job.getSalary());
+        balanceRecordDao.receiveJobPay(operation.getPublisherId(), job.getSalary());
 
         operation.setStatus(CANCEL.code);
         // 当前取消订单的用户扣除信用值20
@@ -1049,8 +1056,6 @@ public class ParttimeController {
         }
         return R.ok(finishedLists, "查找成功");
     }
-
-
 
 
 }

@@ -235,9 +235,9 @@ public class ServiceCenter {
         if (ids.size() == 0) {
             return new ArrayList<>();
         }
-        idsStr += ids.get(0);
+        idsStr += ("'"+ids.get(0)+"'");
         for (int i = 1; i < ids.size(); i++) {
-            idsStr = idsStr + "," + ids.get(i);
+            idsStr = idsStr + ",'" + ids.get(i)+"'";
         }
         idsStr += ")";
         String sql = "select * from " + tableName + " where deleted=0 and " + idColumn + " in " + idsStr;
@@ -257,6 +257,7 @@ public class ServiceCenter {
         }
         return ret;
     }
+
 
 
     /**
@@ -1150,6 +1151,10 @@ public class ServiceCenter {
             argName = String.valueOf(chars);
             String methodName;
             methodName = "set" + argName;
+            //如果不存在这个方法，则直接返回false
+            if(!Arrays.stream(t.getClass().getDeclaredMethods()).map(m->m.getName()).collect(Collectors.toList()).contains(methodName)){
+                return false;
+            }
             Method method;
             if (value instanceof List) { // ArrayList 特殊处理
                 method = t.getClass().getMethod(methodName, List.class);
