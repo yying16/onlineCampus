@@ -13,6 +13,7 @@ import com.campus.voucher.domain.VoucherOrder;
 import com.campus.voucher.service.SeckillVoucherService;
 import com.campus.voucher.service.VoucherOrderService;
 import com.campus.voucher.utils.RedisConstants;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.LoggerFactory;
@@ -21,8 +22,11 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.concurrent.ListenableFuture;
 
 import javax.annotation.Resource;
 import java.util.Collections;
@@ -35,6 +39,7 @@ import java.util.concurrent.Executors;
  * @Description:
  */
 @Service
+@Slf4j
 public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderDao, VoucherOrder> implements VoucherOrderService {
 
     @Resource
@@ -45,6 +50,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderDao, Vouche
 
     @Resource
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    KafkaTemplate<String, VoucherOrder> kafkaTemplate;
 
 //    @Resource
 //    private RedissonClient redissonClient;
@@ -70,22 +78,27 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderDao, Vouche
 
             int r = result.intValue();
             System.out.println(r);
-            if (r != 0){
-                return R.failed(null, r==1 ? "库存不足" : "用户只能抢一次");
+            if (r != 0) {
+                return R.failed(null, r == 1 ? "库存不足" : "用户只能抢一次");
             }
             //封装voucherOrder
             VoucherOrder voucherOrder = buildVoucherOrder(voucherId, orderId, userId);
             //放入kafka消息队列
 
-            return R.ok(orderId,"抢券成功");
+            ListenableFuture<SendResult<String, VoucherOrder>> future = kafkaTemplate.send("VOUCHER", voucherOrder);
+            future.addCallback(res -> log.info("消息成功同步到topic:{} partition:{}", res.getRecordMetadata().topic(), res.getRecordMetadata().partition()),
+                    ex -> log.error("消息同步失败，原因：{}", ex.getMessage()));
+
+
+            return R.ok(orderId, "抢券成功");
         } catch (Exception e) {
-            LoggerFactory.getLogger(VoucherOrderServiceImpl.class).error("优惠券秒杀业务出错："+ e.toString());
+            LoggerFactory.getLogger(VoucherOrderServiceImpl.class).error("优惠券秒杀业务出错：" + e.toString());
             e.printStackTrace();
-            return R.failed(null,"系统出错");
+            return R.failed(null, "系统出错");
         }
     }
 
-    private VoucherOrder buildVoucherOrder(String voucherId, String orderId, String userId){
+    private VoucherOrder buildVoucherOrder(String voucherId, String orderId, String userId) {
         String voucherOrderJson = stringRedisTemplate.opsForValue().get(RedisConstants.VOUCHER_KEY + voucherId);
         Voucher voucher = JSONObject.parseObject(voucherOrderJson, Voucher.class);
         VoucherOrder voucherOrder = new VoucherOrder();
@@ -98,12 +111,12 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderDao, Vouche
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void createOrder(VoucherOrder voucherOrder){
+    public void createOrder(VoucherOrder voucherOrder) {
         RedissonClient redissonClient = ((RedissonClient) SpringContextUtil.getBean("redissonClient"));
         RLock lock = redissonClient.getLock("seckill:user:" + voucherOrder.getUserId());
         try {
             boolean tryLock = lock.tryLock();
-            if (!tryLock){
+            if (!tryLock) {
                 log.error("用户只能抢一次");
                 return;
             }
@@ -112,7 +125,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderDao, Vouche
             String voucherId = voucherOrder.getVoucherId();
 
             int count = this.query().eq("user_id", userId).eq("voucher_id", voucherId).count().intValue();
-            if (count > 0){
+            if (count > 0) {
                 log.error("用户只能抢一次");
                 return;
             }
@@ -122,7 +135,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderDao, Vouche
                     .eq("voucher_id", voucherId)
                     .gt("stock", 0).update();
 
-            if (!success){
+            if (!success) {
                 log.error("库存不足!");
                 return;
             }
