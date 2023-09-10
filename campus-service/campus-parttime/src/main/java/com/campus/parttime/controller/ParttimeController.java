@@ -535,13 +535,13 @@ public class ParttimeController {
 
     @ApiOperation("条件查询兼职")
     @PostMapping("/searchJob")
-    public R searchRecruit(@RequestBody Map condition) {
+    public R searchJob(@RequestBody Map condition) {
         List<Job> search = serviceCenter.search(condition, Job.class);
         List<String> ids = search.stream().map(Job::getPublisherId).distinct().collect(Collectors.toList());// 发布者的id列表
         List<User> userList = serviceCenter.getTuplesByIds(ids, User.class);
         Map<String, User> userMap = userList.stream().collect(Collectors.toMap(User::getUserId, a -> a, (k1, k2) -> k1));
         Object ret = search.stream().map(job -> {
-            final JobLoadList jobLoadList = FormTemplate.analyzeTemplate(job, JobLoadList.class);
+            JobLoadList jobLoadList = FormTemplate.analyzeTemplate(job, JobLoadList.class);
             jobLoadList.setUsername(userMap.get(job.getPublisherId()).getUsername());
             jobLoadList.setUserImage(userMap.get(job.getPublisherId()).getUserImage());
             return jobLoadList;
