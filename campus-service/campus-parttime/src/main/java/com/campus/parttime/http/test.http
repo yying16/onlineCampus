@@ -71,15 +71,44 @@ Content-Type: application/json
 GET http://117.72.15.203:9000/campusParttime/parttime/updateJobFeedback?operationId=1692036297166516227&feedback=工作效率很高!
 token:t1
 
-### 11.条件查询兼职
+###下面这个很奇怪
+
+### 报错
 POST http://117.72.15.203:9000/campusParttime/parttime/searchJob
 token:t2
 Content-Type: application/json
 
 {
-  "location": "1",
-  "term": "0"
+  "jobTitle": "家教"
 }
+
+### 正常
+POST http://117.72.15.203:9000/campusParttime/parttime/searchJob
+token:t2
+Content-Type: application/json
+
+{
+  "jobTitle": "代课"
+}
+
+### 正常
+POST http://127.0.0.1:9000/campusParttime/parttime/searchJob
+token:t2
+Content-Type: application/json
+
+{
+  "jobTitle": "家教"
+}
+
+
+
+
+
+
+
+
+
+
 
 ### 12.查看兼职详情
 GET http://117.72.15.203:9000/campusParttime/parttime/getJobDetail?jobId=1688378351399641090
