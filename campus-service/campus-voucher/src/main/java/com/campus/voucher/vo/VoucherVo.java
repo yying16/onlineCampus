@@ -46,16 +46,6 @@ public class VoucherVo{
     private Integer actualValue;
 
     /**
-     * 优惠券类型
-     */
-    private Integer type;
-
-    /**
-     * 优惠券类型
-     */
-    private Integer status;
-
-    /**
      * 库存
      */
     @TableField(exist = false)
@@ -68,7 +58,7 @@ public class VoucherVo{
     private String beginTime;
 
     /**
-     * 失效时间
+     * 结束时间
      */
     @TableField(exist = false)
     private String endTime;

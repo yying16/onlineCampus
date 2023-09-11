@@ -53,8 +53,10 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherDao, Voucher> impleme
         String time = DateTime.now().toString();
         voucher.setCreateTime(time);
         voucher.setUpdateTime(time);
+        voucher.setType(1);
+        voucher.setStatus(1);
+        voucher.setDeleted(0);
         String voucherString = JSONObject.toJSONString(voucher);
-        redisTemplate.opsForValue().set(RedisConstants.VOUCHER_KEY + id, voucherString);
         boolean voucherSave = this.save(voucher);
         if (!voucherSave){
             return voucherSave;
@@ -65,6 +67,7 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherDao, Voucher> impleme
         if (!seckillVoucherSave){
             return seckillVoucherSave;
         }
+        redisTemplate.opsForValue().set(RedisConstants.VOUCHER_KEY + id, voucherString);
         redisTemplate.opsForValue().set(SECKILL_STOCK_KEY + id , seckillVoucher.getStock().toString());
         return true;
     }

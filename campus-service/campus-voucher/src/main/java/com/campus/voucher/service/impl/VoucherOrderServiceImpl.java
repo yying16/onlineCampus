@@ -12,6 +12,7 @@ import com.campus.voucher.domain.Voucher;
 import com.campus.voucher.domain.VoucherOrder;
 import com.campus.voucher.service.SeckillVoucherService;
 import com.campus.voucher.service.VoucherOrderService;
+import com.campus.voucher.service.VoucherService;
 import com.campus.voucher.utils.RedisConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -52,7 +53,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderDao, Vouche
     private RedisTemplate redisTemplate;
 
     @Autowired
-    KafkaTemplate<String, VoucherOrder> kafkaTemplate;
+    KafkaTemplate<String, String> kafkaTemplate;
+
+    @Autowired
+    private VoucherService voucherService;
 
 //    @Resource
 //    private RedissonClient redissonClient;
@@ -77,18 +81,16 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderDao, Vouche
                     voucherId, userId, orderId);
 
             int r = result.intValue();
-            System.out.println(r);
             if (r != 0) {
                 return R.failed(null, r == 1 ? "库存不足" : "用户只能抢一次");
             }
             //封装voucherOrder
             VoucherOrder voucherOrder = buildVoucherOrder(voucherId, orderId, userId);
             //放入kafka消息队列
-
-            ListenableFuture<SendResult<String, VoucherOrder>> future = kafkaTemplate.send("VOUCHER", voucherOrder);
+            String jsonString = JSONObject.toJSONString(voucherOrder);
+            ListenableFuture<SendResult<String, String>> future = kafkaTemplate.send("VOUCHER", jsonString);
             future.addCallback(res -> log.info("消息成功同步到topic:{} partition:{}", res.getRecordMetadata().topic(), res.getRecordMetadata().partition()),
                     ex -> log.error("消息同步失败，原因：{}", ex.getMessage()));
-
 
             return R.ok(orderId, "抢券成功");
         } catch (Exception e) {
@@ -99,8 +101,13 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderDao, Vouche
     }
 
     private VoucherOrder buildVoucherOrder(String voucherId, String orderId, String userId) {
-        String voucherOrderJson = stringRedisTemplate.opsForValue().get(RedisConstants.VOUCHER_KEY + voucherId);
-        Voucher voucher = JSONObject.parseObject(voucherOrderJson, Voucher.class);
+        String voucherJson = stringRedisTemplate.opsForValue().get(RedisConstants.VOUCHER_KEY + voucherId);
+        Voucher voucher = null;
+        if(voucherJson == null){
+            voucher = voucherService.getById(voucherId);
+        }else{
+            voucher = JSONObject.parseObject(voucherJson, Voucher.class);
+        }
         VoucherOrder voucherOrder = new VoucherOrder();
         voucherOrder.setUserId(userId);
         voucherOrder.setVoucherId(voucherId);

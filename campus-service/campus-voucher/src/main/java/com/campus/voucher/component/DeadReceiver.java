@@ -1,5 +1,6 @@
 package com.campus.voucher.component;
 
+import com.alibaba.fastjson.JSONObject;
 import com.campus.voucher.domain.Voucher;
 import com.campus.voucher.domain.VoucherOrder;
 import com.campus.voucher.service.VoucherOrderService;
@@ -21,10 +22,12 @@ public class DeadReceiver {
     VoucherOrderService voucherOrderService;
 
     @KafkaListener(topics = "VOUCHER")
-    public void handleDeadMsg(ConsumerRecord<String, VoucherOrder> record, Acknowledgment ack) {
+    public void handleDeadMsg(ConsumerRecord<String, String> record, Acknowledgment ack) {
         try{
             log.info("接收到的消息是:{}",record.value());
-            voucherOrderService.createOrder(record.value());
+            String voucherOrderJson = record.value();
+            VoucherOrder voucherOrder = JSONObject.parseObject(voucherOrderJson, VoucherOrder.class);
+            voucherOrderService.createOrder(voucherOrder);
             ack.acknowledge();
         }catch (Exception e){
             e.printStackTrace();
